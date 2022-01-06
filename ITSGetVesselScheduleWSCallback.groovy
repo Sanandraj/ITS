@@ -15,12 +15,17 @@ import org.jetbrains.annotations.Nullable
 
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /*
  * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
  * Date: 28/12/2021
  * Requirements:- Returns a list of Vessel Schedules arriving between -7 days and +27 days from today in JSON format
  *  @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION --> Paste this code (ITSGetVesselScheduleWSCallback.groovy)
+ * First shift - 8:00 to 17:59
+ * Second shift -18:00 to 02:59
+ * Third Shift - 03:00 to 07:59
  */
 
 class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallback {
@@ -55,7 +60,7 @@ class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallbac
         JSONBuilder jsonArray = JSONBuilder.createArray()
         String vesselStatus = null;
         for (VesselVisitDetails vvd : vvdList) {
-          if(vvd != null)  {
+            if (vvd != null) {
                 vesselStatus = vvd.getCvdCv()?.getCvVisitPhase()?.getKey()
                 if (vesselStatus != null) {
                     switch (vesselStatus) {
@@ -101,10 +106,23 @@ class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallbac
                 }
                 if (vvd.getVvdTimeStartWork() != null) {
                     jsonObject.put("shiftStartDtTm", ISO_DATE_FORMAT.format(vvd.getVvdTimeStartWork()))
+                    DateTimeFormatter format = DateTimeFormatter.ofPattern("HH:mm");
+                    LocalTime startTime1 = LocalTime.parse(firstShift, format);
+                    LocalTime startTime2 = LocalTime.parse(secondShift, format);
+                    LocalTime startTime3 = LocalTime.parse(thirdShift, format);
+                    SimpleDateFormat localDateFormat = new SimpleDateFormat("HH:mm");
+                    String time = localDateFormat.format(vvd.getVvdTimeStartWork());
+                    LocalTime targetTime = LocalTime.parse(time, format);
+                    if (targetTime.equals(startTime1) || (targetTime.isBefore(startTime2) && targetTime.isAfter(startTime1))) {
+                        jsonObject.put("shiftStartNum", "1")
+                    } else if (targetTime.equals(startTime2) || (targetTime.isBefore(startTime3) && targetTime.isAfter(startTime2))) {
+                        jsonObject.put("shiftStartNum", "2")
+                    } else {
+                        jsonObject.put("shiftStartNum", "3")
+                    }
+
                 }
-                if (vvd.getVvdTimeStartWork() != null) {
-                    jsonObject.put("shiftStartNum", "1")
-                }
+
                 if (vvd.getCvdTimeDischargeComplete() != null) {
                     jsonObject.put("dischargeFinishedDtTm", vvd.getCvdTimeDischargeComplete() != null ? ISO_DATE_FORMAT.format(vvd.getCvdTimeDischargeComplete()) : "")
                 }
@@ -124,6 +142,9 @@ class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallbac
     private static final String ready = "READY"
     private static final String working = "WORKING"
     private static final String complete = "COMPLETE"
+    private static final String firstShift = "08:00";
+    private static final String secondShift = "18:00";
+    private static final String thirdShift = "03:00";
     private static Logger LOGGER = Logger.getLogger(this.class);
 
 }
