@@ -69,7 +69,6 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         if (truckTransaction != null) {
             Set<Document> documentSet = (Set<Document>) truckTransaction.getTranDocuments()
             List<Document> documentList = new ArrayList<Document>(documentSet);
-
             Collections.sort(documentList, new DatesComparator());
             Document document
             if (documentList != null && documentList.size() > 0) {
@@ -137,11 +136,12 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                                     .append(container.getEqEquipType().getEqtypNominalHeight().getKey().substring(3, 5)).toString()
                             jsonObject.put("containerSzTpHt", ctrSizeType)
                         }
+                if (truckTransaction.getTranCtrPosition() != null && truckTransaction.getTranCtrPosition().getPosName() != null && truckTransaction.getTranCtrPosition().getPosName().startsWith(YARD_POS)) {
+                    jsonObject.put("containerSpotNum", truckTransaction.getTranCtrPosition().getPosName())
+                }
             }
 
-            /* if (vvd.getVvdTimeCargoCutoff() != null) {
-                 jsonObject.put("containerSpotNum", ISO_DATE_FORMAT.format(vvd.getVvdTimeCargoCutoff()))
-             }*/
+
             if (truckTransaction.getTranChsNbr() != null) {
                 jsonObject.put("chassisNumber", truckTransaction.getTranChsNbr())
                 Chassis chassis = Chassis.findChassis(truckTransaction.getTranChsNbr())
@@ -150,11 +150,12 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                                     .append(chassis.getEqEquipType().getEqtypIsoGroup().getKey()).toString()
                             jsonObject.put("chassisSzTp", chassisSizeType)
                         }
+                 if (truckTransaction.getTranChsPosition() != null && truckTransaction.getTranChsPosition().getPosName() != null && truckTransaction.getTranChsPosition().getPosName().startsWith(YARD_POS)) {
+                jsonObject.put("chassisSpotNum", truckTransaction.getTranChsPosition().getPosName())
+            }
             }
 
-            /* if (vvd.getCvdTimeDischargeComplete() != null) {
-                 jsonObject.put("chassisSpotNum", ISO_DATE_FORMAT.format(vvd.getCvdTimeDischargeComplete()))
-             }*/
+
               if (truckTransaction.getTranCtrAccNbr() != null || truckTransaction.getTranChsAccNbr() != null) {
                   jsonObject.put("gensetNumber", truckTransaction.getTranCtrAccNbr() != null ? truckTransaction.getTranCtrAccNbr() : truckTransaction.getTranChsAccNbr())
               }
@@ -221,6 +222,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String EMPTY_OUT = "EMPTY-OUT"
     private static final String FULL_IN = "FULL-IN"
     private static final String FULL_OUT = "FULL-OUT"
+    private static final String YARD_POS = "Y-ITS"
 
     private static Logger LOGGER = Logger.getLogger(this.class);
 
