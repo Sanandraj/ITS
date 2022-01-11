@@ -9,6 +9,7 @@ import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.zk.util.JSONBuilder
+import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.road.RoadEntity
 import com.navis.road.RoadField
 import com.navis.road.business.atoms.TruckerFriendlyTranSubTypeEnum
@@ -22,6 +23,7 @@ import org.jetbrains.annotations.Nullable
 
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.util.stream.Collectors
 
 /*
  * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
@@ -44,10 +46,9 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
 
     String prepareGateTicketMessageToITS(String ticketNbr, String tranDate) {
         JSONBuilder jsonObject = JSONBuilder.createObject();
-        if (StringUtils.isEmpty(ticketNbr)) {
-            jsonObject.put("errorMessage", "Missing required parameter : ticketNumber.")
-        } else if (StringUtils.isEmpty(tranDate)) {
-            jsonObject.put("errorMessage", "Missing required parameter : gateTransDate.")
+        String errorMessage = validateMadtoryFields(ticketNbr, tranDate)
+        if (errorMessage.length() > 0) {
+            jsonObject.put("errorMessage", errorMessage)
         } else {
             DomainQuery dq = QueryUtils.createDomainQuery(RoadEntity.TRUCK_TRANSACTION)
                     .addDqPredicate(PredicateFactory.eq(RoadField.TRAN_NBR, ticketNbr))
@@ -58,15 +59,18 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
             String ctrSizeType;
             String chassisSizeType;
             String gateTransactionFunction = null
+            Document document
             if (truckTransaction != null) {
-                Set<Document> documentSet = (Set<Document>) truckTransaction.getTranDocuments()
-                List<Document> documentList = new ArrayList<Document>(documentSet);
-                Collections.sort(documentList, new DatesComparator());
-                Document document
-                if (documentList != null && documentList.size() > 0) {
-                    document = (Document) documentList.get(0)
+                if (truckTransaction.getTranDocuments() != null && truckTransaction.getTranDocuments().size() > 0) {
+                    List<Document> documentList = truckTransaction.getTranDocuments().stream().collect(Collectors.toList());
+                    Collections.sort(documentList, new Comparator<Document>() {
+                        @Override
+                        int compare(Document doc1, Document doc2) {
+                            return doc1.getDocCreated().compareTo(doc2.getDocCreated())
+                        }
+                    });
+                    document = documentList.get(0)
                 }
-
 
                 switch (truckTransaction.getTranTruckerTranSubType()) {
                     case TruckerFriendlyTranSubTypeEnum.PUC:
@@ -108,35 +112,40 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                 jsonObject.put("terminalCd", ContextHelper.getThreadFacilityId() != null ? ContextHelper.getThreadFacilityId() : "")
                 jsonObject.put("terminalFullName", TERMINAL_NAME)
                 jsonObject.put("shippingLineScac", truckTransaction.getTranLineId() != null ? truckTransaction.getTranLineId() : "")
-                //jsonObject.put("shippingLineName", truckTransaction.getTranLine()?.getBzuName() != null ? truckTransaction.getTranLine().getBzuName() : "")
-                if(truckTransaction.getTranLine() != null) {
-                    jsonObject.put("shippingLineName", truckTransaction.getTranLine().getBzuName())
-                }else {
-                    jsonObject.put("shippingLineName",  truckTransaction.getTranLineId() != null ? (LineOperator.findLineOperatorById(truckTransaction.getTranLineId()) != null ? LineOperator.findLineOperatorById(truckTransaction.getTranLineId()).getBzuName() : "") : "")
+                String shippingLineName = ""
+                if (truckTransaction.getTranLine() != null) {
+                    shippingLineName = truckTransaction.getTranLine().getBzuName()
+                } else if (truckTransaction.getTranLineId()) {
+                    LineOperator lineOperator = LineOperator.findLineOperatorById(truckTransaction.getTranLineId())
+                    if (lineOperator != null) {
+                        shippingLineName = lineOperator.getBzuName()
+                    }
                 }
+                jsonObject.put("shippingLineName", shippingLineName)
+
                 jsonObject.put("laneNum", truckTransaction.getTranTruckVisit()?.getTvdtlsExitLane()?.getLaneId() != null ? truckTransaction.getTranTruckVisit().getTvdtlsExitLane().getLaneId() : truckTransaction.getTranTruckVisit()?.getTvdtlsEntryLane()?.getLaneId())
                 jsonObject.put("gateTransFunctionDsc", gateTransactionFunction)
                 jsonObject.put("ticketTypeDsc", document?.getDocDocType()?.getDoctypeId() != null ? document.getDocDocType().getDoctypeId() : "")
                 jsonObject.put("driverLicenseNum", truckTransaction.getTranTruckVisit()?.getTvdtlsDriverLicenseNbr() != null ? truckTransaction.getTranTruckVisit().getTvdtlsDriverLicenseNbr() : "")
                 jsonObject.put("driverName", truckTransaction.getTranTruckVisit()?.getTvdtlsDriverName() != null ? truckTransaction.getTranTruckVisit().getTvdtlsDriverName() : "")
-                jsonObject.put("truckingCoScac", truckTransaction.getTranTruckingCompany()?.getBzuId() != null ? truckTransaction.getTranTruckingCompany().getBzuId() : "")
+                jsonObject.put("truckingCoScac", truckTransaction.getTranTruckingCompany()?.getBzuScac() != null ? truckTransaction.getTranTruckingCompany().getBzuScac() : "")
                 jsonObject.put("truckingCoName", truckTransaction.getTranTruckingCompany()?.getBzuName() != null ? truckTransaction.getTranTruckingCompany().getBzuName() : "")
                 // jsonObject.put("clerkName", document. != null ? ISO_DATE_FORMAT.format(vvd.getCvdETA()) : "")
 
                 if (truckTransaction.getTranCtrNbr() != null || truckTransaction.getTranCtrNbrAssigned()) {
-                    jsonObject.put("containerNumber", truckTransaction.getTranCtrNbr() != null ? truckTransaction.getTranCtrNbr() : truckTransaction.getTranCtrNbrAssigned())
-                    Container container = Container.findContainer(truckTransaction.getTranCtrNbr())
+                    String containerNbr = truckTransaction.getTranCtrNbr() != null ? truckTransaction.getTranCtrNbr() : truckTransaction.getTranCtrNbrAssigned()
+                    jsonObject.put("containerNumber", containerNbr)
+                    Container container = Container.findContainer(containerNbr)
                     if (container != null) {
                         ctrSizeType = new StringBuilder().append(container.getEqEquipType().getEqtypNominalLength().getKey().substring(3, 5))
                                 .append(container.getEqEquipType().getEqtypIsoGroup().getKey())
                                 .append(container.getEqEquipType().getEqtypNominalHeight().getKey().substring(3, 5)).toString()
                         jsonObject.put("containerSzTpHt", ctrSizeType)
                     }
-                    if (truckTransaction.getTranCtrPosition() != null && truckTransaction.getTranCtrPosition().getPosName() != null && truckTransaction.getTranCtrPosition().getPosName().startsWith(YARD_POS)) {
-                        jsonObject.put("containerSpotNum", truckTransaction.getTranCtrPosition().getPosName())
-                    }
                 }
-
+                if (truckTransaction.getTranUfv() != null && truckTransaction.getTranUfv().isTransitState(UfvTransitStateEnum.S40_YARD)) {
+                    jsonObject.put("containerSpotNum", truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName())
+                }
 
                 if (truckTransaction.getTranChsNbr() != null) {
                     jsonObject.put("chassisNumber", truckTransaction.getTranChsNbr())
@@ -159,13 +168,17 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                     jsonObject.put("vesselName", truckTransaction.getTranCarrierVisit().getCarrierVehicleName())
                 }
                 if (truckTransaction.getTranCarrierVisit() != null) {
-                    if (UnitCategoryEnum.IMPORT.equals(truckTransaction.getTranUnitCategory())) {
+                    String voyageCall
+                    /*if (UnitCategoryEnum.IMPORT.equals(truckTransaction.getTranUnitCategory())) {
                         jsonObject.put("voyageCall", new StringBuilder().append(truckTransaction.getTranCarrierVisit().getCarrierIbVoyNbrOrTrainId())
                                 .append(" ").append(truckTransaction.getTranCarrierVisit().getCarrierIbVisitCallNbr()).toString())
                     } else if (UnitCategoryEnum.EXPORT.equals(truckTransaction.getTranUnitCategory())) {
                         jsonObject.put("voyageCall", new StringBuilder().append(truckTransaction.getTranCarrierVisit().getCarrierObVoyNbrOrTrainId())
                                 .append(" ").append(truckTransaction.getTranCarrierVisit().getCarrierObVisitCallNbr()).toString())
-                    }
+                    }*/
+
+                    jsonObject.put("voyageCall", new StringBuilder().append(truckTransaction.getTranCarrierVisit().getCarrierObVoyNbrOrTrainId())
+                            .append(" ").append(truckTransaction.getTranCarrierVisit().getCarrierObVisitCallNbr()).toString())
                 }
                 if (truckTransaction.getTranEqoNbr() != null || truckTransaction.getTranBlNbr() != null) {
                     jsonObject.put("cargoRefNum", truckTransaction.getTranEqoNbr() != null ? truckTransaction.getTranEqoNbr() : truckTransaction.getTranBlNbr())
@@ -187,6 +200,17 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         return jsonObject.toJSONString()
     }
 
+    private String validateMadtoryFields(String ticketNbr, String tranDate) {
+        StringBuilder stringBuilder = new StringBuilder()
+        if (StringUtils.isEmpty(ticketNbr)) {
+            stringBuilder.append("Missing required parameter : ticketNumber.").append(" :: ")
+        }
+        if (StringUtils.isEmpty(tranDate)) {
+            stringBuilder.append("Missing required parameter : gateTransDate.")
+        }
+        return stringBuilder.toString()
+    }
+
     private Date getStartDate(String datestr) {
         Date startDate = DST_DATE_FORMAT.parse(DST_DATE_FORMAT.format(SRC_DATE_FORMAT.parse(datestr)))
         Calendar c1 = Calendar.getInstance()
@@ -195,7 +219,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         c1.set(Calendar.MINUTE, 0)
         c1.set(Calendar.SECOND, 0)
         c1.set(Calendar.MILLISECOND, 0)
-        startDate = c1.getTime();
+        return c1.getTime();
     }
 
     private Date getEndDate(String datestr) {
@@ -206,7 +230,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         c1.set(Calendar.MINUTE, 59)
         c1.set(Calendar.SECOND, 59)
         c1.set(Calendar.MILLISECOND, 999)
-        endDate = c1.getTime()
+        return c1.getTime()
     }
 
 
@@ -224,11 +248,6 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
 
     private static Logger LOGGER = Logger.getLogger(this.class);
 
+
 }
 
-public class DatesComparator implements Comparator<Document> {
-    public int compare(Document i1, Document i2) {
-        return i1.getDocCreated().compareTo(i2.getDocCreated())
-
-    }
-}
