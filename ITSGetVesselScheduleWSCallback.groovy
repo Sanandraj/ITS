@@ -15,8 +15,6 @@ import org.jetbrains.annotations.Nullable
 
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 /*
  * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
@@ -106,21 +104,14 @@ class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallbac
                 }
                 if (vvd.getVvdTimeStartWork() != null) {
                     jsonObject.put("shiftStartDtTm", ISO_DATE_FORMAT.format(vvd.getVvdTimeStartWork()))
-                    DateTimeFormatter format = DateTimeFormatter.ofPattern("HH:mm");
-                    LocalTime startTime1 = LocalTime.parse(firstShift, format);
-                    LocalTime startTime2 = LocalTime.parse(secondShift, format);
-                    LocalTime startTime3 = LocalTime.parse(thirdShift, format);
-                    SimpleDateFormat localDateFormat = new SimpleDateFormat("HH:mm");
-                    String time = localDateFormat.format(vvd.getVvdTimeStartWork());
-                    LocalTime targetTime = LocalTime.parse(time, format);
-                    if (targetTime.equals(startTime1) || (targetTime.isBefore(startTime2) && targetTime.isAfter(startTime1))) {
+                    int targetTime = vvd.getVvdTimeStartWork().getHours()
+                    LOGGER.debug("targetTime" + targetTime)
+                    if (targetTime >= 8 && targetTime < 18)
                         jsonObject.put("shiftStartNum", "1")
-                    } else if (targetTime.equals(startTime2) || (targetTime.isBefore(startTime3) && targetTime.isAfter(startTime2))) {
+                    else if ((targetTime >= 18 && targetTime < 24) || (targetTime >= 0 && targetTime < 3))
                         jsonObject.put("shiftStartNum", "2")
-                    } else {
+                    else
                         jsonObject.put("shiftStartNum", "3")
-                    }
-
                 }
 
                 if (vvd.getCvdTimeDischargeComplete() != null) {
@@ -142,9 +133,6 @@ class ITSGetVesselScheduleWSCallback extends AbstractExtensionPersistenceCallbac
     private static final String ready = "READY"
     private static final String working = "WORKING"
     private static final String complete = "COMPLETE"
-    private static final String firstShift = "08:00";
-    private static final String secondShift = "18:00";
-    private static final String thirdShift = "03:00";
     private static Logger LOGGER = Logger.getLogger(this.class);
 
 }
