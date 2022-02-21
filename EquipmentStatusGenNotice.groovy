@@ -1,7 +1,10 @@
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.ServicesManager
-import com.navis.argo.business.atoms.*
+import com.navis.argo.business.atoms.EventEnum
+import com.navis.argo.business.atoms.FreightKindEnum
+import com.navis.argo.business.atoms.LogicalEntityEnum
+import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.argo.business.integration.IntegrationServiceMessage
 import com.navis.argo.business.model.ArgoSequenceProvider
 import com.navis.argo.business.model.CarrierVisit
@@ -46,6 +49,10 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+/*
+ * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
+ * Requirements:- Send the current status of the equipment whenever a new event occurs for a container
+ */
 
 class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
 
@@ -61,8 +68,7 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
         if (unit == null) {
             return
         }
-        List<IntegrationService> integrationServiceList = getUnitDetailsSyncIntegrationServices("EQUIP_STATUS", false);
-
+        List<IntegrationService> integrationServiceList = getUnitDetailsSyncIntegrationServices(INT_SERV_NAME, false);
         Equipment equip = unit.getUnitEquipment()
         UnitCategoryEnum unitCategory = unit.getUnitCategory()
         JSONBuilder mainObj = JSONBuilder.createObject();
@@ -70,8 +76,8 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
         JSONBuilder msgDataArray = JSONBuilder.createArray()
         mainObj.put(MSGHEADER, msgHeaderObj)
         mainObj.put(MSGDATA, msgDataArray)
-        msgHeaderObj.put(SOURCE_CD, ContextHelper.getThreadOperator()?.getOprId() != null ? ContextHelper.getThreadOperator().getOprId() : OPERATOR_ID)
-        msgHeaderObj.put(SENDER_CD, ContextHelper.getThreadOperator()?.getOprId() != null ? ContextHelper.getThreadOperator().getOprId() : OPERATOR_ID)
+        msgHeaderObj.put(SOURCE_CD, ContextHelper.getThreadOperator()?.getOprId() != null ?: OPERATOR_ID)
+        msgHeaderObj.put(SENDER_CD, ContextHelper.getThreadOperator()?.getOprId() != null ?: OPERATOR_ID)
         msgHeaderObj.put(RECEIVER_CD, RECEIVER_CD_VAL)
         msgHeaderObj.put(TRANS_CNT, "1")
         /* msgHeaderObj.put("gsn_nbr", "")
@@ -83,7 +89,7 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
         transactionsObj.put(TRANS_DTTM, ISO_DATE_FORMAT.format(now))
         msgDataArray.add(transactionsObj)
         JSONBuilder unitInfoObj = JSONBuilder.createObject();
-        unitInfoObj.put(TERMINAL_CD, ContextHelper.getThreadOperator()?.getOprId() != null ? ContextHelper.getThreadOperator().getOprId() : OPERATOR_ID)
+        unitInfoObj.put(TERMINAL_CD, ContextHelper.getThreadOperator()?.getOprId() != null ?: OPERATOR_ID)
         unitInfoObj.put(UNIT_CAT, messageTranslator.getMessage(equip.getEqClass().getDescriptionPropertyKey()))
         unitInfoObj.put(UNIT_NBR, unit.getUnitId())
         unitInfoObj.put(UNITTYPEISO_CD, equip?.getEqEquipType()?.getEqtypId() ?: EMPTY_STR)
@@ -146,7 +152,8 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
         unitStatusinfoObj.put(UNITUSE_DESC, unitUseDesc)
         transactionsObj.put(UNITSTATUSINFO, unitStatusinfoObj)
 
-        TruckTransaction truckTransaction = getTruckTransaction(unit.getUnitId()) // give depature and arrival info if it is thru Truck
+        TruckTransaction truckTransaction = getTruckTransaction(unit.getUnitId())
+        // give depature and arrival info if it is thru Truck
         if (truckTransaction != null) {
             JSONBuilder departureinfoObj = JSONBuilder.createObject();
             JSONBuilder arrivalinfoObj = JSONBuilder.createObject();
@@ -274,32 +281,6 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
             cargoinfoObj.put(USERLINE_SCAC, equip.getEquipmentOperator().getBzuScac())
         }
         transactionsObj.put(CARGOINFO, cargoinfoObj)
-        // fee details not necessary for Husky
-        /*UnitStorageManagerPea storageManager = (UnitStorageManagerPea) Roastery.getBean(UnitStorageManager.BEAN_ID);
-          EdiInvoice ediInvoice = storageManager.getInvoiceForUnit(ufv, now, invoiceClass, (String) null, ufv.getUfvUnit().getUnitLineOperator(), (ScopedBizUnit) null, (String) null, now, "INQUIRE");
-          if(ediInvoice != null) {
-              List<InvoiceCharge> chargeList = ediInvoice.getInvoiceChargeList();
-              Double totalcharges = ediInvoice.getTotalCharges()
-              LOGGER.debug("ediInvoice"+ediInvoice)
-              LOGGER.debug("chargeList"+chargeList)
-              LOGGER.debug("totalcharges"+totalcharges)
-              int days = 0
-              for(InvoiceCharge invoiceCharge : chargeList){
-                   days = days + (int) invoiceCharge.getQuantityBilled()
-              }
-              LOGGER.debug("days"+days)
-
-          }
-        JSONBuilder feeinfoArray = JSONBuilder.createArray()
-        JSONBuilder feeinfoObj = JSONBuilder.createObject();
-        feeinfoObj.put("feetype_cd", "")
-        feeinfoObj.put("feetype_desc", "")
-        feeinfoObj.put("fee_amt", "")
-        feeinfoObj.put("feeuntil_dttm", "")
-        feeinfoObj.put("fee_dttm", "")
-        feeinfoArray.add(feeinfoObj)
-        transactionsObj.put("feeinfo", feeinfoArray)*/
-
 
         List<LinkedHashMap<String, String>> shipmentStatusList = (List<LinkedHashMap<String, String>>) getMapShipmentStatus(unit)
         JSONBuilder shipmentstatusinfoArray = JSONBuilder.createArray()
@@ -382,19 +363,20 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
         }
         currentconditioninfoObj.put(TMF_FLG, isTMFHold ? YES : NO)
         transactionsObj.put(CURRENTCONDITIONINFO, currentconditioninfoObj)
-        LOGGER.debug("response string final mainOBj::::::::::::: " + mainObj.toJSONString())
-               for (IntegrationService integrationService : integrationServiceList) {
+        LOGGER.debug("response string ::::::::::::: " + mainObj.toJSONString())
+        for (IntegrationService integrationService : integrationServiceList) {
             if (mainObj.toJSONString() != null) {
-                LOGGER.debug("inside ISM entrr integrationServiceList::::::::::::: " + integrationServiceList.size())
+
                 logRequestToInterfaceMessage(unit, LogicalEntityEnum.UNIT, integrationService, mainObj.toJSONString());
             }
         }
     }
 
     private static TruckTransaction getTruckTransaction(String unitId) {
-        final TranSubTypeEnum[] transactionTypes = [TranSubTypeEnum.DI, TranSubTypeEnum.DE, TranSubTypeEnum.DM, TranSubTypeEnum.DB, TranSubTypeEnum.DC, TranSubTypeEnum.RI, TranSubTypeEnum.RE, TranSubTypeEnum.RM, TranSubTypeEnum.RB, TranSubTypeEnum.RC]
+        final TranSubTypeEnum[] tranTypes = [TranSubTypeEnum.DI, TranSubTypeEnum.DE, TranSubTypeEnum.DM, TranSubTypeEnum.DB, TranSubTypeEnum.DC, TranSubTypeEnum.RI, TranSubTypeEnum.RE, TranSubTypeEnum.RM, TranSubTypeEnum.RB, TranSubTypeEnum.RC]
         DomainQuery dq = QueryUtils.createDomainQuery(RoadEntity.TRUCK_TRANSACTION)
                 .addDqPredicate(PredicateFactory.eq(RoadField.TRAN_CTR_NBR, unitId))
+                .addDqPredicate(PredicateFactory.in(RoadField.TRAN_SUB_TYPE, tranTypes))
                 .addDqOrdering(Ordering.desc(RoadField.TRAN_CREATED))
                 .setDqMaxResults(1)
         List<TruckTransaction> truckTransactionList = (List<TruckTransaction>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
@@ -489,9 +471,6 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
 
         if (unit.getUnitIsHazard()) {
             list.add(setStatus("H1", "Hazmat", SHIPMENT, ISO_DATE_FORMAT.format(now)))
-        }
-        if (!InbondEnum.INBOND.equals(unit.getUnitInbond())) {
-            list.add(setStatus("CT", "Customs Released", SHIPMENT, ISO_DATE_FORMAT.format(now)))
         }
 
 
@@ -729,6 +708,7 @@ class EquipmentStatusGenNotice extends AbstractGeneralNoticeCodeExtension {
     private static final String FULL = "FULL"
     private static final String OPERATOR_ID = "HUSKY"
     private static final String RECEIVER_CD_VAL = "ECP"
+    private static final String INT_SERV_NAME = "EQUIP_STATUS"
     Date now = ArgoUtils.timeNow()
     private String invoiceClass = "IMPORT_PRE_PAY";
     MessageTranslator messageTranslator = TranslationUtils.getTranslationContext(ContextHelper.getThreadUserContext()).getMessageTranslator()
