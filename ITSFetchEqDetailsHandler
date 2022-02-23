@@ -1,0 +1,89 @@
+import com.navis.argo.business.atoms.EquipClassEnum
+import com.navis.argo.business.atoms.EquipRfrTypeEnum
+import com.navis.argo.business.reference.Container
+import com.navis.argo.business.reference.Equipment
+import com.navis.external.argo.AbstractArgoCustomWSHandler
+import com.navis.framework.portal.UserContext
+import com.navis.framework.util.message.MessageCollector
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+import org.jdom.Element
+import org.jdom.Namespace
+
+/*
+<custom class= "ITSFetchEqDetailsHandler" type="extension">
+<EquipDetails>
+<Equip-Nbr>?</Equip-Nbr>
+</EquipDetails>
+</custom>
+*/
+
+class ITSFetchEqDetailsHandler extends AbstractArgoCustomWSHandler {
+    @Override
+    void execute(final UserContext inUserContext,
+                 final MessageCollector inOutMessageCollector,
+                 final Element inECustom, final Element inOutEResponse, final Long inWslogGkey) {
+
+        LOGGER.setLevel(Level.DEBUG)
+        Element rootElement = inECustom.getChild("EquipDetails")
+        Element eqipNbrElement = rootElement.getChild("Equip-Nbr")
+        Namespace sNS = Namespace.getNamespace("argo", "http://www.navis.com/sn4")
+        Element responseRoot = new Element("EquipmentDetails", sNS)
+        inOutEResponse.addContent(responseRoot)
+        Element equipDetails = new Element("EquipmentDetail", sNS)
+        responseRoot.addContent(equipDetails)
+        Equipment equipment = null
+        if (eqipNbrElement != null && eqipNbrElement.getValue() != null) {
+            equipment = Equipment.findEquipment(eqipNbrElement.getValue())
+        }
+        String isReefer = NO
+        StringBuilder sb = new StringBuilder()
+        if (equipment != null) {
+            responseRoot.setAttribute(STATUS, OK_STATUS_NO)
+            responseRoot.setAttribute(STATUS_ID, OK_STATUS)
+            sb.append(OWNER).append(equipment.getEquipmentOwnerId()).append(",").append(EQTYPE)
+            if (EquipClassEnum.CONTAINER.equals(equipment.getEqClass())) {
+                sb.append(CTR)
+                Container container = (Container) equipment
+                if (container.getEqRfrType() != null && !EquipRfrTypeEnum.NON_RFR.equals(container.getEqRfrType())) {
+                    isReefer = YES
+                }
+            } else if (EquipClassEnum.CHASSIS.equals(equipment.getEqClass())) {
+                sb.append(CHASSIS)
+            } else if (EquipClassEnum.ACCESSORY.equals(equipment.getEqClass())) {
+                sb.append(GENSET)
+            }
+            sb.append(",").append(REEFER_FLAG).append(EquipClassEnum.CONTAINER.equals(equipment.getEqClass()) ? isReefer : EMPTY_STRING)
+            equipDetails.setText(sb.toString())
+        } else {
+            Element messages = new Element("messages")
+            equipDetails.addContent(messages)
+            Element message = new Element("message")
+            messages.addContent(message)
+            equipDetails.setText(eqipNbrElement.getValue() != null ? "Details not available for the equipment : ${eqipNbrElement.getValue()}" : "Details not available for the equipment")
+            responseRoot.setAttribute(STATUS, NOT_OK_STATUS_NO)
+            responseRoot.setAttribute(STATUS_ID, NOT_OK_STATUS)
+        }
+    }
+
+    private static final String EMPTY_STRING = ""
+    private static final String CTR = "CN"
+    private static final String CHASSIS = "CH"
+    private static final String OWNER = "OWNER:"
+    private static final String EQTYPE = "EQTYP:"
+    private static final String REEFER_FLAG = "RFFLG:"
+    private static final String GENSET = "GS"
+    private static final String YES = "Y"
+    private static final String NO = "N"
+    private static final String STATUS = "status"
+    private static final String STATUS_ID = "status-id"
+    private static final String OK_STATUS = "OK"
+    private static final String NOT_OK_STATUS = "NOK"
+    private static final String NOT_OK_STATUS_NO = "3"
+    private static final String MESSAGE_TEXT = "message-text"
+    private static final String OK_STATUS_NO = "1"
+
+    private static Logger LOGGER = Logger.getLogger(this.class)
+
+
+}
