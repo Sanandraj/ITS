@@ -17,10 +17,10 @@ import java.text.SimpleDateFormat
 
 
 /*
- * @Author KISHORE KUMAR S</a>
+ * @Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S</a>
  * Date: 04/03/2022
  * Requirements:-  Request should have the input date and read all the Invoices beyond that date
- *  @Inclusion Location	: Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER --> Paste this code (ITSInvoiceDetlsWsHandler.groovy)
+ * @Inclusion Location	: Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER --> Paste this code (ITSInvoiceDetlsWsHandler.groovy)
 
 <custom class= "ITSInvoiceDetlsWsHandler" type="extension">
 <Invoices>
