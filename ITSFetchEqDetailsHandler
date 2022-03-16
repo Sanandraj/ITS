@@ -2,6 +2,7 @@ import com.navis.argo.business.atoms.EquipClassEnum
 import com.navis.argo.business.atoms.EquipRfrTypeEnum
 import com.navis.argo.business.reference.Container
 import com.navis.argo.business.reference.Equipment
+import com.navis.argo.business.reference.LineOperator
 import com.navis.external.argo.AbstractArgoCustomWSHandler
 import com.navis.framework.portal.UserContext
 import com.navis.framework.util.message.MessageCollector
@@ -11,6 +12,12 @@ import org.jdom.Element
 import org.jdom.Namespace
 
 /*
+ * @Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S</a>
+ * Date: 04/03/2022
+ * Requirements:-  Request should have the input date and read all the Invoices beyond that date
+ * @Inclusion Location	: Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER --> Paste this code (ITSInvoiceDetlsWsHandler.groovy)
+
+
 <custom class= "ITSFetchEqDetailsHandler" type="extension">
 <EquipDetails>
 <Equip-Nbr>?</Equip-Nbr>
@@ -32,16 +39,20 @@ class ITSFetchEqDetailsHandler extends AbstractArgoCustomWSHandler {
         inOutEResponse.addContent(responseRoot)
         Element equipDetails = new Element("EquipmentDetail", sNS)
         responseRoot.addContent(equipDetails)
+
         Equipment equipment = null
+        LineOperator lineOperator = null
         if (eqipNbrElement != null && eqipNbrElement.getValue() != null) {
             equipment = Equipment.findEquipment(eqipNbrElement.getValue())
+            String input_lineOperator= equipment.getEquipmentOwnerId()
+            lineOperator= LineOperator.findLineOperatorById(input_lineOperator)
         }
         String isReefer = NO
         StringBuilder sb = new StringBuilder()
         if (equipment != null) {
             responseRoot.setAttribute(STATUS, OK_STATUS_NO)
             responseRoot.setAttribute(STATUS_ID, OK_STATUS)
-            sb.append(OWNER).append(equipment.getEquipmentOwnerId()).append(",").append(EQTYPE)
+            sb.append(OWNER).append(lineOperator.getBzuCtct().ctctSms.toString()).append(",").append(EQTYPE)
             if (EquipClassEnum.CONTAINER.equals(equipment.getEqClass())) {
                 sb.append(CTR)
                 Container container = (Container) equipment
@@ -65,7 +76,6 @@ class ITSFetchEqDetailsHandler extends AbstractArgoCustomWSHandler {
             responseRoot.setAttribute(STATUS_ID, NOT_OK_STATUS)
         }
     }
-
     private static final String EMPTY_STRING = ""
     private static final String CTR = "CN"
     private static final String CHASSIS = "CH"
@@ -84,6 +94,4 @@ class ITSFetchEqDetailsHandler extends AbstractArgoCustomWSHandler {
     private static final String OK_STATUS_NO = "1"
 
     private static Logger LOGGER = Logger.getLogger(this.class)
-
-
 }
