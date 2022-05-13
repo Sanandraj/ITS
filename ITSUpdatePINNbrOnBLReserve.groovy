@@ -13,7 +13,7 @@ import org.apache.log4j.Logger
 
 
 /*
- * 
+ * Created by skishore@weservetech.com on 28/APR/2022.
  * Requirements : This groovy is used to retrieve the last 5 letters from BL and set it as Pin number in Unit and clears the PIN Number when * BL is disassociating for a unit.
  *
  * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION.
