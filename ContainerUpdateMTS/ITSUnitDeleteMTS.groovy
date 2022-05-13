@@ -5,6 +5,7 @@ import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.inventory.business.units.Unit
 import com.navis.services.business.event.GroovyEvent
 import groovy.sql.Sql
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
@@ -24,6 +25,7 @@ import org.apache.log4j.Logger
 class ITSUnitDeleteMTS extends AbstractGeneralNoticeCodeExtension {
 
     public void execute(GroovyEvent paramGroovyEvent) {
+        LOGGER.setLevel(Level.DEBUG);
         logMsg("ITSUnitDeleteMTS BEGIN");
         Unit unit = (Unit) paramGroovyEvent.getEntity();
         GeneralReference genRefDbConnection = GeneralReference.findUniqueEntryById(T_KALMAR, T_MTS);

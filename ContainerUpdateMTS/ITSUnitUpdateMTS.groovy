@@ -126,6 +126,8 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
                 logMsg("not in the yard, return");
                 return;
             }
+            //40ft / 20ft position not working
+
 
             String posGrounded = T_EMPTY;
             String posBlock = T_EMPTY;
@@ -151,6 +153,13 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
                 if ((token2.length()) < 5) {
                     posLocation = token2; //grounded
                 } else {
+                    ////////////////
+
+                    AbstractBin positionBin = position.getPosBin();
+                    positionBin.get
+
+
+                    /////////////////
                     posBlock = position.getBlockName();
                     AbstractBin abstractStackBin = position.getPosBin();
                     if (abstractStackBin != null) {
