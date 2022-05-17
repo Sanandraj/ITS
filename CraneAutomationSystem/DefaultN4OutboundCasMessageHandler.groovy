@@ -34,6 +34,7 @@ import com.navis.services.business.event.Event
 import com.navis.services.business.event.GroovyEvent
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.lang.StringUtils
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
@@ -80,9 +81,10 @@ class DefaultN4OutboundCasMessageHandler extends AbstractGeneralNoticeCodeExtens
    * @param inEvent groovy event
    */
   public void execute(GroovyEvent inEvent) {
+    LOGGER.setLevel(Level.DEBUG);
     Event event = inEvent.getEvent();
     Serviceable serviceable = inEvent.getEntity();
-    log(event.toString() + " Serviceable : " + serviceable.getLogEntityId() + ": " + serviceable.getHumanReadableKey())
+    logMsg(event.toString() + " Serviceable : " + serviceable.getLogEntityId() + ": " + serviceable.getHumanReadableKey())
     Map<String, String> additionalInfoMap = new HashMap<String, String>();
     _casHelperCodeExtInstance = getLibrary(CAS_HELPER);
     String xmlPayload = null;
@@ -144,9 +146,9 @@ class DefaultN4OutboundCasMessageHandler extends AbstractGeneralNoticeCodeExtens
           unitXml = _casHelperCodeExtInstance.createUnitXml(dq)
           xmlPayload = _casHelperCodeExtInstance.getXmlPayloadContent(additionalInfoMap, unitXml)
           outboundEndPoint = getOutboundEndPoint(carrierMode)
-          log("Xml payload to be sent to  CAS Server : " + xmlPayload);
+          logMsg("Xml payload to be sent to  CAS Server : " + xmlPayload);
           String webServiceResponse = _casHelperCodeExtInstance.invokeOutboundCasService(xmlPayload, outboundEndPoint);
-          log("Response from CAS Server for 'add' action: " + webServiceResponse);
+          logMsg("Response from CAS Server for 'add' action: " + webServiceResponse);
         }
         if (previousCarrierVisit != null && CarrierVisitPhaseEnum.WORKING == previousCarrierVisit.getCvVisitPhase() && previousCarrierVisit.getCvSendOnBoardUnitUpdates()){
           carrierMode = previousCarrierVisit.getLocType()
@@ -159,9 +161,9 @@ class DefaultN4OutboundCasMessageHandler extends AbstractGeneralNoticeCodeExtens
           }
           xmlPayload = _casHelperCodeExtInstance.getXmlPayloadContent(additionalInfoMap, unitXml)
           outboundEndPoint = getOutboundEndPoint(carrierMode)
-          log("Xml payload to be sent to  CAS Server : " + xmlPayload);
+          logMsg("Xml payload to be sent to  CAS Server : " + xmlPayload);
           String webServiceResponse = _casHelperCodeExtInstance.invokeOutboundCasService(xmlPayload, outboundEndPoint);
-          log("Response from CAS Server for 'remove' action: " + webServiceResponse);
+          logMsg("Response from CAS Server for 'remove' action: " + webServiceResponse);
         }
         return;
       }else{
@@ -223,15 +225,15 @@ class DefaultN4OutboundCasMessageHandler extends AbstractGeneralNoticeCodeExtens
     }
     //Send outbound message
     outboundEndPoint = getOutboundEndPoint(carrierMode)
-    log("Xml payload to be sent to  CAS Server : " + xmlPayload);
+    logMsg("Xml payload to be sent to  CAS Server : " + xmlPayload);
     postProcess(inEvent, xmlPayload);
     String webServiceResponse = _casHelperCodeExtInstance.invokeOutboundCasService(xmlPayload, outboundEndPoint);
-    log("Response from CAS Server : " + webServiceResponse);
+    logMsg("Response from CAS Server : " + webServiceResponse);
     if (StringUtils.isNotEmpty(xmlPayload2)) {
-        log("2nd Xml payload to be sent to CAS Server : " + xmlPayload);
+        logMsg("2nd Xml payload to be sent to CAS Server : " + xmlPayload);
         postProcess(inEvent, xmlPayload2);
         webServiceResponse = _casHelperCodeExtInstance.invokeOutboundCasService(xmlPayload2);
-        log("2nd Response from CAS Server : " + webServiceResponse);
+        logMsg("2nd Response from CAS Server : " + webServiceResponse);
     }
   }
 
@@ -252,7 +254,7 @@ class DefaultN4OutboundCasMessageHandler extends AbstractGeneralNoticeCodeExtens
   private String getOutboundEndPoint(LocTypeEnum inCarrierMode) {
     String outboundEndPoint
     outboundEndPoint = LocTypeEnum.TRAIN == inCarrierMode ? _casHelperCodeExtInstance.CAS_RAIL_OUTBOUND : _casHelperCodeExtInstance.CAS_OUTBOUND;
-    log("Outbound CAS message endpoint : " + outboundEndPoint);
+    logMsg("Outbound CAS message endpoint : " + outboundEndPoint);
     return outboundEndPoint
   }
 
