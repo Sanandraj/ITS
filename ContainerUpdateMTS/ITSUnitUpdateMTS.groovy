@@ -1,17 +1,26 @@
 package ContainerUpdateMTS
 
+import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
+import com.navis.framework.persistence.HibernateApi
+import com.navis.framework.portal.Ordering
+import com.navis.framework.portal.QueryUtils
+import com.navis.framework.portal.query.DomainQuery
+import com.navis.framework.portal.query.ObsoletableFilterFactory
+import com.navis.framework.portal.query.PredicateFactory
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.road.business.appointment.model.AppointmentTimeSlot
 import com.navis.road.business.appointment.model.GateAppointment
 import com.navis.services.business.event.Event
 import com.navis.services.business.event.GroovyEvent
+import com.navis.spatial.BinField
 import com.navis.spatial.business.model.AbstractBin
 import com.navis.xpscache.business.atoms.EquipBasicLengthEnum
+import com.navis.yard.business.model.AbstractYardBlock
 import groovy.sql.Sql
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -81,7 +90,7 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
             Unit unit = (Unit) inGroovyEvent.getEntity();
 
             Event event = inGroovyEvent.getEvent();
-            if ( UNIT_DISCH == event.getEventTypeId() && event.getEvntAppliedBy().startsWith(USER_KALMAR) ) {
+            if (UNIT_DISCH == event.getEventTypeId() && event.getEvntAppliedBy().startsWith(USER_KALMAR)) {
                 logMsg("If the event performed by PDS, return");
                 return;
             }
@@ -138,28 +147,27 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
             String posLocation = T_EMPTY;
 
             String[] tokens = positionId.split(DELIMITER);
-            String token2 = tokens.size() > 2 ? tokens[2] : T_EMPTY;
+            logMsg("tokens: " + tokens);
+            String subToken = tokens.size() > 2 ? tokens[2] : T_EMPTY;
+            logMsg("subToken: " + subToken);
+
             if (position.isWheeled()) {
                 posGrounded = T_WHEELED;
-                if ((token2.length()) < 5) {
-                    posLocation = token2; //wheeled
+                if ((subToken.length()) < 5) {
+                    posLocation = subToken; //wheeled
                 } else {
-                    posBlock = token2.substring(0, (token2.length() - 2));
-                    posSlot = token2.substring((token2.length() - 2), (token2.length()));
+                    posBlock = subToken.substring(0, (subToken.length() - 2));
+                    posSlot = subToken.substring((subToken.length() - 2), (subToken.length()));
                 }
             }
             if (position.isGrounded()) {
                 posGrounded = T_GROUNDED;
-                if ((token2.length()) < 5) {
-                    posLocation = token2; //grounded
+                if ((subToken.length()) < 5) {
+                    posLocation = subToken; //grounded
                 } else {
-                    ////////////////
+                    posRow = getYardRow(position.getPosSlot());
+                    logMsg("posRow: " + posRow);
 
-                    AbstractBin positionBin = position.getPosBin();
-                    positionBin.get
-
-
-                    /////////////////
                     posBlock = position.getBlockName();
                     AbstractBin abstractStackBin = position.getPosBin();
                     if (abstractStackBin != null) {
@@ -169,7 +177,8 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
                             AbstractBin sectionBin = abstractStackBin.getAbnParentBin();
                             if (sectionBin != null && T_ABM_SECTION.equalsIgnoreCase(sectionBin.getAbnBinType()?.getBtpId())) {
                                 String secBinName = sectionBin.getAbnName()
-                                posRow = secBinName;
+                                if (posRow == null)
+                                    posRow = secBinName;
                                 posCell = staBinName.substring(staBinName.indexOf(secBinName) + secBinName.size())
                                 long tier = abstractStackBin.getTierIndexFromInternalSlotString(position.getPosSlot());
                                 posTier = abstractStackBin.getTierName(tier)
@@ -177,18 +186,22 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
                                 if (blockBin != null && T_ABM_BLOCK.equalsIgnoreCase(blockBin.getAbnBinType().getBtpId())) {
                                     String bloBinName = blockBin.getAbnName()
                                     posBlock = bloBinName;
-                                    posRow = secBinName.substring(secBinName.indexOf(bloBinName) + bloBinName.size());
+                                    if (posRow == null)
+                                        posRow = secBinName.substring(secBinName.indexOf(bloBinName) + bloBinName.size());
                                 }
                             }
                         } else if (abstractStackBin.getAbnBinType() != null && T_ABM_BLOCK.equalsIgnoreCase(abstractStackBin.getAbnBinType().getBtpId())) {
-                            posRow = abstractStackBin.getAbnName()
+                            if (posRow == null)
+                                posRow = abstractStackBin.getAbnName()
                             posTier = position.getPosTier() != null ? position.getPosTier() : ""
                         } else {
-                            posRow = token2.substring((token2.length() - 4), (token2.length() - 2))
-                            posCell = token2.substring((token2.length() - 2), (token2.length() - 1));
+                            if (posRow == null)
+                                posRow = subToken.substring((subToken.length() - 4), (subToken.length() - 2))
+                            posCell = subToken.substring((subToken.length() - 2), (subToken.length() - 1));
                             posTier = position.getPosTier();
                         }
                     }
+
                 }
             }
             if (posGrounded == T_EMPTY) {
@@ -226,6 +239,38 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
         }
 
         logMsg("ITSUnitUpdateMTS END");
+    }
+
+    private String getYardRow(String inPosSlot) {
+        //from AbstractYardBlock where abnSubType='SBL' and abnName='B6';
+        AbstractYardBlock abstractYardBlock = getAbstractYardBlock((ContextHelper.getThreadYard()).getYrdBinModel().getAbnGkey());
+        logMsg("full label: " + abstractYardBlock.getAyblkLabelUIFullPosition());
+
+        // B2R2C2T1
+        // B63607.1
+        String fullPosition = abstractYardBlock.getAyblkLabelUIFullPosition();
+        int startIndex = 0, endIndex = 0;
+        if (fullPosition.size() > 1) {
+            startIndex = Integer.parseInt(fullPosition.substring(1, 2));
+        }
+        if (fullPosition.size() > 3) {
+            endIndex = Integer.parseInt(fullPosition.substring(3, 4));
+        }
+        //logMsg("startIndex: "+startIndex + ", endIndex: "+endIndex);
+        return (inPosSlot.length() > endIndex) ? inPosSlot.substring(startIndex, startIndex + endIndex) : null;
+    }
+
+    private AbstractYardBlock getAbstractYardBlock(Serializable gkey) {
+        DomainQuery dq = QueryUtils.createDomainQuery("AbstractYardBlock")
+        dq.addDqPredicate(PredicateFactory.eq(BinField.ABN_PARENT_BIN, gkey))
+        dq.addDqPredicate(PredicateFactory.eq(BinField.ABN_SUB_TYPE, "SBL"))
+        dq.setFilter(ObsoletableFilterFactory.createShowActiveFilter())
+        dq.addDqOrdering(Ordering.asc(BinField.ABN_NAME))
+        List<AbstractYardBlock> list = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
+        if (list != null && !list.isEmpty())
+            return list.get(0);
+        else
+            return null;
     }
 
 
