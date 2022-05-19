@@ -1,10 +1,3 @@
-/*
- * Copyright (c) 2021 Navis LLC. All Rights Reserved.
- *
- */
-
-
-
 package CraneAutomationSystem
 import com.navis.argo.ArgoBizMetafield
 import com.navis.argo.ArgoField

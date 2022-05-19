@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2013 Navis LLC. All Rights Reserved.
- *
- */
-
 package CraneAutomationSystem
 
 import com.navis.argo.ArgoPropertyKeys

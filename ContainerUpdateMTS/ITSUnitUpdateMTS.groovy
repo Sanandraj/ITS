@@ -232,7 +232,7 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
             logMsg("gString : " + gString.toString());
 
             int result = sql.call(gString);
-            logMsg("result : " + result)
+            logMsg("result : " + result);
 
         } catch (Exception e) {
             LOGGER.error("Exception while calling MTS : " + e.getMessage());

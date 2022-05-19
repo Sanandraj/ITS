@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2021 Navis LLC. All Rights Reserved.
- *
- */
-
 package CraneAutomationSystem
 
 import com.navis.argo.ArgoField
@@ -66,6 +61,10 @@ import javax.xml.transform.stream.StreamSource
  * 2. Container List request
  *
  * @author <a href="mailto:arvinder.brar@navis.com">Arvinder Brar</a>,2012-09-06
+ *
+ * Modified by <a href="mailto:sramsamy@weservetech.com">Ramasamy S</a>, 13/May/2022
+ * Adding Loggers
+ *
  */
 class DefaultN4InboundCasRequestHandler extends AbstractGroovyWSCodeExtension {
     private static final Logger LOGGER = Logger.getLogger(DefaultN4InboundCasRequestHandler.class);
