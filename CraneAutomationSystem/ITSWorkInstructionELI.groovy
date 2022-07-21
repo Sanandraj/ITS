@@ -15,6 +15,7 @@ import com.navis.inventory.business.moves.WorkInstruction
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.inventory.business.units.UnitYardVisit
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 
@@ -58,54 +59,63 @@ class ITSWorkInstructionELI  extends AbstractEntityLifecycleInterceptor {
 
     void draymanTruckMessage(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges, String inType) {
         try {
-            Object library = getLibrary(LIBRARY);
-            if (library != null) {
+            LOGGER.setLevel(Level.DEBUG)
+            logMsg("inOriginalFieldChanges: "+inOriginalFieldChanges);
 
-                if (inOriginalFieldChanges.hasFieldChange(MovesField.WI_MOVE_STAGE) || inOriginalFieldChanges.hasFieldChange(MovesField.WI_POSITION)) {
+            Object library = getLibrary(LIBRARY);
+            logMsg("library: "+library);
+            if (library != null) {
+                /*if (inOriginalFieldChanges.hasFieldChange(MovesField.WI_MOVE_STAGE) || inOriginalFieldChanges.hasFieldChange(MovesField.WI_POSITION)) {
                     UnitYardVisit unitYardVisit = inEntity.getField(MovesField.WI_UYV);
-                    if (unitYardVisit == null)
-                        return;
-                    UnitFacilityVisit ufv = unitYardVisit.getUyvUfv();
-                    if (ufv == null)
-                        return;
-                    Unit unit = ufv.getUfvUnit();
+                    UnitFacilityVisit ufv = unitYardVisit? unitYardVisit.getUyvUfv() : null;
+                    Unit unit = ufv? ufv.getUfvUnit() : null;
                     if (unit == null)
-                        return;
+                        return;*/
 
                     // If move stage changed from PLANNED to COMPLETE
-                    if (inOriginalFieldChanges.hasFieldChange(MovesField.WI_MOVE_STAGE)) {
+                    /*if (inOriginalFieldChanges.hasFieldChange(MovesField.WI_MOVE_STAGE)) {
                         WiMoveStageEnum moveStagePrior = inOriginalFieldChanges.findFieldChange(MovesField.WI_MOVE_STAGE).getPriorValue();
                         WiMoveStageEnum moveStageNew = inOriginalFieldChanges.findFieldChange(MovesField.WI_MOVE_STAGE).getNewValue();
-                        log("moveStagePrior: " + moveStagePrior + ", moveStageNew: " + moveStageNew);
+                        logMsg("WI_MOVE_STAGE - moveStagePrior: " + moveStagePrior + ", moveStageNew: " + moveStageNew);
 
                         if (moveStagePrior == WiMoveStageEnum.PLANNED && moveStageNew == WiMoveStageEnum.COMPLETE) {
                             library.prepareAndPushMessageForPositionChange(unit, null);
                         }
-                    }
+                    }*/
 
                     // On WI position update for planned ufv. Send message if the transit state is either inbound, Ecin or Ecout
                     if (inOriginalFieldChanges.hasFieldChange(MovesField.WI_POSITION)) {
+                        logMsg("WI_POSITION change ");
+                        UnitYardVisit unitYardVisit = inEntity.getField(MovesField.WI_UYV);
+                        UnitFacilityVisit ufv = unitYardVisit? unitYardVisit.getUyvUfv() : null;
+                        Unit unit = ufv? ufv.getUfvUnit() : null;
+                        if (unit == null)
+                            return;
+
+                        logMsg("UFV : "+ufv);
                         LocPosition locPosNew = inOriginalFieldChanges.findFieldChange(MovesField.WI_POSITION).getNewValue();
                         WorkInstruction wi = (WorkInstruction) inEntity._entity;
-                        if (wi != null) {
-                            WiMoveStageEnum wiMoveStage = wi.getWiMoveStage();
-                            log("wiMoveStage: " + wiMoveStage);
-                            if (WiMoveStageEnum.PLANNED == wiMoveStage) {
-                                UfvTransitStateEnum transitState = ufv.getUfvTransitState();
-                                if (UfvTransitStateEnum.S20_INBOUND == transitState
-                                    || UfvTransitStateEnum.S30_ECIN == transitState
-                                    || UfvTransitStateEnum.S50_ECOUT == transitState) {
-                                    library.prepareAndPushMessageForPositionChange(unit, locPosNew);
-                                }
+                        WiMoveStageEnum wiMoveStage = wi? wi.getWiMoveStage() : null;
+                        logMsg("wiMoveStage: " + wiMoveStage);
+                        if (WiMoveStageEnum.PLANNED == wiMoveStage) {
+                            UfvTransitStateEnum transitState = ufv.getUfvTransitState();
+                            if (UfvTransitStateEnum.S20_INBOUND == transitState
+                                || UfvTransitStateEnum.S30_ECIN == transitState
+                                || UfvTransitStateEnum.S50_ECOUT == transitState) {
+                                library.prepareAndPushMessageForPositionChange(unit, locPosNew);
                             }
                         }
                     }
-                }
+                //}
             }
 
         } catch (Exception e) {
             LOGGER.error("Exception in draymanTruckMessage : "+e.getMessage());
         }
+    }
+
+    private void logMsg(Object inMsg) {
+        LOGGER.debug(inMsg);
     }
 
     private static final String T__IN_ENTITY = "inEntity";
