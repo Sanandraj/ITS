@@ -14,8 +14,17 @@ import com.navis.vessel.business.api.VesselFinder
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-
 import java.text.SimpleDateFormat
+
+/*
+*
+* @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 12/JUL/2022
+*
+* Requirements : This groovy is used to validate an EDI Booking Vessel Visit Cut Off.
+*
+* @Inclusion Location	: Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTOR.Copy --> Paste this code (ITSCheckBookingVesselVisitELI.groovy)
+*
+*/
 
 public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterceptor {
 
@@ -34,8 +43,6 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
 
     @Override
     void preDelete(EEntityView inEntity) {
-        LOGGER.debug("ITSCheckBookingVesselVisitELI: preDelete Started");
-
         Booking thisBooking = inEntity._entity;
         DataSourceEnum thisDataSource = ContextHelper.getThreadDataSource();
 
@@ -44,43 +51,28 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
     }
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges, String inType) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
             LOGGER.debug("ITSCheckBookingVesselVisitELI: Started");
-        LOGGER.debug("inOriginalFieldChanges " + inOriginalFieldChanges);
-        LOGGER.debug("intype " + inType);
-
         Booking thisBooking = inEntity._entity;
         DataSourceEnum thisDataSource = ContextHelper.getThreadDataSource();
-        LOGGER.debug("thisBooking " + thisBooking);
-        LOGGER.debug("thisDataSource " + thisDataSource);
-
         this.CheckForBookingLock(thisBooking, thisDataSource, inOriginalFieldChanges);
 
     }
 
     private void CheckForBookingLock(Booking thisBooking, DataSourceEnum thisDataSource, EFieldChangesView inFieldChange) {
-
-        /* if the update to the hazard is from booking check if it is locked */
         boolean isNotValid = Boolean.FALSE;
-        LOGGER.debug("Found booking " + thisBooking);
         def sdf = new SimpleDateFormat("yyyy-MM-dd")
        if (thisDataSource == DataSourceEnum.EDI_BKG) {
            CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit();
            VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit.getCvCvd());
-
-           LOGGER.debug("Found vvd " + vvd);
-
            if (carrierVisit != null && carrierVisit.getCvCvd() != null) {
                if (vvd != null && vvd.getVvFlexDate02()!=null && sdf.format(ArgoUtils.timeNow()) >= sdf.format(vvd.getVvFlexDate02())) {
-                   LOGGER.debug("TRUE Current ")
                    isNotValid = Boolean.TRUE;
                }
            }
        }
 
-        /* hazard update is blocked */
         if (isNotValid) {
-            LOGGER.debug("ERROR MSG")
             MessageCollector messageCollector = ContextHelper.getThreadMessageCollector();
             messageCollector.appendMessage(BizFailure.create("EDI Booking Vessel Visit Cut Off locked"));
         }
