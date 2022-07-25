@@ -131,6 +131,20 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
             String positionLoc = T_EMPTY;
             if (LocTypeEnum.YARD.equals(position.getPosLocType())) {
                 positionLoc = T_Y;
+
+                logMsg("posTier: "+position.getPosTier())
+                if (position.getPosTier() == 0) {
+                    String tempSlot = position.getPosSlot().substring(0, position.getPosSlot().length() - 1)
+                    String tempTier = position.getPosSlot().substring(position.getPosSlot().length() - 1)
+                    logMsg("tempTier: " + tempTier)
+                    StringBuilder currentLocPosition = new StringBuilder();
+                    currentLocPosition = currentLocPosition.append(tempSlot).append(".").append(tempTier);
+                    logMsg("currentLocPosition: " + currentLocPosition)
+
+                    position = LocPosition.createYardPosition(ContextHelper.getThreadYard(), currentLocPosition.toString(), null, unit.getBasicLength(), false);
+                    logMsg("after position: " + position)
+                    positionId = position.toString();
+                }
             } else {
                 logMsg("not in the yard, return");
                 return;

@@ -5,6 +5,7 @@ import com.navis.external.framework.util.EFieldChanges
 import com.navis.external.framework.util.EFieldChangesView
 import com.navis.external.framework.util.ExtensionUtils
 import com.navis.road.RoadField
+import com.navis.road.business.atoms.TranStageTypeEnum
 import com.navis.road.business.atoms.TranStatusEnum
 import com.navis.road.business.model.TruckTransaction
 import org.apache.log4j.Level
@@ -33,9 +34,10 @@ class ITSTruckTransactionELI extends AbstractEntityLifecycleInterceptor {
             def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), LIBRARY);
             if (library && inOriginalFieldChanges.hasFieldChange(RoadField.TRAN_STATUS)) {
                 TruckTransaction truckTransaction = inEntity._entity;
+
                 // On CANCEL the transaction
                 logMsg("new val: "+inOriginalFieldChanges.findFieldChange(RoadField.TRAN_STATUS).getNewValue())
-                if (TranStatusEnum.CANCEL == inOriginalFieldChanges.findFieldChange(RoadField.TRAN_STATUS).getNewValue()) {
+                if (TranStatusEnum.CANCEL.equals(inOriginalFieldChanges.findFieldChange(RoadField.TRAN_STATUS).getNewValue())) {
                         LOGGER.debug("call prepareAndPushMessage for CANCEL tran");
                         library.prepareAndPushMessage(truckTransaction, T__CANCEL);
                 }
@@ -50,9 +52,8 @@ class ITSTruckTransactionELI extends AbstractEntityLifecycleInterceptor {
         LOGGER.debug(inMsg);
     }
 
-    private static final String T__CANCEL = "CANCEL";
-    /*private static final String T__CREATE = "CREATE";
-    private static final String T__COMPLETE = "COMPLETE";*/
+
+    private static final String T__CANCEL = "Cancel";
     private static final String LIBRARY = "ITSDraymanGateAdaptor";
 
     private static final Logger LOGGER = Logger.getLogger(ITSTruckTransactionELI.class);
