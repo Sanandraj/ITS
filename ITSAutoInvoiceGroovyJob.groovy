@@ -171,7 +171,7 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
                 String inv_ComplexId = invoice?.getLogEntityComplex()?.getCpxId()?.toString()
                 String inv_Paid_Thru_Date = invoice?.getInvoicePaidThruDay()?.toString()
                 String inv_Cust_Id = invoice?.getInvoicePayeeCustomer()?.getCustDebitCode()?.toString()
-                String inv_Cust_Role = invoice?.getInvoicePayeeCustomer()?.getCustRole()?.toString()
+                String inv_Cust_Role = invoice?.getInvoicePayeeCustomer()?.getCustName()?.toString()
                 String inv_Created = invoice?.getInvoiceCreated()?.toString()
                 String inv_Contract_Name = invoice?.getInvoiceContract()?.getContractId()?.toString()
 
@@ -225,7 +225,7 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
                 if (inv_Cust_Id!=null){
                     invoices?.setAttribute("INVOICE_CUST_ID",inv_Cust_Id,sNS)
                     if (inv_Cust_Role!=null){
-                        invoices?.setAttribute("INVOICE_CUST_ROLE",inv_Cust_Role,sNS)
+                        invoices?.setAttribute("INVOICE_CUST_NAME",inv_Cust_Role,sNS)
                     }
                     else {
                         invoices?.setAttribute("INVOICE_CUST_ROLE","")
