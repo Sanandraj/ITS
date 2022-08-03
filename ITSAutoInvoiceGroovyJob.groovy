@@ -6,12 +6,14 @@ import com.navis.argo.business.model.ArgoSequenceProvider
 import com.navis.argo.business.model.GeneralReference
 import com.navis.billing.business.model.Invoice
 import com.navis.billing.business.model.InvoiceItem
+import com.navis.billing.business.model.InvoiceType
 import com.navis.billing.business.model.Tariff
 import com.navis.carina.integrationservice.business.IntegrationService
 import com.navis.external.argo.AbstractGroovyJobCodeExtension
 import com.navis.framework.IntegrationServiceField
 import com.navis.framework.business.atoms.IntegrationServiceDirectionEnum
 import com.navis.framework.business.atoms.IntegrationServiceTypeEnum
+import com.navis.framework.metafields.LetterCase
 import com.navis.framework.metafields.MetafieldId
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.metafields.MetafieldIdList
@@ -32,7 +34,7 @@ import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
 
 /**
-@Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
+ * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
 
 class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
@@ -40,22 +42,16 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
     void execute(Map<String, Object> inParams) {
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSAutoInvoiceGroovyJob Starts :: ")
-        MetafieldId metafieldId = MetafieldIdFactory.valueOf("customFlexFields.invoiceCustomDFF_ITSGroovyJobJMS")
-        LOGGER.debug("metafieldId :: "+metafieldId)
         MetafieldId metaFieldId_Inv_JMS = MetafieldIdFactory.valueOf("invoiceFlexString02")
         DomainQuery dqInvoice = QueryUtils.createDomainQuery("Invoice")
         .addDqPredicate(PredicateFactory.isNull(metaFieldId_Inv_JMS))
-        .addDqPredicate(PredicateFactory.eq(metafieldId,"TRUE"))
         List<Invoice> outputList =(List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dqInvoice)
         LOGGER.debug("outputList :: "+outputList)
-        GeneralReference gR = GeneralReference.findUniqueEntryById("ITS_INV_JMS_JOB","ITS_AUTO_INV")
-        String refValue= gR.getRefValue1()
-        List<String> refList = new ArrayList<String>(Arrays.asList(refValue.split(",")));
-        LOGGER.debug("refList :: "+refList)
 
         for (Invoice invoice: outputList as List<Invoice>){
-            if (refList!=null && !refList.contains(invoice.getInvoiceInvoiceType().getInvtypeId())){
                 LOGGER.debug("invoice ::"+invoice)
+            MetafieldId metafieldId = MetafieldIdFactory.valueOf("customFlexFields.invtypeCustomDFFGPDeliverables")
+            if ("Y".equals(invoice?.getInvoiceInvoiceType()?.getFieldValue(metafieldId))){
                 List<IntegrationService> integrationServiceList = getInvoiceDetailsSyncIntegrationServices("ITS_DET_EXTRACTED", false);
                 if (outputList != null) {
                     for (IntegrationService integrationService : integrationServiceList) {
@@ -174,7 +170,7 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
                 String inv_Final_Number = invoice?.getInvoiceFinalNbr()?.toString()
                 String inv_ComplexId = invoice?.getLogEntityComplex()?.getCpxId()?.toString()
                 String inv_Paid_Thru_Date = invoice?.getInvoicePaidThruDay()?.toString()
-                String inv_Cust_Id = invoice?.getInvoicePayeeCustomer()?.getCustName()?.toString()
+                String inv_Cust_Id = invoice?.getInvoicePayeeCustomer()?.getCustDebitCode()?.toString()
                 String inv_Cust_Role = invoice?.getInvoicePayeeCustomer()?.getCustRole()?.toString()
                 String inv_Created = invoice?.getInvoiceCreated()?.toString()
                 String inv_Contract_Name = invoice?.getInvoiceContract()?.getContractId()?.toString()
@@ -255,7 +251,7 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
                 distribution.addContent(distributionCategoryNbr)
                 Tariff tariff = Tariff.findTariff(invItem?.getItemTariff())
                 LOGGER.debug("tariff :: "+tariff)
-                distributionCategoryNbr.addContent( tariff?.getTariffServiceType()?.getSrvctypeId())
+                distributionCategoryNbr.addContent( tariff?.getTariffFlexString01()?.toString())
                 Element majorAccNbr = new Element("majorAccNbr")
                 distribution.addContent(majorAccNbr)
                 majorAccNbr.addContent(invItem?.getItemGlCode())
