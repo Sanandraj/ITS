@@ -32,7 +32,7 @@ import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
 
 /**
- * Updated @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
+ * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
 
 class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
