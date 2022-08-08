@@ -34,7 +34,7 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
             Object object = getLibrary(T__ON_BOARD_UNIT_UPDATE);
             object.execute(map);
 
-            if (inOriginalFieldChanges.hasFieldChange(InvField.UFV_TRANSIT_STATE) &&
+            /*if (inOriginalFieldChanges.hasFieldChange(InvField.UFV_TRANSIT_STATE) &&
                     (UfvTransitStateEnum.S30_ECIN == inOriginalFieldChanges.findFieldChange(InvField.UFV_TRANSIT_STATE).getNewValue() ||
                             UfvTransitStateEnum.S70_DEPARTED == inOriginalFieldChanges.findFieldChange(InvField.UFV_TRANSIT_STATE).getNewValue())) {
 
@@ -58,7 +58,7 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
                     Object library = getLibrary(LIBRARY);
                     library.prepareAndPushMessageForPositionChange(unit, unitFacilityVisit.getUfvLastKnownPosition());
                 }
-            }
+            }*/
         } catch (Exception e) {
             LOGGER.error("Exception in onUpdate: " + e.getMessage());
         }
