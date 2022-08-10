@@ -1,7 +1,6 @@
 import com.navis.argo.*
 import com.navis.argo.business.api.*
 import com.navis.argo.business.atoms.*
-import com.navis.argo.business.model.EdiPostingContext
 import com.navis.argo.business.model.Facility
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.reference.LineOperator
@@ -36,7 +35,6 @@ import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.util.BizViolation
 import com.navis.framework.util.BizWarning
 import com.navis.framework.util.internationalization.PropertyKeyFactory
-import com.navis.framework.util.message.MessageCollector
 import com.navis.road.business.util.RoadBizUtil
 import com.navis.services.ServicesField
 import com.navis.services.business.rules.EventType
@@ -51,13 +49,11 @@ import static java.util.Arrays.asList
 *
 */
 public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
-    /**
-     * Method will be called from EDI engine
-     */
+
     public void beforeEdiPost(XmlObject inXmlTransactionDocument, Map inParams) {
         LOGGER.setLevel(Level.INFO);
         if (inXmlTransactionDocument == null || !ReleaseTransactionsDocument.class.isAssignableFrom(inXmlTransactionDocument.getClass())) {
-            return;
+            return
         }
         ReleaseTransactionsDocument releaseDoc = (ReleaseTransactionsDocument) inXmlTransactionDocument
         ReleaseTransactionsDocument.ReleaseTransactions releaseTransactions = releaseDoc.getReleaseTransactions()
@@ -71,7 +67,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         ReleaseTransactionDocument.ReleaseTransaction releaseTransact = releaseArray[0]
         validateRoutingPoint(releaseTransact, inParams)
 
-        //Skip posting if same edi code, interChangeNumber,msgreference nbr and release postdate exist already
+        //Skip posting if same edi code, interChangeNumber,message reference nbr and release postdate exist already
         Object postdate = releaseTransact.getReleasePostDate()
         EdiReleaseIdentifier releaseIdentifier = releaseTransact?.getEdiReleaseIdentifierList()?.get(0)
         String blNbr = releaseIdentifier?.getReleaseIdentifierNbr()
@@ -89,13 +85,24 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                 }
             }
         }
+        /**
+         If 5H is not only an information message, uncomment the following method.
+         You must also uncomment the handle5H5I4ALogicAfterPost() method call in afterEdiPost() if you uncomment this method call.
+         */
 
         if ("5H".equalsIgnoreCase(releaseTransact.getEdiCode()) || "5I".equalsIgnoreCase(releaseTransact.getEdiCode()) || "4A".equalsIgnoreCase(releaseTransact.getEdiCode())) {
             handle5H5I4ABeforePost(releaseTransact, releaseTransact.getEdiCode())
         }
+        /**
+         If the information message, for instance 1h, 2h, 7h..., lacks a guaranteed unique reference number and your message is anticipated to apply many holds, uncomment the technique below.
+         Please take note of the following:
+         1) If you uncomment this method call, you must also uncomment the call to setBackTransactionReferenceId () in afterEdiPost().
+
+         2) If the customer is running 2.3-rel or an earlier version, this should be left uncommented.
+         */
 
         if (DISPOSITION_CODES_FOR_UNIQUE_ID.indexOf(releaseTransact.getEdiCode()) >= 0) {
-            setUniqueReferenceId(releaseTransact, releaseTransact.getEdiCode())
+            settingUniqueReferenceId(releaseTransact, releaseTransact.getEdiCode())
         }
         // Skip 1J or 1C or 95 or 4E message if 1W already exist
         if ("1J".equalsIgnoreCase(releaseTransact.getEdiCode()) || "1C".equalsIgnoreCase(releaseTransact.getEdiCode()) || "95".equalsIgnoreCase(releaseTransact.getEdiCode()) || "4E".equalsIgnoreCase(releaseTransact.getEdiCode())) {
@@ -103,37 +110,34 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         }
     }
     /**
-     * Check if release message is for other facility.
-     * @param inReleaseTransaction
-     * @param inParams
+     * Verify to see if the release notice is for another facility.
      */
-    private void isReleaseForTrans(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Map inParams, String inEdiCode) {
+    private void isReleaseForTrans(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Map inParams, String inEdiCode) {
         GeneralReference genRef = GeneralReference.findUniqueEntryById("EDI", "350", "PORT_CODES")
         if (genRef == null) {
             throw BizViolation.create(AllOtherFrameworkPropertyKeys.ERROR__NULL_MESSAGE, null,
                     "Please configure port Code:" + inEdiCode + " in General Reference, Type:EDI, Identifier1:350 and Identifier2:PORT_CODES")
         }
-        List<String> portCodeList = getPortCodesFromGeneralReference(genRef)
-        if (inReleaseTransaction.getEdiReleaseIdentifierList() != null && !inReleaseTransaction.getEdiReleaseIdentifierList().isEmpty()) {
-            EdiReleaseIdentifier releaseIdentifier = inReleaseTransaction.getEdiReleaseIdentifierList().get(0)
+        List<String> portCodeList = getPortCodes(genRef)
+        if (releaseTransaction.getEdiReleaseIdentifierList() != null && !releaseTransaction.getEdiReleaseIdentifierList().isEmpty()) {
+            EdiReleaseIdentifier releaseIdentifier = releaseTransaction.getEdiReleaseIdentifierList().get(0)
             BillOfLading bl = null
             if (releaseIdentifier.getReleaseIdentifierNbr() != null) {
-                LineOperator lineOp = (LineOperator) findLineOperator(inReleaseTransaction)
+                LineOperator lineOp = (LineOperator) findLineOperator(releaseTransaction)
                 bl = BillOfLading.findBillOfLading(releaseIdentifier.getReleaseIdentifierNbr(), lineOp, null)
             }
-            //set the quantity to 0 if its for other ports
-            if (bl != null && inReleaseTransaction.getVesselCallFacility() != null && inReleaseTransaction.getVesselCallFacility().getFacilityPort() != null &&
-                    inReleaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes() != null) {
-                String portCode = inReleaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes().getId()
+            if (bl != null && releaseTransaction.getVesselCallFacility() != null && releaseTransaction.getVesselCallFacility().getFacilityPort() != null &&
+                    releaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes() != null) {
+                String portCode = releaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes().getId()
                 if (!portCodeList.contains(portCode)) {
                     inParams.put(SKIP_POSTER, true)
-                    Double releaseQty = Double.valueOf(inReleaseTransaction.getReleaseQty())
+                    Double releaseQty = Double.valueOf(releaseTransaction.getReleaseQty())
                     BlRelease blRelease = new BlRelease()
-                    blRelease.setBlrelReferenceNbr(inReleaseTransaction.getReleaseReferenceId())
-                    blRelease.setBlrelDispositionCode(inReleaseTransaction.getEdiCode())
+                    blRelease.setBlrelReferenceNbr(releaseTransaction.getReleaseReferenceId())
+                    blRelease.setBlrelDispositionCode(releaseTransaction.getEdiCode())
                     blRelease.setBlrelQuantityType(EdiReleaseMapModifyQuantityEnum.InformationOnly)
-                    blRelease.setBlrelNotes(inReleaseTransaction.getReleaseNotes())
-                    Object postDate = inReleaseTransaction.getReleasePostDate()
+                    blRelease.setBlrelNotes(releaseTransaction.getReleaseNotes())
+                    Object postDate = releaseTransaction.getReleasePostDate()
                     Date releasePostDate = null
                     if (postDate != null && postDate instanceof Calendar) {
                         releasePostDate = ArgoEdiUtils.convertLocalToUtcDate(postDate, ContextHelper.getThreadEdiPostingContext().getTimeZone())
@@ -167,56 +171,47 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         }
     }
     /**
-     * Get the port codes from General Reference.
-     * @param inGeneralReference
-     * @return
+     * Consult the General Reference for the port codes
      */
-    private static List<String> getPortCodesFromGeneralReference(GeneralReference inGeneralReference) {
-        List<String> portCodesList = new ArrayList();
-        String[] dataValueArray = new String[6];
-        dataValueArray[0] = inGeneralReference.getRefValue1()
-        dataValueArray[1] = inGeneralReference.getRefValue2()
-        dataValueArray[2] = inGeneralReference.getRefValue3()
-        dataValueArray[3] = inGeneralReference.getRefValue4()
-        dataValueArray[4] = inGeneralReference.getRefValue5()
-        dataValueArray[5] = inGeneralReference.getRefValue6()
-        for (String dataValue : dataValueArray) {
-            if (dataValue == null) {
+    private static List<String> getPortCodes(GeneralReference generalReference) {
+        List<String> codesList = new ArrayList()
+        String[] dataArray = new String[6]
+        dataArray[0] = generalReference.getRefValue1()
+        dataArray[1] = generalReference.getRefValue2()
+        dataArray[2] = generalReference.getRefValue3()
+        dataArray[3] = generalReference.getRefValue4()
+        dataArray[4] = generalReference.getRefValue5()
+        dataArray[5] = generalReference.getRefValue6()
+        for (String data : dataArray) {
+            if (data == null) {
                 continue
             }
-            String[] arrayOfStrings = dataValue.split(',')
-            for (int i = 0; i < arrayOfStrings.length; i++) {
-                arrayOfStrings[i] = arrayOfStrings[i].trim()
+            String[] stringArray = data.split(',')
+            for (int i = 0; i < stringArray.length; i++) {
+                stringArray[i] = stringArray[i].trim()
             }
-            portCodesList.addAll(new ArrayList(asList(arrayOfStrings)))
+            codesList.addAll(new ArrayList(asList(stringArray)))
         }
-        return portCodesList
+        return codesList
     }
     /**
-     * This method is being used in beforeEdiPost method
-     * Method to validate the routing point(Schedule D code) of the facility is same as the value of ediReleaseFlexString01 in message.
-     * @param inReleaseTransaction
+     * This method is being used in the beforeEdiPost method
+     * The method to validate the routing point(Schedule D code) of the facility is the same as the value of ediReleaseFlexString01 in the message.
      */
-    private void validateRoutingPoint(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Map inParams) {
-        EdiReleaseFlexFields releaseFlexFields = inReleaseTransaction.getEdiReleaseFlexFields()
+    private void validateRoutingPoint(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Map inParams) {
+        EdiReleaseFlexFields releaseFlexFields = releaseTransaction.getEdiReleaseFlexFields()
         if (releaseFlexFields != null && releaseFlexFields.getEdiReleaseFlexString01() != null) {
-            //Get posting context for configuration value
-            String facilityId = (String) ArgoEdiUtils.getConfigValue(ContextHelper.getThreadEdiPostingContext(), ArgoConfig.EDI_FACILITY_FOR_POSTING);
 
-            //if facility is empty then throw an error and skip the posting since we cannot validate without facility id in setting
+            String facilityId = (String) ArgoEdiUtils.getConfigValue(ContextHelper.getThreadEdiPostingContext(), ArgoConfig.EDI_FACILITY_FOR_POSTING);
             if (StringUtils.isEmpty(facilityId)) {
                 inParams.put(SKIP_POSTER, true)
-                throw BizViolation.create(PropertyKeyFactory.valueOf("FacilityId is empty/null while setting EDI_FACILITY_FOR_POSTING"), null)
+                throw BizViolation.create(PropertyKeyFactory.valueOf("When setting, FacilityId is empty or null. EDI_FACILITY_FOR_POSTING"), null)
             }
-            //Throw an error if facility not found for given id and skip the posting
             Facility facility = Facility.findFacility(facilityId, ContextHelper.getThreadComplex())
             if (facility == null) {
                 inParams.put(SKIP_POSTER, true)
                 throw BizViolation.create(PropertyKeyFactory.valueOf("Unable to find the Facility for Id: " + facilityId), null)
             }
-
-            // If routing point(Schedule D code) of the facility is not same as the value of ediReleaseFlexString01 in message then throw an error and
-            // skip the posting
             String messageScheduleDCode = releaseFlexFields.getEdiReleaseFlexString01();
             if (!messageScheduleDCode.equals(facility.getFcyRoutingPoint().getPointScheduleDCode())) {
                 inParams.put(SKIP_POSTER, true);
@@ -226,12 +221,10 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
             }
         }
     }
-    /**
-     * Method will be called from EDI engine
-     */
+
     @Override
-    public void afterEdiPost(XmlObject inXmlTransactionDocument, HibernatingEntity inHibernatingEntity, Map inParams) {
-        //if value is true then skip after edi post method
+    void afterEdiPost(XmlObject inXmlTransactionDocument, HibernatingEntity inHibernatingEntity, Map inParams) {
+
         if (Boolean.TRUE.equals(inParams.get(SKIP_POSTER))) {
             LOGGER.info("Skipped after EDI_POST method.")
             return
@@ -239,11 +232,11 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         if (inXmlTransactionDocument == null || !ReleaseTransactionsDocument.class.isAssignableFrom(inXmlTransactionDocument.getClass())) {
             return
         }
-        ReleaseTransactionsDocument releaseDocument = (ReleaseTransactionsDocument) inXmlTransactionDocument
-        ReleaseTransactionsDocument.ReleaseTransactions releaseTrans = releaseDocument.getReleaseTransactions()
+        ReleaseTransactionsDocument transactionsDocument = (ReleaseTransactionsDocument) inXmlTransactionDocument
+        ReleaseTransactionsDocument.ReleaseTransactions releaseTrans = transactionsDocument.getReleaseTransactions()
         ReleaseTransactionDocument.ReleaseTransaction[] releaseTransArray = releaseTrans.getReleaseTransactionArray(0)
         if (releaseTransArray == null || releaseTransArray.length == 0) {
-            LOGGER.info("Release Array is NULL in after EDI_POST method")
+            LOGGER.info("The Release Array is NULL after the EDI_POST method.")
             return
         }
         ReleaseTransactionDocument.ReleaseTransaction releaseTransaction = releaseTransArray[0]
@@ -252,7 +245,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         if (ediCode == null) {
             return
         }
-        //flush the session to persist the release which is being posted
+
         HibernateApi.getInstance().flush()
         BillOfLading bl = null
         EdiReleaseIdentifier releaseIdentifier = releaseTransaction.getEdiReleaseIdentifierArray(0)
@@ -261,52 +254,47 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
             LineOperator lineOp = (LineOperator) findLineOperator(releaseTransaction)
             bl = BillOfLading.findBillOfLading(blNbr, lineOp, null)
         }
-        // write the error
         if (ArgoUtils.isEmpty(blNbr) || bl == null) {
-            LOGGER.error("Bill Of Lading not found for BlNbr: " + blNbr)
+            LOGGER.error("BlNbr Bill of Lading not found: " + blNbr)
             return
         }
-        //handle 55 disposition code for US customs
+
         if ("55".equals(ediCode)) {
-            handle55(releaseTransaction, bl)
+            handling55(releaseTransaction, bl)
         }
-        updateInbondStatus(ediCode, bl)
-        //handle 1J&95 disposition code for US customs
+        inboundStatusUpdating(ediCode, bl)
+
         if ("95".equals(ediCode) || "1J".equalsIgnoreCase(ediCode)) {
-            // record 1J received event
             if ("1J".equalsIgnoreCase(ediCode)) {
-                recordServiceEvent(bl, ADD_EVENT_1J_STR)
-                updateInbondStatus(bl)
+                rcdSrvEvent(bl, ADD_EVENT_1J_STR)
+                inboundStatusUpdating(bl)
             }
-            handle1JUsing95(releaseTransaction, bl)
+            handling1JUsing95(releaseTransaction, bl)
         }
-        //GoLive Issue: 83 should subtract 1W release Qty
+
         if ("83".equals(ediCode) || "1W".equalsIgnoreCase(ediCode)) {
-            // record 1J received event
             if ("1W".equalsIgnoreCase(ediCode)) {
-                recordServiceEvent(bl, ADD_EVENT_1W_STR)
-                updateInbondStatus(bl);
+                rcdSrvEvent(bl, ADD_EVENT_1W_STR)
+                inboundStatusUpdating(bl);
             }
-            handle1WUsing83(releaseTransaction, bl)
+            handlingOf1WUsing83(releaseTransaction, bl)
         }
-        //update inbond status only if there is active 1J
         if (("1C".equalsIgnoreCase(ediCode) || "1W".equalsIgnoreCase(ediCode)) && hasActive1J(bl.getBlGkey())) {
-            updateInbondStatus(bl)
+            inboundStatusUpdating(bl)
         }
+
         /**
-         Before uncomment this method call please see comments that are given for handle5H5ILogicBeforePost() in beforeEdiPost()
+         Before uncommenting this method call, please see the comments that are given for handle5H5ILogic BeforePost() is called beforeEdiPost().
          * */
         if ("5H".equalsIgnoreCase(ediCode) || "5I".equalsIgnoreCase(ediCode) || "4A".equalsIgnoreCase(ediCode)) {
-            handle5H5I4ALogicAfterPost(releaseTransaction, bl, ediCode)
+            handling5H5I4ALogicAfterPost(releaseTransaction, bl, ediCode)
         }
         if ("4E".equalsIgnoreCase(ediCode)) {
-            handle4E(bl, releaseTransaction.getReleaseReferenceId())
+            handling4E(bl, releaseTransaction.getReleaseReferenceId())
         }
         LOGGER.info(
                 "MoveFlexToRemarks() :Class of inHibernatingEntity is " + inHibernatingEntity.getClass().name)
-        //If there is any values in Flex field 02 needs to move to remarks in BL release
-        updateInbondStatus(ediCode, bl)
-
+        inboundStatusUpdating(ediCode, bl)
         applyFlexToRemarks(releaseTransaction, bl, ediCode)
 
         if (DISPOSITION_CODES_FOR_UNIQUE_ID.indexOf(ediCode) >= 0) {
@@ -314,294 +302,255 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
             setBackTransactionReferenceId(releaseTransaction, bl, ediCode)
         }
         /**
-         * Run BL hold release process
+         * Run the BL hold release process.
          */
-        String releaseRefId = releaseTransaction.getReleaseReferenceId()
+
         if (releaseTransaction.getVesselCallFacility()) {
-            releaseGenRefHolds(ediCode, releaseTransaction.getVesselCallFacility(), bl, releaseRefId)
+            releaseGeneralReferenceHolds(ediCode, releaseTransaction.getVesselCallFacility(), bl, releaseTransaction.getReleaseReferenceId())
         }
-        //Update the vessel visit from the Release if the BLs carrier visit is gen_vessel
+
         updateBlCarrierVisit(bl, releaseTransaction, inParams)
         if (["1W","83"].contains(ediCode.toUpperCase())) {
             bl.blFlexString01 = (ediCode == "83" ? null : "Yes")
             HibernateApi.getInstance().save(bl)
         }
     }
-    private void updateInbondStatus(String inDispCode, BillOfLading inBl) {
-        if (inDispCode == null || inBl == null) {
+    private void inboundStatusUpdating(String dispCode, BillOfLading Bl) {
+        if (dispCode == null || Bl == null) {
             return
         }
         def offSite = ["1W","1A", "2H", "1H", "71", "72", "73", "4A", "A3"]
-        switch (inDispCode){
+        switch (dispCode){
             case "95" :
-                inBl.setBlExam(null)
-                inBl.setBlInbond(null)
+                Bl.setBlExam(null)
+                Bl.setBlInbond(null)
                 break
             case "1W":
-                inBl.setBlExam(ExamEnum.OFFSITE)
-                inBl.setBlInbond(null)
+                Bl.setBlExam(ExamEnum.OFFSITE)
+                Bl.setBlInbond(null)
                 break
             case "83":
-                inBl.setBlExam(null)
-                inBl.setBlInbond(null)
+                Bl.setBlExam(null)
+                Bl.setBlInbond(null)
                 break
             case "84":
-                inBl.setBlExam(null)
-                inBl.setBlInbond(null)
+                Bl.setBlExam(null)
+                Bl.setBlInbond(null)
                 break
             default :
-                if (offSite.contains(inDispCode)){
-                    inBl.setBlExam(ExamEnum.OFFSITE)
-                    inBl.setBlInbond(null)
+                if (offSite.contains(dispCode)){
+                    Bl.setBlExam(ExamEnum.OFFSITE)
+                    Bl.setBlInbond(null)
                 }
                 break
         }
-        inBl.updateUnitExamStatus()
-        inBl.updateUnitInbondStatus()
+        Bl.updateUnitExamStatus()
+        Bl.updateUnitInbondStatus()
     }
     /**
-     * This method is being used in afterEdiPost method
-     * This method will be executed if disposition code 95 or 1J(out of order message)
-     * * Cancel active 1J using 95 disposition code
-     * @param inReleaseTransaction
-     * @param inBl
+     * This method will be executed if disposition code 95 or 1J(out of order message) is received.
+     * Cancel active 1J using 95 disposition code
      */
-    private void handle1JUsing95(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, BillOfLading inBl) throws BizViolation {
-        String referenceId = inReleaseTransaction.getReleaseReferenceId();
-        String ediCode = inReleaseTransaction.getEdiCode()
-        List nintyFiveBlReleaseList = findBlReleases(inBl.getBlGkey(), "95")
-        if (nintyFiveBlReleaseList.isEmpty()) {
+    private void handling1JUsing95(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading) throws BizViolation {
+        String referenceId = releaseTransaction.getReleaseReferenceId();
+        String ediCode = releaseTransaction.getEdiCode()
+        List blReleases = findBlRelease(billOfLading.getBlGkey(), "95")
+        if (blReleases.isEmpty()) {
             return
         }
-        // if blRelease is canceled already then don't cancel once again.
-        BlRelease ninetyFiveBlRel = null
-        for (BlRelease release : nintyFiveBlReleaseList) {
-            if (isBlReleaseCanceled(inBl.getBlGkey(), release.getBlrelGkey())) {
+
+        BlRelease blRelease = null
+        for (BlRelease release : blReleases) {
+            if (isBlReleaseCanceled(billOfLading.getBlGkey(), release.getBlrelGkey())) {
                 continue
             }
-            ninetyFiveBlRel = release;
+            blRelease = release;
             break
         }
-        //return if there is no 95 release
-        if (ninetyFiveBlRel == null) {
+
+        if (blRelease == null) {
             return;
         }
-        boolean isMatchByRef = isQtyMatchByReference(inReleaseTransaction)
-        //To find active 1J use 95's reference id.
+        boolean matchByRef = isQtyMatchByReference(releaseTransaction)
+
         if ("1J".equalsIgnoreCase(ediCode)) {
-            referenceId = ninetyFiveBlRel.getBlrelReferenceNbr();
+            referenceId = blRelease.getBlrelReferenceNbr();
         }
-        if (referenceId == null && isMatchByRef) {
-            LOGGER.error("Unable to cancel Active 1J since reference_Id is null and MatchQtyByReference is selected in release map LOV")
+        if (referenceId == null && matchByRef) {
+            LOGGER.error("Active 1J cannot be cancelled because reference_Id is null and MatchQtyByReference is selected in release map LOV.")
             return
         }
-        List<BlRelease> blRel = findActive1J(inReleaseTransaction, inBl.getBlGkey(), referenceId)
-        for (BlRelease release1J : blRel) {
-            // By setting blRelReference we are marking the 1J release as cancelled
-            release1J.setFieldValue(InventoryCargoField.BLREL_REFERENCE, ninetyFiveBlRel)
-            ninetyFiveBlRel.setFieldValue(InventoryCargoField.BLREL_REFERENCE,release1J)
-            HibernateApi.getInstance().update(release1J)
-            HibernateApi.getInstance().update(ninetyFiveBlRel)
+        List<BlRelease> listOfReleases = findActive1J(releaseTransaction, billOfLading.getBlGkey(), referenceId)
+        for (BlRelease release1J : listOfReleases) {
+            release1J.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+            blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE,release1J)
+            HibernateApi.getInstance().save(release1J)
+            HibernateApi.getInstance().save(blRelease)
         }
-        if (!blRel.isEmpty()) {
-            recordServiceEvent(inBl, CANCELED_EVENT_1J_STR)
-            updateInbondStatus(inBl)
+        if (!listOfReleases.isEmpty()) {
+            rcdSrvEvent(billOfLading, CANCELED_EVENT_1J_STR)
+            inboundStatusUpdating(billOfLading)
         }
     }
-    private void handle1WUsing83(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, BillOfLading inBl) throws BizViolation {
-        String referenceId = inReleaseTransaction.getReleaseReferenceId()
-        String ediCode = inReleaseTransaction.getEdiCode()
-        Double ediRelQty = (inReleaseTransaction.getReleaseQty() != null) ? Double.valueOf(inReleaseTransaction.getReleaseQty()) : 0.0
-        List blReleases83 = findBlReleases(inBl.getBlGkey(), "83")
-        //no need to handle if 83 disposition code does not exist
-        if (blReleases83.isEmpty()) {
+    private void handlingOf1WUsing83(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading) throws BizViolation {
+        String refId = releaseTransaction.getReleaseReferenceId()
+        String ediCode = releaseTransaction.getEdiCode()
+        Double ediReleaseQty = (releaseTransaction.getReleaseQty() != null) ? Double.valueOf(releaseTransaction.getReleaseQty()) : 0.0
+        List blReleases = findBlRelease(billOfLading.getBlGkey(), "83")
+        if (blReleases.isEmpty()) {
             return
         }
-        // if blRelease is canceled already then don't cancel once again.
-        BlRelease blRel83 = null
-        for (BlRelease release : blReleases83) {
-            if (isBlReleaseCanceled(inBl.getBlGkey(), release.getBlrelGkey())) {
+        BlRelease blRelease = null
+        for (BlRelease release : blReleases) {
+            if (isBlReleaseCanceled(billOfLading.getBlGkey(), release.getBlrelGkey())) {
                 continue
             }
-            blRel83 = release
+            blRelease = release
             break
         }
-        //return if there is no 83 release
-        if (blRel83 == null) {
-            return;
-        }
-        boolean isMatchByRef = isQtyMatchByReference(inReleaseTransaction)
-        //To find active 1W use 83's reference id.
-        if ("1W".equalsIgnoreCase(ediCode)) {
-            referenceId = blRel83.getBlrelReferenceNbr()
-        }
-        if (referenceId == null && isMatchByRef) {
-            LOGGER.error("Unable to cancel Active 1W since reference_Id is null and MatchQtyByReference is selected in release map LOV.")
+        if (blRelease == null) {
             return
         }
-        List<BlRelease> blRel = findActive1W(inReleaseTransaction, inBl.getBlGkey(), referenceId)
-        for (BlRelease release1W : blRel) {
-            if (!blRel.isEmpty()) {
-                recordServiceEvent(inBl, CANCELED_EVENT_1W_STR)
-                updateInbondStatus(inBl)
+        boolean matchByRef = isQtyMatchByReference(releaseTransaction)
+        if ("1W".equalsIgnoreCase(ediCode)) {
+            refId = blRelease.getBlrelReferenceNbr()
+        }
+        if (refId == null && matchByRef) {
+            LOGGER.error("Cannot cancel Active 1W because reference_Id is null and MatchQtyByReference is enabled in the release map LOV..")
+            return
+        }
+        List<BlRelease> listOfReleases = findActive1W(releaseTransaction, billOfLading.getBlGkey(), refId)
+        for (BlRelease release1W : listOfReleases) {
+            if (!listOfReleases.isEmpty()) {
+                rcdSrvEvent(billOfLading, CANCELED_EVENT_1W_STR)
+                inboundStatusUpdating(billOfLading)
                 if ("83".equalsIgnoreCase(ediCode)) {
-                    ediRelQty = ediRelQty - (ediRelQty * 2)
-                    blRel83.setFieldValue(InventoryCargoField.BLREL_QUANTITY, ediRelQty)
-                    HibernateApi.getInstance().update(blRel83)
+                    ediReleaseQty = ediReleaseQty - (ediReleaseQty * 2)
+                    blRelease.setFieldValue(InventoryCargoField.BLREL_QUANTITY, ediReleaseQty)
+                    HibernateApi.getInstance().save(blRelease)
                 }
             }
-            // By setting blRelReference we are marking the 1W release as cancelled
-            release1W.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRel83);
-            HibernateApi.getInstance().update(release1W);
+            release1W.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+            HibernateApi.getInstance().save(release1W)
         }
     }
-    private void handle4E(BillOfLading inBl, String inReferenceNbr) {
-        //We will make sure that 4E disposition code is written to the database before we begin our adjustment process
-        HibernateApi.getInstance().flush();
+    private void handling4E(BillOfLading billOfLading, String refNbr) {
+        //the 4E disposition code is written to the database.
+        HibernateApi.getInstance().flush()
 
-        //find active 1A, 1B or 1C disposition codes that are received till now for the given 4E reference nbr. If a 1A, 1B and 1C is already
-        //cancelled by a 4E then the BL Release Reference Entity for that 1A,1B, 1C BLRelease will be set to the gkey of the 4E that cancelled it and
-        //BL Release Reference Entity for 4E will be the gkey of the BLRelease that it cancels.
+        /** There are no active 1A, 1B, or 1C disposition codes for the given 4E reference nbr. If a 1A, 1B, or 1C is already cancelled by a 4E,
+         then the BL Release Reference Entity for that 1A, 1B, or 1C BLRelease will be set to the gkey of the 4E that cancelled it,
+         and the BL Release Reference Entity for the 4E will be the gkey of the BLRelease that it cancels.*/
+
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBl.getPrimaryKey()))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, billOfLading.getPrimaryKey()))
                 .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, [DISP_CODE_1A, DISP_CODE_1B, DISP_CODE_1C]))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
-        // the 1A, 1B and 1C with customs hold. The reason is, when the 4E is posted it was canceling the 1C(information) instead of 1C(Release) which
-        // end up not decreasing the release qty.
-                .addDqPredicate(PredicateFactory.eq(BLREL_FLAG_TYPE_ID, DISP_CODE_1C_HOLD_ID))
-        //add order by predicate by BlREl post date and blrel_gkey;
+        /** Customs holds 1A, 1B, and 1C. The reason is that when the 4E was posted, it was cancelling the 1C(information) instead of the 1C(release),
+         which ended up not decreasing the release qty.*/
+
+                .addDqPredicate(PredicateFactory.eq(BLRELEASE_FLAG_TYPE_ID, DISP_CODE_1C_HOLD_ID))
                 .addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_POST_DATE))
                 .addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_GKEY))
-        //add reference nbr predicate to domain query if inReferenceNbr is not null only
-        if (inReferenceNbr != null) {
-            dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, inReferenceNbr))
+        if (refNbr != null) {
+            dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, refNbr))
         }
         List<BlRelease> blRelList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
-        //find the BL Releases that were created as a result of receiving 4E.
         DomainQuery releaseDq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBl.getPrimaryKey()))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, billOfLading.getPrimaryKey()))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, DISP_CODE_4E))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
                 .addDqOrdering(Ordering.asc(InventoryCargoField.BLREL_POST_DATE));
-        //add referebce nbr predicate to domain query if inReferenceNbr is not null only
-        if (inReferenceNbr != null) {
-            releaseDq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, inReferenceNbr))
+
+        if (refNbr != null) {
+            releaseDq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, refNbr))
         }
-        List<BlRelease> blReleases4E = HibernateApi.getInstance().findEntitiesByDomainQuery(releaseDq)
-        //4E bel rel size is always 2 as 4E has two release map
-        LOGGER.info("BL 4ERelease size : " + blReleases4E.size())
-        //if the first entry(order by gkey and postdate) is 1C then we don't
+        List<BlRelease> blReleasesList4E = HibernateApi.getInstance().findEntitiesByDomainQuery(releaseDq)
+        LOGGER.info("BL 4ERelease size : " + blReleasesList4E.size())
         if (blRelList != null && blRelList.size() > 0) {
             BlRelease blRelease = blRelList?.get(0)
             if (DISP_CODE_1C.equalsIgnoreCase(blRelease.getBlrelDispositionCode())) {
-                LOGGER.info("DISP 1C is found as first record in list so only 4E cancels 1C disp code alone and other 4E entries will be nullified ")
-                BlRelease rel4EFor1CDisp = get4EReleaseForHoldId(blReleases4E, DISP_CODE_1C_HOLD_ID)
-                rel4EFor1CDisp.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
-                rel4EFor1CDisp.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
-                blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, rel4EFor1CDisp)
-                //1A followd by 1C followed by 4E case; system release the 1A hold as there is an active 1A hold exist so here
-                //we need to reapply the hold as 1C
+                LOGGER.info("DISP 1C is found as the first record in the list, so only 4E cancels 1C disp code alone and the other 4E entries will be nullified. ")
+                BlRelease release4EFor1CDisp = get4EReleaseForHoldId(blReleasesList4E, DISP_CODE_1C_HOLD_ID)
+                release4EFor1CDisp.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
+                release4EFor1CDisp.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+                blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1CDisp)
+
                 if (blRelList.size() > 1) {
-                    BlRelease rel1ADisp = blRelList.get(1)
-                    if (DISP_CODE_1A.equalsIgnoreCase(rel1ADisp.getBlrelDispositionCode())) {
-                        String holdId = rel1ADisp.getBlrelFlagType().getFlgtypId().trim()
-                        serviceManager.applyHold(holdId, inBl, null, inReferenceNbr, holdId)
+                    BlRelease release1ADisp = blRelList.get(1)
+                    if (DISP_CODE_1A.equalsIgnoreCase(release1ADisp.getBlrelDispositionCode())) {
+                        serviceManager.applyHold(release1ADisp.getBlrelFlagType().getFlgtypId().trim(), billOfLading, null, refNbr, release1ADisp.getBlrelFlagType().getFlgtypId().trim())
                     }
                 }
-
-                setBlRelModifyQtyToNullForAllBlReleases(blReleases4E, rel4EFor1CDisp);
+                setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, release4EFor1CDisp);
             } else if (DISP_CODE_1A.equalsIgnoreCase(blRelease.getBlrelDispositionCode())) {
-                LOGGER.info("Disp 1A is found as first record in list so 4E cancels 1A disp code alone and other 4E entries will be nullified ")
-                BlRelease release4EFor1A_DISP = get4EReleaseForHoldId(blReleases4E, blRelease.getBlrelFlagType().getFlgtypId())
-                release4EFor1A_DISP.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
-                release4EFor1A_DISP.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
-                blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1A_DISP)
-                setBlRelModifyQtyToNullForAllBlReleases(blReleases4E, release4EFor1A_DISP)
+                LOGGER.info("Disp 1A is found as the first record in the list, so 4E cancels 1A disp code alone and the other 4E entries will be nullified. ")
+                BlRelease release4EFor1ADisp = get4EReleaseForHoldId(blReleasesList4E, blRelease.getBlrelFlagType().getFlgtypId())
+                release4EFor1ADisp.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
+                release4EFor1ADisp.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+                blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1ADisp)
+                setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, release4EFor1ADisp)
             } else if (DISP_CODE_1B.equalsIgnoreCase(blRelease.getBlrelDispositionCode())) {
                 boolean isDisp1AFollowedBy1B = false
                 for (BlRelease blRel : blRelList) {
                     if (DISP_CODE_1A.equalsIgnoreCase(blRel.getBlrelDispositionCode())) {
-                        LOGGER.info("Disp 1A and 1B are found as first and second records in list so 4E cancels both 1A and 1B disp codes")
-                        BlRelease release4EFor1A_DISP = get4EReleaseForHoldId(blReleases4E, blRel.getBlrelFlagType().getFlgtypId())
-                        release4EFor1A_DISP.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRel.getBlrelQuantityType())
-                        release4EFor1A_DISP.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRel)
-                        blRel.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1A_DISP)
-                        if (blReleases4E.size() == 1) {
-                            //create second 4E bl release for canceling 1B entry as there is only one release map defined for 4E
-                            BlRelease release_4E_1B = new BlRelease()
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_BL, inBl)
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_QUANTITY, release4EFor1A_DISP.getBlrelQuantity())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_FLAG_TYPE, release4EFor1A_DISP.getBlrelFlagType())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, EdiReleaseMapModifyQuantityEnum.ReleasedQuantity)
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_REFERENCE_NBR, release4EFor1A_DISP.getBlrelReferenceNbr())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_DISPOSITION_CODE, release4EFor1A_DISP.getBlrelDispositionCode())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_NOTES, release4EFor1A_DISP.getBlrelNotes())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_POST_DATE, release4EFor1A_DISP.getBlrelPostDate())
-                            release_4E_1B.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
-                            HibernateApi.getInstance().save(release_4E_1B)
+                        LOGGER.info("1A and 1B are found as first and second records in list so 4E cancels both 1A and 1B disp codes")
+                        BlRelease release4EFor1ADisp = get4EReleaseForHoldId(blReleasesList4E, blRel.getBlrelFlagType().getFlgtypId())
+                        release4EFor1ADisp.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRel.getBlrelQuantityType())
+                        release4EFor1ADisp.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRel)
+                        blRel.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1ADisp)
+                        if (blReleasesList4E.size() == 1) {
+                            BlRelease release4EFor1B = new BlRelease()
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_BL, billOfLading)
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_QUANTITY, release4EFor1ADisp.getBlrelQuantity())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_FLAG_TYPE, release4EFor1ADisp.getBlrelFlagType())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, EdiReleaseMapModifyQuantityEnum.ReleasedQuantity)
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_REFERENCE_NBR, release4EFor1ADisp.getBlrelReferenceNbr())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_DISPOSITION_CODE, release4EFor1ADisp.getBlrelDispositionCode())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_NOTES, release4EFor1ADisp.getBlrelNotes())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_POST_DATE, release4EFor1ADisp.getBlrelPostDate())
+                            release4EFor1B.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+                            HibernateApi.getInstance().save(release4EFor1B)
                         } else {
-                            BlRelease release_4EFor1B_DISP = get4EReleaseForHoldId(blReleases4E, DISP_CODE_1C_HOLD_ID)
-                            release_4EFor1B_DISP.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
-                            release_4EFor1B_DISP.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
-                            blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release_4EFor1B_DISP)
+                            BlRelease release4EFor1BDisp = get4EReleaseForHoldId(blReleasesList4E, DISP_CODE_1C_HOLD_ID)
+                            release4EFor1BDisp.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, blRelease.getBlrelQuantityType())
+                            release4EFor1BDisp.setFieldValue(InventoryCargoField.BLREL_REFERENCE, blRelease)
+                            blRelease.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4EFor1BDisp)
                         }
                         isDisp1AFollowedBy1B = true
                     }
                 }
                 if (!isDisp1AFollowedBy1B) {
-                    LOGGER.info("DISP 1B alone exist with out 1A which is practically not correct so nullifying all 4E entries ")
-                    setBlRelModifyQtyToNullForAllBlReleases(blReleases4E, null)
+                    LOGGER.info("1B alone exists without 1A, which is practically not correct, so nullifying all 4E entries. ")
+                    setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, null)
                 }
             } else {
-                //this block gets executed if selected bl releases are nither 1A,1B nor 1C.
-                LOGGER.info("Either 1A,1B or 1C expected but BL_release with DISP code" + blRelease.getBlrelDispositionCode() +
-                        "is presented wrongly so nullifying all 4E entries");
-                setBlRelModifyQtyToNullForAllBlReleases(blReleases4E, null)
+                LOGGER.info("Either 1A, 1B, or 1C is expected, but BL_release with DISP code" + blRelease.getBlrelDispositionCode() +
+                        "is presented wrongly, so nullifying all 4E entries.");
+                setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, null)
             }
         } else {
-            LOGGER.info("Neither 1A,1B or 1C were found so nullifying all 4E entries")
-            setBlRelModifyQtyToNullForAllBlReleases(blReleases4E, null)
+            LOGGER.info("Neither 1A, 1B, or 1C were found, so nullifying all 4E entries.")
+            setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, null)
         }
 
         HibernateApi.getInstance().flush()
     }
-    //this method Iterate each blrelease from given list and nullify it's modify quantity to null so that release qty will not have any impact on Bl
-    //quantities. it skips to nullify if any BlRelease is given to skip.
-    private void setBlRelModifyQtyToNullForAllBlReleases(List<BlRelease> inBlRels, BlRelease inToSkipUpdate) {
-        for (BlRelease release4E : inBlRels) {
-            if (inToSkipUpdate != null && inToSkipUpdate.equals(release4E)) {
+    private void setBlReleaseQtyToNullToAllBlReleases(List<BlRelease> blReleases, BlRelease blRelease) {
+        for (BlRelease release4E : blReleases) {
+            if (blRelease != null && blRelease.equals(release4E)) {
                 continue
             }
             release4E.setFieldValue(InventoryCargoField.BLREL_QUANTITY_TYPE, null)
-            release4E.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4E) // We will put the reference as itself
+            release4E.setFieldValue(InventoryCargoField.BLREL_REFERENCE, release4E)
         }
     }
-   /* *//**
-     * This method is being used in afterEdiPost method
-     * This method will be be executed if disposition code is 54
-     * set the manifest quantity to zero.
-     * @param inBl
-     *//*
-    private void handle_54(BillOfLading inBl) {
-        inBl.setFieldValue(InventoryCargoField.BL_MANIFESTED_QTY, Double.valueOf("0.0"))
-        HibernateApi.getInstance().update(inBl)
-        recordServiceEvent(inBl, RECEIVED_54_STR)
-    }*/
-    /**
-     * This method is being used in afterEdiPost method
-     * This method will be be executed if disposition code is 55
-     * Update manifest quantity with the quantity received in the 350 message
-     * @param inRelease
-     * @param inBl
-     */
-    private void handle55(ReleaseTransactionDocument.ReleaseTransaction inRelease, BillOfLading inBl) {
-        Double qty = getQty(inRelease)
-        inBl.setFieldValue(InventoryCargoField.BL_MANIFESTED_QTY, qty)
-        recordServiceEvent(inBl, RECEIVED_55_STR)
-        HibernateApi.getInstance().update(inBl)
+    private void handling55(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading) {
+        Double quantity = getQty(releaseTransaction)
+        billOfLading.setFieldValue(InventoryCargoField.BL_MANIFESTED_QTY, quantity)
+        rcdSrvEvent(billOfLading, RECEIVED_55_STR)
+        HibernateApi.getInstance().save(billOfLading)
     }
-
-    // this method iterate each blrelease from list and return the blrelease which matches it's flagtype with given flagtype
     private BlRelease get4EReleaseForHoldId(List<BlRelease> inblReleases, String inHoldId) {
         if (inblReleases != null) {
             for (BlRelease blrel : inblReleases) {
@@ -614,100 +563,72 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         return null
     }
     /**
-     * This method is being used in afterEdiPost method
-     * Update the Inbond status to CANCEL/INBOND. If manifest qty is less than or equal to inbond qty then inbond status should be INBOND otherwise
-     * the status should be CANCEL
-     * @param inBl
+     Update the Inbound status to CANCEL/INBOUND. If manifest qty is less than or equal to inbound qty, then inbound status should be INBOUND,
+     otherwise the status should be CANCEL.
      */
-    private void updateInbondStatus(BillOfLading inBl) {
+    private void inboundStatusUpdating(BillOfLading inBl) {
         Serializable blGkey = inBl.getBlGkey()
         HibernateApi.getInstance().flush()
 
-        //Determine the inbond quantity for BL.
-        List<BlRelease> blReleases = findActiveInbond(blGkey)
+        List<BlRelease> blReleases = findActiveInbound(blGkey)
         Double inbondQtySum = 0
         List referenceIdList = new ArrayList()
-        // Here we will find all the Active 1J's. BlRelease with disposition code 1J is active if BlReleaseReference is NOT populated
         for (BlRelease blRelease : blReleases) {
             String refId = blRelease.getBlrelReferenceNbr()
-            //ignore the duplicate 1J
             if ("1J".equalsIgnoreCase(blRelease.getBlrelDispositionCode()) || "1W".equalsIgnoreCase(blRelease.getBlrelDispositionCode())) {
                 referenceIdList.add(refId)
             }
-            // We need to add the quantities for 1J, 1C  disposition codes only for inbond quantity check.
             Double qty = blRelease.getBlrelQuantity()
             if (qty != null) {
                 inbondQtySum = inbondQtySum + qty
-                LOGGER.info("inbondQtySum=" + inbondQtySum)
+                LOGGER.info("inboundQtySum=" + inbondQtySum)
             }
         }
-        //If InbondQty is equal to manifest quantity, set inbond status to INBOND otherwise CANCEL
         Double blManifestQty = inBl.getBlManifestedQty()
         if (blManifestQty != null) {
-            // if the bl release sum inbond quantity is greater than or equal to manifested quantity
             if (blManifestQty <= inbondQtySum) {
                 inBl.updateInbond(InbondEnum.INBOND)
             } else {
                 inBl.updateInbond(InbondEnum.CANCEL)
             }
-            LOGGER.info("inbondQtySum=" + inbondQtySum + " blManifestQty=" + blManifestQty)
+            LOGGER.info("inboundQtySum=" + inbondQtySum + " blManifestQty=" + blManifestQty)
         }
-        HibernateApi.getInstance().update(inBl);
+        HibernateApi.getInstance().save(inBl)
     }
 
-    /**
-     * This method is being used in afterEdiPost method
-     * This method will be be executed  for all  disposition codes  and message Type 350
-     * Update Remarks with the string received in the 350 message flex field 01
-     * @param inRelease
-     * @param inBl
-     */
-    private void applyFlexToRemarks(ReleaseTransactionDocument.ReleaseTransaction inRelease, BillOfLading inBl, String ediCode) {
-        EdiReleaseFlexFields flexFields = inRelease.getEdiReleaseFlexFields()
-        LOGGER.info(
-                "applyFlexToRemarks() Starts: ")
-        if (flexFields == null) {
-            LOGGER.info(
-                    "applyFlexToRemarks() : value of  inRelease.getEdiReleaseFlexFields() is empty")
+    private void applyFlexToRemarks(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading, String ediCode) {
+        EdiReleaseFlexFields flexField = releaseTransaction.getEdiReleaseFlexFields()
+        if (flexField == null) {
+            LOGGER.info("applyFlexToRemarks() : value of  inRelease.getEdiReleaseFlexFields() is empty")
             return
         }
-        String flexField02 = flexFields.getEdiReleaseFlexString02()
+        String flexField02 = flexField.getEdiReleaseFlexString02()
         if (flexField02 == null) {
-            LOGGER.info(
-                    "applyFlexToRemarks() : value of  flexField02 is null")
+            LOGGER.info("applyFlexToRemarks() : value of  flexField02 is null")
             return
         }
         if (flexField02.isEmpty()) {
-            LOGGER.info(
-                    "applyFlexToRemarks() : value of  flexField02 is empty")
+            LOGGER.info("applyFlexToRemarks() : value of  flexField02 is empty")
             return
         }
-        if (flexField02.length() > 4000) //Remarks field is 4000 characters
+        if (flexField02.length() > 4000)
         {
             flexField02 = flexField02.substring(0, 3999)
         }
-        Date relDate = ((org.apache.xmlbeans.XmlCalendar) inRelease.getReleasePostDate()).getTime()
 
-        BlRelease blRel = findLatestBlReleaseForDispCodeAndBL(inBl.getBlGkey(), ediCode)
-        if (blRel != null) {
-            // blRel.setFieldValue for custom field is throwing error in log file. So create hashmap is to suppress this error.
-            if (blRel.getCustomFlexFields() == null) {
-                blRel.setCustomFlexFields(new HashMap<String, Object>())
+        BlRelease blRelease = findLatestBlReleaseForDisp(billOfLading.getBlGkey(), ediCode)
+        if (blRelease != null) {
+            if (blRelease.getCustomFlexFields() == null) {
+                blRelease.setCustomFlexFields(new HashMap<String, Object>())
             }
-            blRel.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFF_REMARKS"), flexField02)
-            HibernateApi.getInstance().update(blRel)
-            LOGGER.info("applyFlexToRemarks :" + flexFields.getEdiReleaseFlexString02() + "is set for ediCode:  " + inRelease.getEdiCode() +
+            blRelease.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFF_REMARKS"), flexField02)
+            HibernateApi.getInstance().save(blRelease)
+            LOGGER.info("applyFlexToRemarks :" + flexField.getEdiReleaseFlexString02() + "is set for ediCode:  " + releaseTransaction.getEdiCode() +
                     " flexField02 " + flexField02)
         }
     }
 
-    /**
-     * This method is being used in updateInbondStatus method
-     * Find BL Release for given BOL and reference is null
-     * @param inBlGkey
-     * @return
-     */
-    private List<BlRelease> findActiveInbond(Serializable inBlGkey) {
+    private List<BlRelease> findActiveInbound(Serializable inBlGkey) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
                 .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, ["1J", "1C", "1W"]))
@@ -715,12 +636,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
-    /**
-     * This method is being used in afterEdiPost method
-     * Find Line Operator
-     * @param inRelease
-     * @return
-     */
+
     private ScopedBizUnit findLineOperator(ReleaseTransactionDocument.ReleaseTransaction inRelease) {
         ShippingLine ediLine = inRelease.getEdiShippingLine()
         if (ediLine != null) {
@@ -730,177 +646,127 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         }
         return null
     }
-    /**
-     * This method is being used in handle1JUsing95 method
-     * Check BlRelease is canceled by another Bl release
-     * @param inBlGkey
-     * @param inBlRelGkey
-     * @return
-     */
-    private boolean isBlReleaseCanceled(Serializable inBlGkey, Serializable inBlRelGkey) {
+
+    private boolean isBlReleaseCanceled(Serializable blGkey, Serializable blReleaseGkey) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE, inBlRelGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE, blReleaseGkey))
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
-    /**
-     * This method is being used in handle55 method
-     * Get release quantity
-     * @param inRelease
-     * @return
-     */
-    private Double getQty(ReleaseTransactionDocument.ReleaseTransaction inRelease) {
-        String qtyString = inRelease.getQty()
-        Double qty = safeGetDouble(qtyString)
+
+    private Double getQty(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction) {
+        Double qty = safeDouble(releaseTransaction.getQty())
         if (qty == null) {
-            String releaseQtyString = inRelease.getReleaseQty()
-            qty = safeGetDouble(releaseQtyString)
+            String releaseQtyString = releaseTransaction.getReleaseQty()
+            qty = safeDouble(releaseQtyString)
         }
         if (qty == null) {
             qty = 0.0
         }
         return qty
     }
-    /**
-     * This method is being used in getQty method
-     * convert string to Double
-     * @param inNumberString
-     * @return
-     */
-    private Double safeGetDouble(String inNumberString) {
+
+    private Double safeDouble(String inNumberString) {
         Double doubleObject = null
         if (!StringUtils.isEmpty(inNumberString)) {
             try {
-                doubleObject = new Double(inNumberString);
+                doubleObject = new Double(inNumberString)
             } catch (NumberFormatException e) {
                 throw e
             }
         }
         return doubleObject;
     }
-    /**
-     * This method is being used in afterEdiPost,handle55, handle54 and handle1JUsing95 methods
-     * Record BOL Event
-     * @param inBl
-     * @param inEventId
-     */
-    private void recordServiceEvent(BillOfLading inBl, String inEventId) {
-        EventType eventType = EventType.findOrCreateEventType(inEventId, "Customs Event", LogicalEntityEnum.BL, null)
+
+    private void rcdSrvEvent(BillOfLading billOfLading, String eventId) {
+        EventType eventType = EventType.findOrCreateEventType(eventId, "Customs Event", LogicalEntityEnum.BL, null)
         FieldChanges fld = new FieldChanges()
-        fld.setFieldChange(InventoryCargoField.BL_GKEY, inBl.getBlGkey())
-        fld.setFieldChange(InventoryCargoField.BL_NBR, inBl.getBlNbr())
-        fld.setFieldChange(InventoryCargoField.BL_INBOND, inBl.getBlInbond())
+        fld.setFieldChange(InventoryCargoField.BL_GKEY, billOfLading.getBlGkey())
+        fld.setFieldChange(InventoryCargoField.BL_NBR, billOfLading.getBlNbr())
+        fld.setFieldChange(InventoryCargoField.BL_INBOND, billOfLading.getBlInbond())
         if (eventType != null) {
-            inBl.recordBlEvent(eventType, fld, "recorded through groovy", null)
+            billOfLading.recordBlEvent(eventType, fld, "recorded through groovy", null)
         }
     }
-    /**
-     * This method is being used in handle1JUsing95 method
-     * Find bl releases using posting date and disposition code
-     * @param inBlGkey
-     * @param inDispositionCode
-     * @return
-     */
-    private List<BlRelease> findBlReleases(Serializable inBlGkey, String inDispositionCode) {
+
+    private List<BlRelease> findBlRelease(Serializable inBlGkey, String inDispositionCode) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, inDispositionCode))
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
-    /**
-     * This method is being used to get BL releases
-     * Find bl releases using posting date and disposition code
-     * @param inBlGkey
-     * @param inDispositionCode
-     * @param inPostedDate
-     * @return
-     */
-    private List<BlRelease> findBlReleases(Serializable inBlGkey, String inDispositionCode, Date inPostedDate) {
+
+    private List<BlRelease> findBlRelease(Serializable blGkey, String dispositionCode, Date postedDate) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, inDispositionCode))
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_POST_DATE, inPostedDate))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, dispositionCode))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_POST_DATE, postedDate))
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
-    /**
-     * This method is being used in handle1JUsing95 method
-     * find active 1J BlReleases
-     */
-    private List<BlRelease> findActive1J(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Serializable inBlGkey,
+
+    private List<BlRelease> findActive1J(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Serializable blGkey,
                                          String inReferenceId) throws BizViolation {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1J"))
-        boolean isQtyMatchByReferenceNbr = isQtyMatchByReference(inReleaseTransaction)
+        boolean isQtyMatchByReferenceNbr = isQtyMatchByReference(releaseTransaction)
         if (isQtyMatchByReferenceNbr) {
             dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, inReferenceId))
         }
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
-    /**
-     * This method is being used in handle1WUsing83 method
-     * find active 1J BlReleases
-     */
-    private List<BlRelease> findActive1W(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Serializable inBlGkey,
-                                         String inReferenceId) throws BizViolation {
+
+    private List<BlRelease> findActive1W(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Serializable blGkey,
+                                         String referenceId) throws BizViolation {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1W"))
-        boolean isQtyMatchByReferenceNbr = isQtyMatchByReference(inReleaseTransaction)
+        boolean isQtyMatchByReferenceNbr = isQtyMatchByReference(releaseTransaction)
         if (isQtyMatchByReferenceNbr) {
-            dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, inReferenceId))
+            dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_REFERENCE_NBR, referenceId))
         }
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
-    /**
-     * This method is being used in afterEdiPost method
-     * Check any active 1J exist or not
-     */
-    private boolean hasActive1J(Serializable inBlGkey) {
+
+    private boolean hasActive1J(Serializable blGkey) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1J"))
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
 
-    private boolean hasActive1W(Serializable inBlGkey) {
+    private boolean hasActive1W(Serializable blGkey) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
                 .addDqPredicate(PredicateFactory.isNull(InventoryCargoField.BLREL_REFERENCE))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1W"))
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
 
-    private static boolean has1W(Serializable inBlGkey) {
+    private static boolean has1W(Serializable blGkey) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
                 .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1W"))
 
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
     /**
-     * This method is being used in isQtyMatchByReference method
-     * find all release map for given disposition code and message type. Extract the release by BL hold/perm.
-     *
-     * @param inReleaseTransaction -   Release transaction
-     * @param inEdiCodeSet -   Edi Code Set
-     * @return IReleaseMap -   release map
-     * @throws com.navis.framework.util.BizViolation -   BizViolation
+     * find all release map for given disposition code and message type. Extract the release by BL hold/permission.
      */
-    private IReleaseMap findReleaseMapsFor95(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction) throws BizViolation {
+    private IReleaseMap findReleaseMapsFor95(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction) throws BizViolation {
         ArgoEdiFacade ediFacade = (ArgoEdiFacade) Roastery.getBean(ArgoEdiFacade.BEAN_ID)
-        String msgId = inReleaseTransaction.getMsgTypeId()
-        String msgVersion = inReleaseTransaction.getMsgVersion()
-        String msgReleaseNumber = inReleaseTransaction.getMsgReleaseNbr()
+        String msgId = releaseTransaction.getMsgTypeId()
+        String msgVersion = releaseTransaction.getMsgVersion()
+        String msgReleaseNumber = releaseTransaction.getMsgReleaseNbr()
         Set ediCodeSet = new HashSet()
         ediCodeSet.add("95")
 
         List<IReleaseMap> releaseMaps =
                 ediFacade.findEdiReleaseMapsForEdiCodes(msgId, ediCodeSet, msgVersion, msgReleaseNumber, LogicalEntityEnum.BL);
-        String msg = "Map Code: " + inReleaseTransaction.getEdiCode() + " Message Id: " + msgId + ", Message Version: " + msgVersion +
+        String msg = "Map Code: " + releaseTransaction.getEdiCode() + " Message Id: " + msgId + ", Message Version: " + msgVersion +
                 ", Release Number: " + msgReleaseNumber
         if (releaseMaps.isEmpty()) {
             throw BizViolation.create(PropertyKeyFactory.valueOf("Unable to find the release map for the condition: " + msg), null)
@@ -911,45 +777,32 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         return releaseMaps.get(0)
     }
     /**
-     * This method is being used in handle1JUsing95 method
-     * return true if match qty is "Match Qty By Reference" ion release map configuration
-     * @param inReleaseTransaction
-     * @return
-     * @throws BizViolation
+     return true if match qty is "Match Qty By Reference" ion release map configuration
      */
-    private boolean isQtyMatchByReference(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction) throws BizViolation {
-        IReleaseMap releaseMap = findReleaseMapsFor95(inReleaseTransaction)
+    private boolean isQtyMatchByReference(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction) throws BizViolation {
+        IReleaseMap releaseMap = findReleaseMapsFor95(releaseTransaction)
         return releaseMap == null ? false : EdiReleaseMapQuantityMatchEnum.MatchQtyByReference.equals(releaseMap.getEdirelmapMatchQty())
     }
 
-    private void setUniqueReferenceId(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, String inEdiCode) {
-        LOGGER.info(" setUniqueReferenceId(): starts for edi code " + inEdiCode)
-        String refId = inReleaseTransaction.getReleaseReferenceId()
-        //backup of ReleaseReferenceId if it is not empty.
-        if (StringUtils.isNotEmpty(refId)) {
-            EdiReleaseFlexFields ediReleaseFlexFields = inReleaseTransaction.getEdiReleaseFlexFields()
-            //add a new EdiReleaseFlexFields to release transaction if one is not available
+    private void settingUniqueReferenceId(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, String ediCode) {
+        if (StringUtils.isNotEmpty(releaseTransaction.getReleaseReferenceId())) {
+            EdiReleaseFlexFields ediReleaseFlexFields = releaseTransaction.getEdiReleaseFlexFields()
             if (ediReleaseFlexFields == null) {
-                ediReleaseFlexFields = inReleaseTransaction.addNewEdiReleaseFlexFields()
+                ediReleaseFlexFields = releaseTransaction.addNewEdiReleaseFlexFields()
             }
-            //sets the  ReleaseReferenceId to EdiReleaseFlexString01
-            ediReleaseFlexFields.setEdiReleaseFlexString01(refId)
+            ediReleaseFlexFields.setEdiReleaseFlexString01(releaseTransaction.getReleaseReferenceId())
         }
-        //sets the generated random UID to ReleaseReferenceId
-        inReleaseTransaction.setReleaseReferenceId(UUID.randomUUID().toString())
+        releaseTransaction.setReleaseReferenceId(UUID.randomUUID().toString())
     }
 
-
-    private void setBackTransactionReferenceId(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, BillOfLading inBillOfLading,
-                                               String inEdiCode) {
-        LOGGER.info(" setBackTransactionReferenceId(): starts for edi code " + inEdiCode)
-        EdiReleaseFlexFields flexFields = inReleaseTransaction.getEdiReleaseFlexFields()
-        //skip to revert back the getEdiReleaseFlexString01 is empty so BL release will have system generated UID as reference nbr
+    private void setBackTransactionReferenceId(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading,
+                                               String ediCode) {
+        EdiReleaseFlexFields flexFields = releaseTransaction.getEdiReleaseFlexFields()
         if (flexFields != null && flexFields.getEdiReleaseFlexString01() != null) {
-            BlRelease blrel = findLatestBlReleaseForDispCodeAndBL(inBillOfLading.getBlGkey(), inEdiCode)
+            BlRelease blrel = findLatestBlReleaseForDisp(billOfLading.getBlGkey(), ediCode)
             if (blrel != null) {
                 blrel.setFieldValue(InventoryCargoField.BLREL_REFERENCE_NBR, flexFields.getEdiReleaseFlexString01())
-                LOGGER.info("setBackTransactionReferenceId() :" + flexFields.getEdiReleaseFlexString01() + "is set back to ediCode: " + inEdiCode)
+                LOGGER.info("setBackTransactionReferenceId() :" + flexFields.getEdiReleaseFlexString01() + "is set back to ediCode: " + ediCode)
             } else {
                 LOGGER.info("setBackTransactionReferenceId() : blRelease is null !")
             }
@@ -959,61 +812,59 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         }
     }
 
-    //RAMAN: find BlRelease Latest BL Release for given Bl and disposition code desc order
-    private BlRelease findLatestBlReleaseForDispCodeAndBL(Serializable inBlGkey, String inDispositionCode) {
+    private BlRelease findLatestBlReleaseForDisp(Serializable blGkey, String dispositionCode) {
 
-        LOGGER.info("findLatestBlReleaseForDISPCodeAndBL inBlGkey" + inBlGkey + "inDispositionCode :" + inDispositionCode)
+        LOGGER.info("findLatestBlReleaseForDISPCodeAndBL inBlGkey" + blGkey + "inDispositionCode :" + dispositionCode)
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-        dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBlGkey))
-        dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, inDispositionCode))
+        dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
+        dq.addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, dispositionCode))
         dq.addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_CREATED))
         dq.addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_GKEY))
         List<BlRelease> blreleaseList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
         return !blreleaseList.isEmpty() ? blreleaseList.get(0) : null
     }
-    //nullify the release map modify qty if there are is prior 1C or 1b reference exist
-    private void handle5H5I4ABeforePost(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, String inEdiCode) {
-        LOGGER.info(" handle5H5I4ABeforePost(): starts for edi code " + inEdiCode)
+
+    private void handle5H5I4ABeforePost(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, String ediCode) {
+        LOGGER.info(" handle5H5I4ABeforePost(): starts for edi code " + ediCode)
         BillOfLading bl = null
-        if (inReleaseTransaction.getEdiReleaseIdentifierArray() != null && inReleaseTransaction.getEdiReleaseIdentifierArray().length > 0) {
-            EdiReleaseIdentifier releaseIdentifier = inReleaseTransaction.getEdiReleaseIdentifierArray(0)
+        if (releaseTransaction.getEdiReleaseIdentifierList() != null && releaseTransaction.getEdiReleaseIdentifierList().size() > 0) {
+            EdiReleaseIdentifier releaseIdentifier = releaseTransaction.getEdiReleaseIdentifierArray(0)
             String blNbr = releaseIdentifier.getReleaseIdentifierNbr()
             if (blNbr != null) {
-                LineOperator lineOp = (LineOperator) findLineOperator(inReleaseTransaction)
+                LineOperator lineOp = (LineOperator) findLineOperator(releaseTransaction)
                 bl = BillOfLading.findBillOfLading(blNbr, lineOp, null)
             }
         }
-        if ((bl == null) || (StringUtils.isNotBlank(inReleaseTransaction.getReleaseReferenceId()) &&
-                !find1C1BForBLAndRefNbr(bl.getBlGkey(), inReleaseTransaction.getReleaseReferenceId()))) {
+        if ((bl == null) || (StringUtils.isNotBlank(releaseTransaction.getReleaseReferenceId()) &&
+                !find1C1BForBLAndRefNbr(bl.getBlGkey(), releaseTransaction.getReleaseReferenceId()))) {
             Set<String> ediCodeSet = new HashSet<String>()
-            ediCodeSet.add(inEdiCode)
+            ediCodeSet.add(ediCode)
             ArgoEdiFacade ediFacade = (ArgoEdiFacade) Roastery.getBean(ArgoEdiFacade.BEAN_ID)
             List<IReleaseMap> releaseMaps = ediFacade
-                    .findEdiReleaseMapsForEdiCodes(inReleaseTransaction.getMsgTypeId(), ediCodeSet, inReleaseTransaction.getMsgVersion(),
-                            inReleaseTransaction.getMsgReleaseNbr(), LogicalEntityEnum.BL)
+                    .findEdiReleaseMapsForEdiCodes(releaseTransaction.getMsgTypeId(), ediCodeSet, releaseTransaction.getMsgVersion(),
+                            releaseTransaction.getMsgReleaseNbr(), LogicalEntityEnum.BL)
 
             for (IReleaseMap releaseMap : releaseMaps) {
                 EdiReleaseMap map = (EdiReleaseMap) releaseMap
                 map.setFieldValue(EdiField.EDIRELMAP_MODIFY_QTY, null)
-                LOGGER.info("handle5H5ILogicBeforePost(): modified qty is changed to null for release map" + map.getEdirelmapEdiCode())
             }
         }
         LOGGER.info("handle5H5I4ALogicBeforePost(): ends ")
     }
-    //sets back the release map modify quantity with release qty
-    private void handle5H5I4ALogicAfterPost(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, BillOfLading inBL, String inEdiCode) {
-        LOGGER.info(" handle5H5I4ALogicAfterPost(): starts for edi code " + inEdiCode)
+
+    private void handling5H5I4ALogicAfterPost(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading, String ediCode) {
+        LOGGER.info(" handling5H5I4ALogicAfterPost()::  " + ediCode)
         ArgoEdiFacade ediFacade = (ArgoEdiFacade) Roastery.getBean(ArgoEdiFacade.BEAN_ID)
         Set<String> ediCodeSet = new HashSet<String>()
-        ediCodeSet.add(inEdiCode)
+        ediCodeSet.add(ediCode)
         List<IReleaseMap> releaseMaps =
-                ediFacade.findEdiReleaseMapsForEdiCodes(inReleaseTransaction.getMsgTypeId(), ediCodeSet,
-                        inReleaseTransaction.getMsgVersion(), inReleaseTransaction.getMsgReleaseNbr(), LogicalEntityEnum.BL)
+                ediFacade.findEdiReleaseMapsForEdiCodes(releaseTransaction.getMsgTypeId(), ediCodeSet,
+                        releaseTransaction.getMsgVersion(), releaseTransaction.getMsgReleaseNbr(), LogicalEntityEnum.BL)
         for (IReleaseMap releaseMap : releaseMaps) {
             EdiReleaseMap map = (EdiReleaseMap) releaseMap
             map.setFieldValue(EdiField.EDIRELMAP_MODIFY_QTY, EdiReleaseMapModifyQuantityEnum.ReleasedQuantity)
         }
-        LOGGER.info(" handle5H5I4ALogicAfterPost(): ends")
+        LOGGER.info(" handling5H5I4ALogicAfterPost(): ends")
     }
     private boolean find1C1BForBLAndRefNbr(Serializable inBlGkey, String inReferenceId) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
@@ -1023,33 +874,26 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
     /**
-     * This method is being used in afterEdiPost method
-     * This method will release a bl hold for the ediCode value
-     * ediCode must exist in General References for the 350_QUALIFIER Type
-     * portId must not exist in General References for the 350_PORT_CODE Type
+     ediCode must exist in General References for the 350_QUALIFIER Type
+     portId must not exist in General References for the 350_PORT_CODE Type
      */
-    private void releaseGenRefHolds(String inEdiCode, EdiFacility inEdiFacility, BillOfLading inBl, String inReleaseRefId) {
+    private void releaseGeneralReferenceHolds(String inEdiCode, EdiFacility ediFacility, BillOfLading billOfLading, String inReleaseRefId) {
         try {
-            String portId = inEdiFacility.getFacilityPort().getPortCodes().getId()
             GeneralReference groupQualifier = GeneralReference.findUniqueEntryById("350_QUALIFIER", inEdiCode)
-            GeneralReference groupPort = GeneralReference.findUniqueEntryById("350_PORT_CODE", portId)
+            GeneralReference groupPort = GeneralReference.findUniqueEntryById("350_PORT_CODE", ediFacility.getFacilityPort().getPortCodes().getId())
             if (groupQualifier != null && groupPort == null) {
-                LOGGER.info("attempt to release " + inEdiCode + " hold from bl " + inBl.getBlNbr())
+                LOGGER.info("attempt to release " + inEdiCode + " hold from bl " + billOfLading.getBlNbr())
                 ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
-                servicesManager.applyPermission(inEdiCode, inBl, null, inReleaseRefId, null)
+                servicesManager.applyPermission(inEdiCode, billOfLading, null, inReleaseRefId, null)
             }
         } catch (Exception e) {
             LOGGER.info("Error applying permission " + e.getMessage())
         }
     }
-    //Need to update Hold Permission id that is given for 1C release map
-    //1C and 4E are letting the system determine Default hold by qty
-    //private final String DISP_CODE_1C_HOLD_ID = "CUSTOMS DEFAULT HOLD"
     /** Update the vessel visit of the BL if it is linked to GEN_VESSEL and Release has a valid vessel visit.
      */
-    private void updateBlCarrierVisit(BillOfLading inBl, ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Map inParams) {
-        // Update Vessel Visit if the BL has GEN_VESSEL and release has a valid vessel visit
-        if (inBl.getBlCarrierVisit().isGenericCv()) {
+    private void updateBlCarrierVisit(BillOfLading billOfLading, ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Map inParams) {
+        if (billOfLading.getBlCarrierVisit().isGenericCv()) {
             try {
                 Serializable batchGkey = (Serializable) inParams.get(EdiConsts.BATCH_GKEY);
                 LOGGER.warn("BL has generic Carrier visit ");
@@ -1058,20 +902,16 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                     if (ediBatch != null && ediBatch.getEdibatchCarrierVisit() != null &&
                             !ediBatch.getEdibatchCarrierVisit().isGenericCv()) {
                         LOGGER.warn("Updating BL Carrier visit ")
-                        inBl.setBlCarrierVisit(ediBatch.getEdibatchCarrierVisit());
-                        HibernateApi.getInstance().save(inBl)
+                        billOfLading.setBlCarrierVisit(ediBatch.getEdibatchCarrierVisit());
+                        HibernateApi.getInstance().save(billOfLading)
                     }
                 }
             } catch (Exception ignored) {
                 LOGGER.warn("Error while trying to update BL Carrier visit")
-                //ignore errors, do not stop any other update
             }
         }
     }
-    /**
-     * This method is being used in beforeEdiPost method
-     * Checking same ediCode,interchangeNumber,release postdate,msgReferenceNbr exist already
-     */
+
     private boolean hasInterchangeAndEdiCode(String nbr, String code, String msgRefNbr, String blNbr, String postdate, Serializable tranGkey) {
 
         DomainQuery dq = QueryUtils.createDomainQuery(EdiEntity.EDI_TRANSACTION)
@@ -1085,8 +925,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         QueryResult result = HibernateApi.getInstance().findValuesByDomainQuery(dq)
         if (result != null && result.getTotalResultCount() > 0) {
             for (int i = 0; i < result.getTotalResultCount(); i++) {
-                String tranDoc = (String) result.getValue(i, EdiField.EDITRAN_DOC)
-                String releasePostdate = XmlUtil.extractAttributeValueFromXml("releasePostDate", tranDoc)
+                String releasePostdate = XmlUtil.extractAttributeValueFromXml("releasePostDate", result.getValue(i, EdiField.EDITRAN_DOC).toString())
                 if (releasePostdate != null && postdate.equals(releasePostdate)) {
                     return true
                 }
@@ -1119,6 +958,6 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                 DISPOSITION_CODES_FOR_UNIQUE_ID.add("7H")
             }
     private ServicesManager serviceManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
-    private static final BLREL_FLAG_TYPE_ID = MetafieldIdFactory.getCompoundMetafieldId(InventoryCargoField.BLREL_FLAG_TYPE, ServicesField.FLGTYP_ID)
+    private static final BLRELEASE_FLAG_TYPE_ID = MetafieldIdFactory.getCompoundMetafieldId(InventoryCargoField.BLREL_FLAG_TYPE, ServicesField.FLGTYP_ID)
     private static final Logger LOGGER = Logger.getLogger(ITSUSCustomsBLReleaseGvy.class)
 }
