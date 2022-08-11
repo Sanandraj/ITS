@@ -41,7 +41,6 @@ class ITSTruckVisitELI extends AbstractEntityLifecycleInterceptor {
                         && TruckVisitStatusEnum.OK.equals(truckVisitDetails.getTvdtlsStatus())) {
 
                     logMsg("process at InGate stage");
-                    //library.prepareAndPushMessageForTvdtls(truckVisitDetails, T__SITE_ARRIVAL);
                     library.prepareAndPushMessageForTvdtls(truckVisitDetails, null); //Site-arrival or pickup
                 }
 

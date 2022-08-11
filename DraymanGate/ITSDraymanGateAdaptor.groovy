@@ -64,7 +64,7 @@ class ITSDraymanGateAdaptor {
     public void prepareAndPushMessageForTvdtls(TruckVisitDetails inTvdtls, String inMessageType) {
         LOGGER.setLevel(Level.DEBUG)
         logMsg("prepareAndPushMessageForTvdtls ActiveTransactions - " + inTvdtls.getActiveTransactions());
-        logMsg("prepareAndPushMessageForTvdtls CompletedTransactions - " + inTvdtls.getCompletedTransactions());
+        logMsg("prepareAndPushMessageForTvdtls CompletedTransactions - " + inTvdtls.getCompletedTransactions() + ", Tv status: " + inTvdtls.getTvdtlsStatus());
 
         Set transactionSet = inTvdtls.getActiveTransactions();
         if (transactionSet.isEmpty())
@@ -77,8 +77,8 @@ class ITSDraymanGateAdaptor {
         List deliveryChassisList = new ArrayList();
         for (TruckTransaction tran : transactionSet) {
             UnitFacilityVisit ufv = tran.getTranUnit() ? tran.getTranUnit().getUnitActiveUfvNowActive() : null;
-            LocPosition locPosition = ufv? ufv.getUfvLastKnownPosition() : null;
-            locPosition = locPosition? (locPosition.isYardPosition()? locPosition : ufv.getFinalPlannedPosition()) : null;
+            LocPosition locPosition = ufv ? ufv.getUfvLastKnownPosition() : null;
+            locPosition = locPosition ? (locPosition.isYardPosition() ? locPosition : ufv.getFinalPlannedPosition()) : null;
 
             /*containerList.add(getContainerDetailsMap(tran, locPosition));
             if (inMessageType == null && i == 0) {
@@ -93,10 +93,18 @@ class ITSDraymanGateAdaptor {
             }
         }
 
-        if (!receivalContainerList.isEmpty())
-            frameAndSendMessage(inTvdtls, T__SITE_ARRIVAL, receivalContainerList, receivalChassisList);
-        if (!deliveryContainerList.isEmpty())
-            frameAndSendMessage(inTvdtls, T__PICKUP, deliveryContainerList, deliveryChassisList);
+        if (T__SITE_DEPARTURE == inMessageType) {
+            frameAndSendMessage(inTvdtls, T__SITE_DEPARTURE, deliveryContainerList, deliveryChassisList);
+
+        } else {
+            if (!receivalContainerList.isEmpty()) {
+                frameAndSendMessage(inTvdtls, T__SITE_ARRIVAL, receivalContainerList, receivalChassisList);
+            }
+            if (!deliveryContainerList.isEmpty()) {
+                //String type = (TruckVisitStatusEnum.COMPLETE == inTvdtls.getTvdtlsStatus())? T__SITE_DEPARTURE : T__PICKUP;
+                frameAndSendMessage(inTvdtls, T__PICKUP, deliveryContainerList, deliveryChassisList);
+            }
+        }
 
         logMsg("prepareAndPushMessageForTvdtls END");
     }
@@ -148,21 +156,25 @@ class ITSDraymanGateAdaptor {
     }
 
     private void frameAndSendMessage(TruckVisitDetails visitDetails, String msgType, List containerList, List chassisList) {
-        if (containerList.size() > 0) {
-            Map msgDetails = getGenericDetails(visitDetails);
-            logMsg("msgDetails: " + msgDetails);
-            if (msgDetails != null) {
-                msgDetails.put(T__MSG_TYPE, msgType);
+        //if (containerList.size() > 0) {
+        Map msgDetails = getGenericDetails(visitDetails);
+        logMsg("msgDetails: " + msgDetails);
+        if (msgDetails != null) {
+            msgDetails.put(T__MSG_TYPE, msgType);
 
-                if (containerList && !containerList.isEmpty())
-                    msgDetails.put(T__CNTR, containerList);
+            if (containerList.isEmpty())
+                msgDetails.put(T__CNTR, null);
+            else
+                msgDetails.put(T__CNTR, containerList);
 
-                if (chassisList && !chassisList.isEmpty())
-                    msgDetails.put(T__CHASSIS, chassisList);
+            if (chassisList.isEmpty())
+                msgDetails.put(T__CHASSIS, null);
+            else
+                msgDetails.put(T__CHASSIS, chassisList);
 
-                createAndSendDraymanMessage(msgDetails);
-            }
+            createAndSendDraymanMessage(msgDetails);
         }
+        //}
     }
 
     private Map getGenericDetails(TruckVisitDetails inTv) {
@@ -193,9 +205,9 @@ class ITSDraymanGateAdaptor {
 
             genericMap.put(T__TIME, dateFormatter.format(new Date()));
             //genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruckLicenseNbr());
-            genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruck()? inTv.getTvdtlsTruck().getTruckId() : T_EMPTY);
+            genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckId() : T_EMPTY);
             genericMap.put(T__TRUCK_TYPE, T__DRAYMAN);
-            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck()? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
+            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
             genericMap.put(T__LICENCE_NBR, inTv.getTvdtlsTruckLicenseNbr());
             genericMap.put(T__LICENCE_STATE, truckLicenceState);
             genericMap.put(T__EX_ERR_REASON, T_EMPTY);
@@ -233,10 +245,10 @@ class ITSDraymanGateAdaptor {
         }
 
         String eqWeight = tran.getTranCtrGrossWeight() ? tran.getTranCtrGrossWeight().toString() : T_EMPTY;
-        logMsg("KG eqWeight : "+eqWeight)
+        logMsg("KG eqWeight : " + eqWeight)
         if (!eqWeight.isEmpty())
-            eqWeight = String.format("%.2f",(UnitUtils.convertTo(Double.valueOf(eqWeight), MassUnitEnum.KILOGRAMS,  MassUnitEnum.POUNDS)));
-        logMsg("LB eqWeight : "+eqWeight)
+            eqWeight = String.format("%.2f", (UnitUtils.convertTo(Double.valueOf(eqWeight), MassUnitEnum.KILOGRAMS, MassUnitEnum.POUNDS)));
+        logMsg("LB eqWeight : " + eqWeight)
 
         String eqHeight = getCntrHeight(tran.getTranEqoEqHeight());
         String chassisPos = tran.getTranCtrTruckPosition() ? tran.getTranCtrTruckPosition().toString() : T_EMPTY;
@@ -263,15 +275,22 @@ class ITSDraymanGateAdaptor {
         containerDetails.put(T__HEIGHT, eqHeight);
         containerDetails.put(T__LOAD_STATUS, loadStatus);
         containerDetails.put(T__CHASSIS_POSITION, chassisPos);
-        containerDetails.put(T__CUSTOM1, getCustom1(posValues.get(T__CELL)));
-        containerDetails.put(T__ROW, posValues.get(T__ROW));
-        containerDetails.put(T__BAY, posValues.get(T__BAY));
-        containerDetails.put(T__CELL, posValues.get(T__CELL));
-        containerDetails.put(T__TIER, posValues.get(T__TIER));
-        containerDetails.put(T__SLOT, posValues.get(T__SLOT));
+        containerDetails.put(T__CUSTOM1, getCustom1(getPositionValue(posValues, T__CELL)));
+        containerDetails.put(T__ROW, getPositionValue(posValues, T__ROW));
+        containerDetails.put(T__BAY, getPositionValue(posValues, T__BAY));
+        containerDetails.put(T__CELL, getPositionValue(posValues, T__CELL));
+        containerDetails.put(T__TIER, getPositionValue(posValues, T__TIER));
+        containerDetails.put(T__SLOT, getPositionValue(posValues, T__SLOT));
 
         logMsg("getContainerDetailsMap - END : " + containerDetails);
         return containerDetails;
+    }
+
+    private String getPositionValue(Map inPos, String inKey) {
+        if (inPos)
+            return inPos.get(inKey) ? inPos.get(inKey) : T_PERCENTILE;
+        else
+            return T_PERCENTILE;
     }
 
     private void createAndSendDraymanMessage(Map msgDetails) {
@@ -285,29 +304,35 @@ class ITSDraymanGateAdaptor {
     private String makeDraymanMessage(Map msgDetails) {
         String message = T_EMPTY;
         List containerList = msgDetails.get(T__CNTR);
-        if (containerList.size() == 0)
-            return message;
+        /*if (containerList.size() == 0)
+            return message;*/
 
+        logMsg("containerList: "+containerList);
         int iCount = 0;
         StringBuffer containerMessageSb = new StringBuffer();
-        for (Map containerMap : containerList) {
-            iCount++;
-            containerMessageSb.append(
-                    String.format(CONTAINER_MESSAGE, String.valueOf(iCount),
-                            containerMap.get(T__ID),
-                            containerMap.get(T__LENGTH),
-                            containerMap.get(T__WEIGHT),
-                            containerMap.get(T__HEIGHT),
-                            containerMap.get(T__LOAD_STATUS),
-                            containerMap.get(T__CHASSIS_POSITION),
-                            containerMap.get(T__CUSTOM1),
-                            containerMap.get(T__ROW),
-                            containerMap.get(T__BAY),
-                            containerMap.get(T__CELL),
-                            containerMap.get(T__TIER),
-                            containerMap.get(T__SLOT),
-                            String.valueOf(iCount))
-            );
+        if (containerList != null) {
+            for (Map containerMap : containerList) {
+                iCount++;
+                containerMessageSb.append(
+                        String.format(CONTAINER_MESSAGE, String.valueOf(iCount),
+                                containerMap.get(T__ID),
+                                containerMap.get(T__LENGTH),
+                                containerMap.get(T__WEIGHT),
+                                containerMap.get(T__HEIGHT),
+                                containerMap.get(T__LOAD_STATUS),
+                                containerMap.get(T__CHASSIS_POSITION),
+                                containerMap.get(T__CUSTOM1),
+                                containerMap.get(T__ROW),
+                                containerMap.get(T__BAY),
+                                containerMap.get(T__CELL),
+                                containerMap.get(T__TIER),
+                                containerMap.get(T__SLOT),
+                                String.valueOf(iCount))
+                );
+            }
+        } else {
+            //Add <container1/> dummy tag
+            containerMessageSb.append(NO_CONTAINER1_MESSAGE);
         }
 
         message = String.format(DRAYMAN_MESSAGE,
@@ -392,7 +417,7 @@ class ITSDraymanGateAdaptor {
 
 
     private String getCustom1(String inRow) {
-        String retValue = T_EMPTY;
+        String retValue = T_PERCENTILE;
         if (ArgoUtils.isNotEmpty(inRow)) {
             try {
                 int numRow = Integer.parseInt(inRow);
@@ -493,17 +518,17 @@ class ITSDraymanGateAdaptor {
         //logMsg("startIndex: "+startIndex + ", endIndex: "+endIndex);
         (inPosSlot.length() > endIndex) ? inPosSlot.substring(startIndex, startIndex + endIndex) : null;*/
 
-        posValues.put(T__ROW, T_EMPTY);
-        posValues.put(T__BAY, T_EMPTY);
-        posValues.put(T__CELL, T_EMPTY);
-        posValues.put(T__TIER, T_EMPTY);
-        posValues.put(T__SLOT, T_EMPTY);
+        posValues.put(T__ROW, T_PERCENTILE);
+        posValues.put(T__BAY, T_PERCENTILE);
+        posValues.put(T__CELL, T_PERCENTILE);
+        posValues.put(T__TIER, T_PERCENTILE);
+        posValues.put(T__SLOT, T_PERCENTILE);
 
         if (locPosition != null) {
             boolean hasValuesAssigned = retrievePosition(locPosition, posValues);
 
             //Y-PIERG-E4.01.05.5
-            if (!hasValuesAssigned && T_EMPTY == (String)posValues.get(T__ROW) && T_EMPTY == (String)posValues.get(T__BAY) && locPosition && !locPosition.toString().isEmpty()) {
+            if (!hasValuesAssigned && T_EMPTY == (String) posValues.get(T__ROW) && T_EMPTY == (String) posValues.get(T__BAY) && locPosition && !locPosition.toString().isEmpty()) {
                 String[] locArray = locPosition.toString().split(T_HYPHEN);
                 if (locArray.size() > 2) {
                     String[] slotArray = locArray[2].split(T_DOT);
@@ -671,6 +696,8 @@ class ITSDraymanGateAdaptor {
         LOGGER.debug(inMsg);
     }
 
+    private final String NO_CONTAINER1_MESSAGE = "<container1/>";
+
     private final String CONTAINER_MESSAGE = "<container%s " +
             "id=\"%s\">\n" +
             "<length>%s</length>\n" +
@@ -710,6 +737,7 @@ class ITSDraymanGateAdaptor {
     private static final String T_EMPTY = "";
     private static final String T_HYPHEN = "-";
     private static final String T_DOT = ".";
+    private static final String T_PERCENTILE = "%";
     private static final String T__TIME = "stampDateTime";
     private static final String T__TRUCK_ID = "truckID";
     private static final String T__TRUCK_TYPE = "truckType";
