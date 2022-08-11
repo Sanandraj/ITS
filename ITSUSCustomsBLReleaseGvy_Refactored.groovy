@@ -34,7 +34,10 @@ import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.util.BizViolation
 import com.navis.framework.util.BizWarning
+import com.navis.framework.util.internationalization.PropertyKey
 import com.navis.framework.util.internationalization.PropertyKeyFactory
+import com.navis.framework.util.message.MessageCollector
+import com.navis.framework.util.message.MessageLevel
 import com.navis.road.business.util.RoadBizUtil
 import com.navis.services.ServicesField
 import com.navis.services.business.rules.EventType
@@ -45,13 +48,12 @@ import org.apache.xmlbeans.XmlObject
 import static java.util.Arrays.asList
 /*
 * Author : Gopal
-* US Customs Code moved from Husky
 *
 */
 public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
 
     public void beforeEdiPost(XmlObject inXmlTransactionDocument, Map inParams) {
-        LOGGER.setLevel(Level.INFO);
+        LOGGER.setLevel(Level.INFO)
         if (inXmlTransactionDocument == null || !ReleaseTransactionsDocument.class.isAssignableFrom(inXmlTransactionDocument.getClass())) {
             return
         }
@@ -66,8 +68,9 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
 
         ReleaseTransactionDocument.ReleaseTransaction releaseTransact = releaseArray[0]
         validateRoutingPoint(releaseTransact, inParams)
+        skipDuplicateCustomsMsg(releaseTransact, inParams)
+        isReleaseForOtherCode(releaseTransact, inParams, releaseTransact.getEdiCode())
 
-        //Skip posting if same edi code, interChangeNumber,message reference nbr and release postdate exist already
         Object postdate = releaseTransact.getReleasePostDate()
         EdiReleaseIdentifier releaseIdentifier = releaseTransact?.getEdiReleaseIdentifierList()?.get(0)
         String blNbr = releaseIdentifier?.getReleaseIdentifierNbr()
@@ -80,7 +83,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                 LOGGER.info("code::" + releaseTransact?.getEdiCode() + "ediInterchange::" + ediBatchInterchange + "msgRefNbr::" + batch.getEdibatchMsgRefNbr() + "blNbr:" + blNbr + "tranGkey :"+transGkey)
                 if (postdate.toString() != null && hasInterchangeAndEdiCode(ediBatchInterchange?.getEdiintInterchangeNbr(), releaseTransact?.getEdiCode(), batch.getEdibatchMsgRefNbr(), blNbr, postdate.toString(), transGkey)) {
                     inParams.put(SKIP_POSTER, true)
-                    BizViolation warning = BizWarning.create(ArgoPropertyKeys.INFO, null, "Skipped posting for ${blNbr} and edi Code ${code} as the Transaction is a Duplicate.")
+                    BizViolation warning = BizWarning.create(ArgoPropertyKeys.INFO, null, "Skipped posting for ${blNbr} and edi Code as the Transaction is a Duplicate.")
                     getMessageCollector().appendMessage(warning)
                 }
             }
@@ -104,7 +107,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         if (DISPOSITION_CODES_FOR_UNIQUE_ID.indexOf(releaseTransact.getEdiCode()) >= 0) {
             settingUniqueReferenceId(releaseTransact, releaseTransact.getEdiCode())
         }
-        // Skip 1J or 1C or 95 or 4E message if 1W already exist
+
         if ("1J".equalsIgnoreCase(releaseTransact.getEdiCode()) || "1C".equalsIgnoreCase(releaseTransact.getEdiCode()) || "95".equalsIgnoreCase(releaseTransact.getEdiCode()) || "4E".equalsIgnoreCase(releaseTransact.getEdiCode())) {
             isReleaseForTrans(releaseTransact, inParams, releaseTransact.getEdiCode())
         }
@@ -121,12 +124,12 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         List<String> portCodeList = getPortCodes(genRef)
         if (releaseTransaction.getEdiReleaseIdentifierList() != null && !releaseTransaction.getEdiReleaseIdentifierList().isEmpty()) {
             EdiReleaseIdentifier releaseIdentifier = releaseTransaction.getEdiReleaseIdentifierList().get(0)
-            BillOfLading bl = null
+            BillOfLading billOfLading = null
             if (releaseIdentifier.getReleaseIdentifierNbr() != null) {
                 LineOperator lineOp = (LineOperator) findLineOperator(releaseTransaction)
-                bl = BillOfLading.findBillOfLading(releaseIdentifier.getReleaseIdentifierNbr(), lineOp, null)
+                billOfLading = BillOfLading.findBillOfLading(releaseIdentifier.getReleaseIdentifierNbr(), lineOp, null)
             }
-            if (bl != null && releaseTransaction.getVesselCallFacility() != null && releaseTransaction.getVesselCallFacility().getFacilityPort() != null &&
+            if (billOfLading != null && releaseTransaction.getVesselCallFacility() != null && releaseTransaction.getVesselCallFacility().getFacilityPort() != null &&
                     releaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes() != null) {
                 String portCode = releaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes().getId()
                 if (!portCodeList.contains(portCode)) {
@@ -143,27 +146,27 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                         releasePostDate = ArgoEdiUtils.convertLocalToUtcDate(postDate, ContextHelper.getThreadEdiPostingContext().getTimeZone())
                     }
                     blRelease.setBlrelQuantity(0.0)
-                    blRelease.setBlrelPostDate(releasePostDate);
+                    blRelease.setBlrelPostDate(releasePostDate)
                     if (releaseQty > 0 && (inEdiCode != null && (inEdiCode.equals("4E") || inEdiCode.equals("95")))) {
                         releaseQty = releaseQty *-1
                     }
                     blRelease.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty"), releaseQty)
                     blRelease.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherPort"), portCode)
-                    blRelease.setBlrelBl(bl)
+                    blRelease.setBlrelBl(billOfLading)
                     HibernateApi.getInstance().save(blRelease)
                     RoadBizUtil.commit()
                     DomainQuery domainQuery = QueryUtils.createDomainQuery("BlRelease")
-                            .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, bl.getPrimaryKey()))
+                            .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, billOfLading.getPrimaryKey()))
                             .addDqPredicate(PredicateFactory.isNotNull(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty")))
                             .addDqAggregateField(AggregateFunctionType.SUM,MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty"))
                     Double totalOtherQty = QueryUtil.getQuerySum(domainQuery)
-                    bl.setBlFlexDouble01(totalOtherQty);
-                    HibernateApi.getInstance().save(bl)
+                    billOfLading.setBlFlexDouble01(totalOtherQty)
+                    HibernateApi.getInstance().save(billOfLading)
                     ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
                     if (totalOtherQty >0) {
-                        servicesManager.applyHold(OTHER_PORT_RELEASE, bl, null, null, "Other port hold posted")
+                        servicesManager.applyHold(OTHER_PORT_RELEASE, billOfLading, null, null, "Other port hold posted")
                     } else {
-                        servicesManager.applyPermission(OTHER_PORT_RELEASE, bl,null, null, "Other port hold release")
+                        servicesManager.applyPermission(OTHER_PORT_RELEASE, billOfLading,null, null, "Other port hold release")
                     }
                     RoadBizUtil.commit()
                 }
@@ -202,7 +205,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         EdiReleaseFlexFields releaseFlexFields = releaseTransaction.getEdiReleaseFlexFields()
         if (releaseFlexFields != null && releaseFlexFields.getEdiReleaseFlexString01() != null) {
 
-            String facilityId = (String) ArgoEdiUtils.getConfigValue(ContextHelper.getThreadEdiPostingContext(), ArgoConfig.EDI_FACILITY_FOR_POSTING);
+            String facilityId = (String) ArgoEdiUtils.getConfigValue(ContextHelper.getThreadEdiPostingContext(), ArgoConfig.EDI_FACILITY_FOR_POSTING)
             if (StringUtils.isEmpty(facilityId)) {
                 inParams.put(SKIP_POSTER, true)
                 throw BizViolation.create(PropertyKeyFactory.valueOf("When setting, FacilityId is empty or null. EDI_FACILITY_FOR_POSTING"), null)
@@ -212,9 +215,9 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                 inParams.put(SKIP_POSTER, true)
                 throw BizViolation.create(PropertyKeyFactory.valueOf("Unable to find the Facility for Id: " + facilityId), null)
             }
-            String messageScheduleDCode = releaseFlexFields.getEdiReleaseFlexString01();
+            String messageScheduleDCode = releaseFlexFields.getEdiReleaseFlexString01()
             if (!messageScheduleDCode.equals(facility.getFcyRoutingPoint().getPointScheduleDCode())) {
-                inParams.put(SKIP_POSTER, true);
+                inParams.put(SKIP_POSTER, true)
                 throw BizViolation
                         .create(PropertyKeyFactory.valueOf("EDI release message is not for this port, port schedule Dcode:" + facility.getFcyRoutingPoint().getPointScheduleDCode() +
                                 "  does not match with message schedule D code:" + messageScheduleDCode), null)
@@ -247,74 +250,211 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         }
 
         HibernateApi.getInstance().flush()
-        BillOfLading bl = null
-        EdiReleaseIdentifier releaseIdentifier = releaseTransaction.getEdiReleaseIdentifierArray(0)
-        String blNbr = releaseIdentifier.getReleaseIdentifierNbr()
+        BillOfLading billOfLading = null
+        String blNbr = releaseTransaction.getEdiReleaseIdentifierArray(0).getReleaseIdentifierNbr()
         if (blNbr != null) {
             LineOperator lineOp = (LineOperator) findLineOperator(releaseTransaction)
-            bl = BillOfLading.findBillOfLading(blNbr, lineOp, null)
+            billOfLading = BillOfLading.findBillOfLading(blNbr, lineOp, null)
         }
-        if (ArgoUtils.isEmpty(blNbr) || bl == null) {
+        if (ArgoUtils.isEmpty(blNbr) || billOfLading == null) {
             LOGGER.error("BlNbr Bill of Lading not found: " + blNbr)
             return
         }
 
         if ("55".equals(ediCode)) {
-            handling55(releaseTransaction, bl)
+            handling55(releaseTransaction, billOfLading)
         }
-        inboundStatusUpdating(ediCode, bl)
+        inboundStatusUpdating(ediCode, billOfLading)
 
         if ("95".equals(ediCode) || "1J".equalsIgnoreCase(ediCode)) {
             if ("1J".equalsIgnoreCase(ediCode)) {
-                rcdSrvEvent(bl, ADD_EVENT_1J_STR)
-                inboundStatusUpdating(bl)
+                rcdSrvEvent(billOfLading, ADD_EVENT_1J_STR)
+                inboundStatusUpdating(billOfLading)
             }
-            handling1JUsing95(releaseTransaction, bl)
+            handling1JUsing95(releaseTransaction, billOfLading)
+            UpdateInbondStatus(billOfLading)
         }
 
         if ("83".equals(ediCode) || "1W".equalsIgnoreCase(ediCode)) {
             if ("1W".equalsIgnoreCase(ediCode)) {
-                rcdSrvEvent(bl, ADD_EVENT_1W_STR)
-                inboundStatusUpdating(bl);
+                rcdSrvEvent(billOfLading, ADD_EVENT_1W_STR)
+                inboundStatusUpdating(billOfLading)
             }
-            handlingOf1WUsing83(releaseTransaction, bl)
+            handlingOf1WUsing83(releaseTransaction, billOfLading)
+            UpdateExamStatus(billOfLading, Boolean.FALSE, Boolean.FALSE)
         }
-        if (("1C".equalsIgnoreCase(ediCode) || "1W".equalsIgnoreCase(ediCode)) && hasActive1J(bl.getBlGkey())) {
-            inboundStatusUpdating(bl)
+        if ("1X".equalsIgnoreCase(ediCode)) {
+            UpdateExamStatus(billOfLading, Boolean.TRUE, Boolean.FALSE)
+        } else if ("84".equals(ediCode)) {
+            UpdateExamStatus(billOfLading, Boolean.TRUE, Boolean.TRUE)
+        }
+
+        if ("7H".equalsIgnoreCase(ediCode)) {
+            billOfLading.setBlFlexString03("7H")
+        }
+        if ("7I".equalsIgnoreCase(ediCode)) {
+            billOfLading.setBlFlexString03("")
+        }
+        updateBlCarrierVisit(billOfLading, inParams)
+
+        if (("1C".equalsIgnoreCase(ediCode) || "1W".equalsIgnoreCase(ediCode)) && hasActive1J(billOfLading.getBlGkey())) {
+            inboundStatusUpdating(billOfLading)
         }
 
         /**
          Before uncommenting this method call, please see the comments that are given for handle5H5ILogic BeforePost() is called beforeEdiPost().
          * */
         if ("5H".equalsIgnoreCase(ediCode) || "5I".equalsIgnoreCase(ediCode) || "4A".equalsIgnoreCase(ediCode)) {
-            handling5H5I4ALogicAfterPost(releaseTransaction, bl, ediCode)
+            handling5H5I4ALogicAfterPost(releaseTransaction, ediCode)
         }
         if ("4E".equalsIgnoreCase(ediCode)) {
-            handling4E(bl, releaseTransaction.getReleaseReferenceId())
+            handling4E(billOfLading, releaseTransaction.getReleaseReferenceId())
         }
         LOGGER.info(
                 "MoveFlexToRemarks() :Class of inHibernatingEntity is " + inHibernatingEntity.getClass().name)
-        inboundStatusUpdating(ediCode, bl)
-        applyFlexToRemarks(releaseTransaction, bl, ediCode)
+        inboundStatusUpdating(ediCode, billOfLading)
+        applyFlexToRemarks(releaseTransaction, billOfLading, ediCode)
 
         if (DISPOSITION_CODES_FOR_UNIQUE_ID.indexOf(ediCode) >= 0) {
             HibernateApi.getInstance().flush()
-            setBackTransactionReferenceId(releaseTransaction, bl, ediCode)
+            setBackTransactionReferenceId(releaseTransaction, billOfLading, ediCode)
         }
+
         /**
          * Run the BL hold release process.
          */
 
         if (releaseTransaction.getVesselCallFacility()) {
-            releaseGeneralReferenceHolds(ediCode, releaseTransaction.getVesselCallFacility(), bl, releaseTransaction.getReleaseReferenceId())
+            releaseGeneralReferenceHolds(ediCode, releaseTransaction.getVesselCallFacility(), billOfLading, releaseTransaction.getReleaseReferenceId())
         }
 
-        updateBlCarrierVisit(bl, releaseTransaction, inParams)
+        updateBlCarrierVisit(billOfLading,inParams)
         if (["1W","83"].contains(ediCode.toUpperCase())) {
-            bl.blFlexString01 = (ediCode == "83" ? null : "Yes")
-            HibernateApi.getInstance().save(bl)
+            billOfLading.blFlexString01 = (ediCode == "83" ? null : "Yes")
+            HibernateApi.getInstance().save(billOfLading)
         }
     }
+
+    //Private Methods
+
+    private void skipDuplicateCustomsMsg(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Map inParams) {
+        String blNbr = inReleaseTransaction?.getEdiReleaseIdentifierList()?.get(0)?.getReleaseIdentifierNbr()
+        Serializable batchGKey = (Serializable) inParams.get(BATCH_GKEY)
+        Serializable tranGKey = (Serializable) inParams.get(EdiConsts.TRANSACTION_GKEY)
+        EdiBatch batch = EdiBatch.hydrate(batchGKey)
+        if (batch != null) {
+            String msgRefNbr = batch.getEdibatchMsgRefNbr()
+            EdiInterchange ediInterchange = batch.getEdibatchInterchange()
+            String interchangeNbr = ediInterchange?.getEdiintInterchangeNbr()
+            String code = inReleaseTransaction?.getEdiCode()
+            if (interchangeNbr != null && code != null && msgRefNbr != null && blNbr != null) {
+                LOGGER.info("code::" + code + "ediInterchange::" + ediInterchange + "msgRefNbr::" + msgRefNbr + "blNbr:" + blNbr + "tranGKey :" + tranGKey)
+                if (inReleaseTransaction.getReleasePostDate()?.toString() != null && hasInterchangeAndEdiCode(interchangeNbr, code, msgRefNbr, blNbr, inReleaseTransaction.getReleasePostDate()?.toString(), tranGKey)) {
+                    inParams.put(SKIP_POSTER, true)
+                    BizViolation warning = BizWarning.create(ArgoPropertyKeys.INFO, null, "Skipped posting for ${blNbr} and edi Code ${code} as the Transaction is a Duplicate.")
+                    getMessageCollector().appendMessage(warning)
+                }
+            }
+        }
+    }
+
+    private void isReleaseForOtherCode(ReleaseTransactionDocument.ReleaseTransaction inReleaseTransaction, Map inParams, String inEdiCode) {
+        GeneralReference generalReference = GeneralReference.findUniqueEntryById("EDI", "350", "PORT_CODES")
+        if (generalReference == null) {
+            throw BizViolation.create(AllOtherFrameworkPropertyKeys.ERROR__NULL_MESSAGE, null,
+                    "Please configure port Code:" + inEdiCode + " in General Reference, Type:EDI, Identifier1:350 and Identifier2:PORT_CODES")
+        }
+
+        List<String> portCodeList = getPortCodesFromGeneralReference(generalReference);
+        if (inReleaseTransaction.getEdiReleaseIdentifierList() != null && !inReleaseTransaction.getEdiReleaseIdentifierList().isEmpty()) {
+            EdiReleaseIdentifier releaseIdentifier = inReleaseTransaction.getEdiReleaseIdentifierList().get(0)
+            BillOfLading bl = null
+            if (releaseIdentifier.getReleaseIdentifierNbr() != null) {
+                LineOperator lineOp = (LineOperator) findLineOperator(inReleaseTransaction)
+                bl = BillOfLading.findBillOfLading(releaseIdentifier.getReleaseIdentifierNbr(), lineOp, null)
+
+            }
+
+            if (inReleaseTransaction.getVesselCallFacility() != null && inReleaseTransaction.getVesselCallFacility().getFacilityPort() != null &&
+                    inReleaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes() != null) {
+                String portCode = inReleaseTransaction.getVesselCallFacility().getFacilityPort().getPortCodes().getId()
+                if (portCode != null && !portCodeList.contains(portCode)) {
+                    inParams.put(SKIP_POSTER, true)
+                    if (bl == null) {
+                        registerWarning(PropertyKeyFactory.valueOf("OTHER_PORT_MSG"),"Message received for other port, no BL exists")
+                    }
+                    if (bl != null) {
+                        Double releaseQty = Double.valueOf(inReleaseTransaction.getReleaseQty())
+                        BlRelease blRelease = new BlRelease()
+                        blRelease.setBlrelReferenceNbr(inReleaseTransaction.getReleaseReferenceId())
+                        blRelease.setBlrelDispositionCode(inReleaseTransaction.getEdiCode())
+                        blRelease.setBlrelQuantityType(EdiReleaseMapModifyQuantityEnum.InformationOnly)
+                        blRelease.setBlrelNotes(inReleaseTransaction.getReleaseNotes())
+                        Object postDate = inReleaseTransaction.getReleasePostDate()
+                        Date releasePostDate = null
+                        if (postDate != null && postDate instanceof Calendar) {
+                            releasePostDate = ArgoEdiUtils.convertLocalToUtcDate(postDate, ContextHelper.getThreadEdiPostingContext().getTimeZone())
+                        }
+                        blRelease.setBlrelQuantity(0.0)
+                        blRelease.setBlrelPostDate(releasePostDate)
+                        if (releaseQty > 0 && (inEdiCode != null && (inEdiCode.equals("4E") || inEdiCode.equals("95")))) {
+                            releaseQty = releaseQty * -1
+                        }
+                        blRelease.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty"), releaseQty)
+                        blRelease.setFieldValue(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherPort"), portCode)
+                        blRelease.setBlrelBl(bl)
+                        HibernateApi.getInstance().save(blRelease)
+                        RoadBizUtil.commit()
+                        DomainQuery domainQuery = QueryUtils.createDomainQuery("BlRelease")
+                                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, bl.getPrimaryKey()))
+                                .addDqPredicate(PredicateFactory.isNotNull(MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty")))
+                                .addDqAggregateField(AggregateFunctionType.SUM, MetafieldIdFactory.valueOf("customFlexFields.blrelCustomDFFOtherQty"))
+                        Double totalOtherQty = QueryUtil.getQuerySum(domainQuery)
+                        bl.setBlFlexDouble01(totalOtherQty)
+                        HibernateApi.getInstance().save(bl)
+                        ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
+                        if (totalOtherQty > 0) {
+                            Serializable holdGKey = servicesManager.applyHold("OTHER_PORT_RELEASE", bl, null, null, "Other port hold posted")
+                        } else {
+                            Serializable vetoGKey = servicesManager.applyPermission("OTHER_PORT_RELEASE", bl, null, null, "Other port hold release")
+                        }
+                        RoadBizUtil.commit()
+                    }
+                }
+            }
+        }
+    }
+
+    private static List<String> getPortCodesFromGeneralReference(GeneralReference inGeneralReference) {
+        List<String> portCodesList = new ArrayList()
+        String[] dataValueArray = new String[6]
+        dataValueArray[0] = inGeneralReference.getRefValue1()
+        dataValueArray[1] = inGeneralReference.getRefValue2()
+        dataValueArray[2] = inGeneralReference.getRefValue3()
+        dataValueArray[3] = inGeneralReference.getRefValue4()
+        dataValueArray[4] = inGeneralReference.getRefValue5()
+        dataValueArray[5] = inGeneralReference.getRefValue6()
+        for (String dataValue : dataValueArray) {
+            if (dataValue == null) {
+                continue
+            }
+            String[] arrayOfStrings = dataValue.split(',')
+            for (int i = 0; i < arrayOfStrings.length; i++) {
+                arrayOfStrings[i] = arrayOfStrings[i].trim()
+            }
+            portCodesList.addAll(new ArrayList(asList(arrayOfStrings)))
+        }
+        return portCodesList
+    }
+
+    private void registerWarning(PropertyKey inPropertykey, String inMsg){
+        MessageCollector messageCollector = ContextHelper.getThreadMessageCollector()
+        if (messageCollector!= null) {
+            messageCollector.appendMessage(MessageLevel.WARNING, inPropertykey, inMsg , null)
+        }
+    }
+
+
     private void inboundStatusUpdating(String dispCode, BillOfLading Bl) {
         if (dispCode == null || Bl == null) {
             return
@@ -352,7 +492,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
      * Cancel active 1J using 95 disposition code
      */
     private void handling1JUsing95(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading) throws BizViolation {
-        String referenceId = releaseTransaction.getReleaseReferenceId();
+        String referenceId = releaseTransaction.getReleaseReferenceId()
         String ediCode = releaseTransaction.getEdiCode()
         List blReleases = findBlRelease(billOfLading.getBlGkey(), "95")
         if (blReleases.isEmpty()) {
@@ -364,7 +504,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
             if (isBlReleaseCanceled(billOfLading.getBlGkey(), release.getBlrelGkey())) {
                 continue
             }
-            blRelease = release;
+            blRelease = release
             break
         }
 
@@ -374,7 +514,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         boolean matchByRef = isQtyMatchByReference(releaseTransaction)
 
         if ("1J".equalsIgnoreCase(ediCode)) {
-            referenceId = blRelease.getBlrelReferenceNbr();
+            referenceId = blRelease.getBlrelReferenceNbr()
         }
         if (referenceId == null && matchByRef) {
             LOGGER.error("Active 1J cannot be cancelled because reference_Id is null and MatchQtyByReference is selected in release map LOV.")
@@ -392,6 +532,61 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
             inboundStatusUpdating(billOfLading)
         }
     }
+    private void UpdateInbondStatus(BillOfLading inBl) {
+        DomainQuery domainQuery = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
+                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBl.getPrimaryKey()))
+                .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, ["1J", "95"]))
+                .addDqAggregateField(AggregateFunctionType.SUM, InventoryCargoField.BLREL_QUANTITY)
+        Double totalInbondQty = QueryUtil.getQuerySum(domainQuery)
+        if (inBl.getBlManifestedQty() > 0) {
+            if (totalInbondQty != null && totalInbondQty > 0 && totalInbondQty >= inBl.getBlManifestedQty()) {
+                inBl.setBlInbond(InbondEnum.INBOND)
+            } else {
+                inBl.setBlInbond(null)
+            }
+            inBl.updateUnitInbondStatus()
+        }
+        inBl.setBlFlexDouble02(totalInbondQty)
+        HibernateApi.getInstance().save(inBl)
+    }
+
+    private void UpdateExamStatus(BillOfLading inBl, Boolean isSample, Boolean isSampleCancel) {
+        if (isSample) {
+            DomainQuery domainQuery = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
+                    .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBl.getPrimaryKey()))
+                    .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, ["1X"]))
+                    .addDqAggregateField(AggregateFunctionType.SUM, InventoryCargoField.BLREL_QUANTITY)
+            Double totalExamQty = QueryUtil.getQuerySum(domainQuery)
+            if (isSampleCancel) {
+                inBl.setBlExam(null)
+                inBl.setBlFlexDouble04(0.0)
+                inBl.setBlFlexString01("")
+            } else {
+                inBl.setBlExam(ExamEnum.OFFSITE)
+                inBl.setBlFlexDouble04(totalExamQty)
+                inBl.setBlFlexString01("S")
+            }
+        } else {
+            DomainQuery domainQuery = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
+                    .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, inBl.getPrimaryKey()))
+                    .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, ["1W", "83"]))
+                    .addDqAggregateField(AggregateFunctionType.SUM, InventoryCargoField.BLREL_QUANTITY)
+            Double totalExamQty = QueryUtil.getQuerySum(domainQuery)
+            if (inBl.getBlManifestedQty() > 0) {
+                if (totalExamQty != null && totalExamQty > 0 && totalExamQty >= inBl.getBlManifestedQty()) {
+                    inBl.setBlExam(ExamEnum.OFFSITE)
+                } else {
+                    inBl.setBlExam(null)
+                }
+                inBl.updateUnitExamStatus()
+            }
+            inBl.setBlFlexDouble03(totalExamQty)
+        }
+        HibernateApi.getInstance().save(inBl)
+    }
+
+
+
     private void handlingOf1WUsing83(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading) throws BizViolation {
         String refId = releaseTransaction.getReleaseReferenceId()
         String ediCode = releaseTransaction.getEdiCode()
@@ -482,7 +677,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
                         serviceManager.applyHold(release1ADisp.getBlrelFlagType().getFlgtypId().trim(), billOfLading, null, refNbr, release1ADisp.getBlrelFlagType().getFlgtypId().trim())
                     }
                 }
-                setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, release4EFor1CDisp);
+                setBlReleaseQtyToNullToAllBlReleases(blReleasesList4E, release4EFor1CDisp)
             } else if (DISP_CODE_1A.equalsIgnoreCase(blRelease.getBlrelDispositionCode())) {
                 LOGGER.info("Disp 1A is found as the first record in the list, so 4E cancels 1A disp code alone and the other 4E entries will be nullified. ")
                 BlRelease release4EFor1ADisp = get4EReleaseForHoldId(blReleasesList4E, blRelease.getBlrelFlagType().getFlgtypId())
@@ -746,13 +941,6 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         return HibernateApi.getInstance().existsByDomainQuery(dq)
     }
 
-    private static boolean has1W(Serializable blGkey) {
-        DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_BL, blGkey))
-                .addDqPredicate(PredicateFactory.eq(InventoryCargoField.BLREL_DISPOSITION_CODE, "1W"))
-
-        return HibernateApi.getInstance().existsByDomainQuery(dq)
-    }
     /**
      * find all release map for given disposition code and message type. Extract the release by BL hold/permission.
      */
@@ -821,7 +1009,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         dq.addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_CREATED))
         dq.addDqOrdering(Ordering.desc(InventoryCargoField.BLREL_GKEY))
         List<BlRelease> blreleaseList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
-        return !blreleaseList.isEmpty() ? blreleaseList.get(0) : null
+        return !blreleaseList.isEmpty() ? blreleaseList.get(0) : null as BlRelease
     }
 
     private void handle5H5I4ABeforePost(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, String ediCode) {
@@ -852,7 +1040,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         LOGGER.info("handle5H5I4ALogicBeforePost(): ends ")
     }
 
-    private void handling5H5I4ALogicAfterPost(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, BillOfLading billOfLading, String ediCode) {
+    private void handling5H5I4ALogicAfterPost(ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, String ediCode) {
         LOGGER.info(" handling5H5I4ALogicAfterPost()::  " + ediCode)
         ArgoEdiFacade ediFacade = (ArgoEdiFacade) Roastery.getBean(ArgoEdiFacade.BEAN_ID)
         Set<String> ediCodeSet = new HashSet<String>()
@@ -860,7 +1048,7 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
         List<IReleaseMap> releaseMaps =
                 ediFacade.findEdiReleaseMapsForEdiCodes(releaseTransaction.getMsgTypeId(), ediCodeSet,
                         releaseTransaction.getMsgVersion(), releaseTransaction.getMsgReleaseNbr(), LogicalEntityEnum.BL)
-        for (IReleaseMap releaseMap : releaseMaps) {
+        for (IReleaseMap releaseMap : (releaseMaps as List<IReleaseMap>)) {
             EdiReleaseMap map = (EdiReleaseMap) releaseMap
             map.setFieldValue(EdiField.EDIRELMAP_MODIFY_QTY, EdiReleaseMapModifyQuantityEnum.ReleasedQuantity)
         }
@@ -892,17 +1080,17 @@ public class ITSUSCustomsBLReleaseGvy extends AbstractEdiPostInterceptor {
     }
     /** Update the vessel visit of the BL if it is linked to GEN_VESSEL and Release has a valid vessel visit.
      */
-    private void updateBlCarrierVisit(BillOfLading billOfLading, ReleaseTransactionDocument.ReleaseTransaction releaseTransaction, Map inParams) {
+    private void updateBlCarrierVisit(BillOfLading billOfLading,Map inParams) {
         if (billOfLading.getBlCarrierVisit().isGenericCv()) {
             try {
                 Serializable batchGkey = (Serializable) inParams.get(EdiConsts.BATCH_GKEY);
-                LOGGER.warn("BL has generic Carrier visit ");
+                LOGGER.warn("BL has generic Carrier visit ")
                 if (batchGkey != null) {
                     EdiBatch ediBatch = EdiBatch.hydrate(batchGkey)
                     if (ediBatch != null && ediBatch.getEdibatchCarrierVisit() != null &&
                             !ediBatch.getEdibatchCarrierVisit().isGenericCv()) {
                         LOGGER.warn("Updating BL Carrier visit ")
-                        billOfLading.setBlCarrierVisit(ediBatch.getEdibatchCarrierVisit());
+                        billOfLading.setBlCarrierVisit(ediBatch.getEdibatchCarrierVisit())
                         HibernateApi.getInstance().save(billOfLading)
                     }
                 }
