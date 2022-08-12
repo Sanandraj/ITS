@@ -20,7 +20,7 @@ class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterc
 
     public void execute(TransactionAndVisitHolder inWfCtx){
         LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug(ITSApptmntGateInApprovalGateTaskInterceptor + "STARTS::")
+        LOGGER.debug( "ITSApptmntGateInApprovalGateTaskInterceptor STARTS::")
         TruckTransaction tran = inWfCtx.getTran()
         TruckVisitDetails truckDetails = inWfCtx.getTv()
         TruckTransactionStage truckVisitDetailsList= truckDetails.findTruckVisitsTranStages().get(0)
@@ -39,5 +39,5 @@ class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterc
             getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("Driver is Late to the Terminal against fixed appointment slot"),"Please contact Administration")
         }
     }
-    private static Logger LOGGER = Logger.getLogger(this.class)
+    private static Logger LOGGER = Logger.getLogger(ITSApptmntGateInApprovalGateTaskInterceptor.class)
 }
