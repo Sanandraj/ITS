@@ -30,18 +30,20 @@ class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterc
         LOGGER.debug("timeStartDate :: "+timeStartDate)
         String dateStringFormat =  timeStartDate.format("yyyy-MM-dd hh:mm").toString()
         LOGGER.debug("dateStringFormat :: "+dateStringFormat)
-        LOGGER.debug("Gappt Time Slot booked ::"+tran.getTranAppointment().getGapptTimeSlot())
-        boolean driverIsLate = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStartDate)
-        LOGGER.debug("Is Driver Late:::"+driverIsLate)
-        if (!driverIsLate){
-            LOGGER.debug("***** In correctTime Loop *****")
-            tran.recordStageCompleted("ingate")
-            LOGGER.debug("*** Saved Transaction ***")
-        }
-        else {
-            LOGGER.debug("***** In lateTime Loop *****")
-            tran.cancelTransaction()
-            getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("Driver is Late to the Terminal against fixed appointment slot"),"Please contact Administration")
+        if (tran.getTranAppointment() != null){
+            LOGGER.debug("Gappt Time Slot booked ::"+tran.getTranAppointment().getGapptTimeSlot())
+            boolean driverIsLate = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStartDate)
+            LOGGER.debug("Is Driver Late:::"+driverIsLate)
+            if (!driverIsLate){
+                LOGGER.debug("***** In correctTime Loop *****")
+                tran.recordStageCompleted("ingate")
+                LOGGER.debug("*** Saved Transaction ***")
+            }
+            else {
+                LOGGER.debug("***** In lateTime Loop *****")
+                tran.cancelTransaction()
+                getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("Driver is Late to the Terminal against fixed appointment slot"),"Please contact Administration")
+            }
         }
     }
     private static Logger LOGGER = Logger.getLogger(ITSApptmntGateInApprovalGateTaskInterceptor.class)
