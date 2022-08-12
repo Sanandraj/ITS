@@ -8,17 +8,17 @@ import com.navis.road.business.workflow.TransactionAndVisitHolder
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/*
+/**
 * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
 * Date: 19/04/2022
 * Requirements:- Appointment validation should look at Visit Start time if Driver is late at the ingate
-*  @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR --> Paste this code (ITSApptmntGateInApprovalGateTaskInterceptor.groovy)
+* @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR --> Paste this code (ITSApptmntGateInApprovalGateTaskInterceptor.groovy)
 */
 
 
 class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterceptor{
 
-    public void execute(TransactionAndVisitHolder inWfCtx){
+    void execute(TransactionAndVisitHolder inWfCtx){
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug( "ITSApptmntGateInApprovalGateTaskInterceptor STARTS::")
         TruckTransaction tran = inWfCtx.getTran()
@@ -26,9 +26,14 @@ class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterc
         TruckTransactionStage truckVisitDetailsList= truckDetails.findTruckVisitsTranStages().get(0)
         long timeStart= truckVisitDetailsList.getTtstageStart().time
         LOGGER.debug("timeStart ::"+timeStart)
-        boolean driverInTime = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStart as Date)
-        LOGGER.debug("Is Driver Late:::"+driverInTime)
-        if (!tran.getTranAppointment().getGapptTimeSlot().isLate(timeStart as Date)){
+        Date timeStartDate=new Date(timeStart)
+        LOGGER.debug("timeStartDate :: "+timeStartDate)
+        String dateStringFormat =  timeStartDate.format("yyyy-MM-dd hh:mm").toString()
+        LOGGER.debug("dateStringFormat :: "+dateStringFormat)
+        LOGGER.debug("Gappt Time Slot booked ::"+tran.getTranAppointment().getGapptTimeSlot())
+        boolean driverIsLate = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStartDate)
+        LOGGER.debug("Is Driver Late:::"+driverIsLate)
+        if (!driverIsLate){
             LOGGER.debug("***** In correctTime Loop *****")
             tran.recordStageCompleted("ingate")
             LOGGER.debug("*** Saved Transaction ***")
