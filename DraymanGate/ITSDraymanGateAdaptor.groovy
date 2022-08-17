@@ -1,6 +1,7 @@
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.atoms.EquipNominalHeightEnum
+import com.navis.argo.business.atoms.FreightKindEnum
 import com.navis.argo.business.integration.IntegrationServiceMessage
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
@@ -8,6 +9,7 @@ import com.navis.carina.integrationservice.business.IntegrationService
 import com.navis.framework.IntegrationServiceField
 import com.navis.framework.business.Roastery
 import com.navis.framework.business.atoms.IntegrationServiceDirectionEnum
+import com.navis.framework.business.atoms.MassUnitEnum
 import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.portal.Ordering
 import com.navis.framework.portal.QueryUtils
@@ -15,6 +17,7 @@ import com.navis.framework.portal.query.Disjunction
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.util.scope.ScopeCoordinates
+import com.navis.framework.util.unit.UnitUtils
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.road.RoadEntity
@@ -40,69 +43,68 @@ import java.util.concurrent.*
  * */
 class ITSDraymanGateAdaptor {
 
-    // On MOVE_TV event - call from ITSDraymanGateMessageUpdate general notice groovy
-    public void execute(TruckVisitDetails inTv) {
-        try {
-            LOGGER.setLevel(Level.DEBUG);
-            if (inTv == null)
-                return;
-
-            logMsg("inTv nextstageId: "+inTv.getTvdtlsNextStageId())
-            if (!T_YARD.equals(inTv.getTvdtlsNextStageId()))
-                return;
-
-            List inGateReceivalList = new ArrayList();
-            List inGateDeliveryList = new ArrayList();
-            List outGateReceivalList = new ArrayList();
-
-            Set<TruckTransaction> truckTransactions = inTv.getTvdtlsTruckTrans();
-            for (TruckTransaction tran : truckTransactions) {
-                if (TranStatusEnum.COMPLETE == tran.getTranStatus() || TranStatusEnum.OK == tran.getTranStatus()) {
-                    Map containerDetailsMap = getContainerDetailsMap(tran, null);
-                    GateStageTypeEnum gateStage = getGateStageType(tran);
-                    if (gateStage == GateStageTypeEnum.OUT) {
-                        outGateReceivalList.add(containerDetailsMap);
-                    } else if (gateStage == GateStageTypeEnum.IN) {
-                        if (tran.isReceival()) {
-                            inGateReceivalList.add(containerDetailsMap);
-                        } else {
-                            inGateDeliveryList.add(containerDetailsMap);
-                        }
-                    }
-                }
-            }
-            logMsg("inGateReceivalList: " + inGateReceivalList + ", inGateDeliveryList: " + inGateDeliveryList + ", outGateReceivalList: " + outGateReceivalList);
-            if (inGateReceivalList.isEmpty() && inGateDeliveryList.isEmpty() && outGateReceivalList.isEmpty())
-                return;
-
-            frameAndSendMessage(inTv, T__SITE_ARRIVAL, inGateReceivalList);
-            frameAndSendMessage(inTv, T__SITE_DEPARTURE, inGateDeliveryList);
-            frameAndSendMessage(inTv, T__PICKUP, outGateReceivalList);
-
-        } catch (Exception e) {
-            LOGGER.error("Exception in execute: " + e.getMessage());
-        }
-    }
-
     // On cancelling transaction - call from TruckTransaction ELI
     public void prepareAndPushMessage(TruckTransaction inTruckTran, String inMessageType) {
+        LOGGER.setLevel(Level.DEBUG)
         logMsg("prepareAndPushMessage END");
         List containerList = new ArrayList();
         containerList.add(getContainerDetailsMap(inTruckTran, null));
-        frameAndSendMessage(inTruckTran.getTranTruckVisit(), inMessageType, containerList);
+
+        Map chsMap = getChassisDetailsMap(inTruckTran);
+        List chassisList;
+        if (chsMap != null) {
+            chassisList = new ArrayList();
+            chassisList.add(chsMap);
+        }
+        frameAndSendMessage(inTruckTran.getTranTruckVisit(), inMessageType, containerList, chassisList);
         logMsg("prepareAndPushMessage END");
     }
 
-    // On cancelling transaction - call from TruckTransaction ELI
+    // On truck-In and On transaction-cancel
     public void prepareAndPushMessageForTvdtls(TruckVisitDetails inTvdtls, String inMessageType) {
-        logMsg("prepareAndPushMessageForTvdtls TransactionsInProgress - " + inTvdtls.getTransactionsInProgress());
-        logMsg("prepareAndPushMessageForTvdtls TransactionsToBeClosed - " + inTvdtls.getTransactionsToBeClosed());
-        logMsg("prepareAndPushMessageForTvdtls TransactionsToBeHandled - " + inTvdtls.getTransactionsToBeHandled());
+        LOGGER.setLevel(Level.DEBUG)
+        logMsg("prepareAndPushMessageForTvdtls ActiveTransactions - " + inTvdtls.getActiveTransactions());
+        logMsg("prepareAndPushMessageForTvdtls CompletedTransactions - " + inTvdtls.getCompletedTransactions() + ", Tv status: " + inTvdtls.getTvdtlsStatus());
 
-        List containerList = new ArrayList();
-        for (TruckTransaction tran : inTvdtls.getTransactionsInProgress())
-            containerList.add(getContainerDetailsMap(tran, null));
-        frameAndSendMessage(inTvdtls, inMessageType, containerList);
+        Set transactionSet = inTvdtls.getActiveTransactions();
+        if (transactionSet.isEmpty())
+            transactionSet = inTvdtls.getCompletedTransactions();
+
+        //int i = 0;
+        List receivalContainerList = new ArrayList();
+        List deliveryContainerList = new ArrayList();
+        List receivalChassisList = new ArrayList();
+        List deliveryChassisList = new ArrayList();
+        for (TruckTransaction tran : transactionSet) {
+            UnitFacilityVisit ufv = tran.getTranUnit() ? tran.getTranUnit().getUnitActiveUfvNowActive() : null;
+            LocPosition locPosition = ufv ? ufv.getUfvLastKnownPosition() : null;
+            locPosition = locPosition ? (locPosition.isYardPosition() ? locPosition : ufv.getFinalPlannedPosition()) : null;
+
+            /*containerList.add(getContainerDetailsMap(tran, locPosition));
+            if (inMessageType == null && i == 0) {
+                inMessageType = tran.isReceival() ? T__SITE_ARRIVAL : T__PICKUP;
+            }*/
+            if (tran.isReceival()) {
+                receivalContainerList.add(getContainerDetailsMap(tran, locPosition));
+                receivalChassisList.add(getChassisDetailsMap(tran));
+            } else {
+                deliveryContainerList.add(getContainerDetailsMap(tran, locPosition));
+                deliveryChassisList.add(getChassisDetailsMap(tran));
+            }
+        }
+
+        if (T__SITE_DEPARTURE == inMessageType) {
+            frameAndSendMessage(inTvdtls, T__SITE_DEPARTURE, deliveryContainerList, deliveryChassisList);
+
+        } else {
+            if (!receivalContainerList.isEmpty()) {
+                frameAndSendMessage(inTvdtls, T__SITE_ARRIVAL, receivalContainerList, receivalChassisList);
+            }
+            if (!deliveryContainerList.isEmpty()) {
+                //String type = (TruckVisitStatusEnum.COMPLETE == inTvdtls.getTvdtlsStatus())? T__SITE_DEPARTURE : T__PICKUP;
+                frameAndSendMessage(inTvdtls, T__PICKUP, deliveryContainerList, deliveryChassisList);
+            }
+        }
 
         logMsg("prepareAndPushMessageForTvdtls END");
     }
@@ -110,27 +112,16 @@ class ITSDraymanGateAdaptor {
 
     // On position / planned position update - Call from WI ELI
     public void prepareAndPushMessageForPositionChange(Unit inUnit, LocPosition inLocPosition) {
+        LOGGER.setLevel(Level.DEBUG)
         logMsg("prepareAndPushMessageForPositionChange BEGIN ");
         TruckTransaction transaction = findTransactionsForUnitId(inUnit.getUnitId());
         TruckVisitDetails truckVisitDetails = transaction ? transaction.getTranTruckVisit() : null;
         String locPosition = (truckVisitDetails ? (truckVisitDetails.getTvdtlsPosition() ? truckVisitDetails.getTvdtlsPosition().getPosSlot() : null) : null);
-        logMsg("locPosition: "+locPosition);
+        logMsg("locPosition: " + locPosition);
         if (truckVisitDetails && T__TIP.equals(locPosition)) {
             List containerList = new ArrayList();
             Map msgDetails = getGenericDetails(truckVisitDetails);
             if (msgDetails != null) { //position change
-                /*if (inLocPosition == null) {
-                    if (transaction.isDelivery()) {
-                        msgDetails.put(T__MSG_TYPE, T__PICKUP);
-                        containerList.add(getContainerDetailsMap(transaction, null));
-                    }
-                } else { //planned position change
-                    if (transaction.isReceival()) {
-                        msgDetails.put(T__MSG_TYPE, T__SITE_ARRIVAL);
-                        containerList.add(getContainerDetailsMap(transaction, inLocPosition));
-                    }
-                }*/
-
                 if (transaction.isReceival()) {
                     msgDetails.put(T__MSG_TYPE, T__SITE_ARRIVAL);
                     containerList.add(getContainerDetailsMap(transaction, inLocPosition));
@@ -155,73 +146,114 @@ class ITSDraymanGateAdaptor {
                 .add(PredicateFactory.eq(RoadField.TRAN_CTR_NBR, inContainerNumber));
 
         DomainQuery dq = QueryUtils.createDomainQuery(RoadEntity.TRUCK_TRANSACTION)
-                        .addDqPredicate(ctrNbrOrRequested)
-                        .addDqPredicate(PredicateFactory.eq(RoadField.TRAN_STATUS, TranStatusEnum.OK))
-                        .addDqOrdering(Ordering.desc(RoadField.TRAN_CREATED))
+                .addDqPredicate(ctrNbrOrRequested)
+                .addDqPredicate(PredicateFactory.eq(RoadField.TRAN_STATUS, TranStatusEnum.OK))
+                .addDqOrdering(Ordering.desc(RoadField.TRAN_CREATED))
 
         List<TruckTransaction> transactions = (List<TruckTransaction>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
 
-        return (transactions && transactions.size()>0)? transactions.get(0) : null;
+        return (transactions && transactions.size() > 0) ? transactions.get(0) : null;
     }
 
-    private void frameAndSendMessage(TruckVisitDetails visitDetails, String msgType, List containerList) {
-        if (containerList.size() > 0) {
-            Map msgDetails = getGenericDetails(visitDetails);
-            logMsg("msgDetails: " + msgDetails);
-            if (msgDetails != null) {
-                msgDetails.put(T__MSG_TYPE, msgType);
+    private void frameAndSendMessage(TruckVisitDetails visitDetails, String msgType, List containerList, List chassisList) {
+        //if (containerList.size() > 0) {
+        Map msgDetails = getGenericDetails(visitDetails);
+        logMsg("msgDetails: " + msgDetails);
+        if (msgDetails != null) {
+            msgDetails.put(T__MSG_TYPE, msgType);
+
+            if (containerList.isEmpty())
+                msgDetails.put(T__CNTR, null);
+            else
                 msgDetails.put(T__CNTR, containerList);
-                createAndSendDraymanMessage(msgDetails);
-            }
+
+            if (chassisList.isEmpty())
+                msgDetails.put(T__CHASSIS, null);
+            else
+                msgDetails.put(T__CHASSIS, chassisList);
+
+            createAndSendDraymanMessage(msgDetails);
         }
+        //}
     }
 
     private Map getGenericDetails(TruckVisitDetails inTv) {
-        LOGGER.setLevel(Level.DEBUG);
-        logMsg("getGenericDetails - BEGIN");
-        GateLane tvdtlsEntryLane = inTv.getTvdtlsEntryLane();
-        GateLane tvdtlsExitLane = inTv.getTvdtlsExitLane();
-        if (tvdtlsEntryLane == null && tvdtlsExitLane == null)
-            return null;
-
-        String laneId = T_EMPTY;
-        if (tvdtlsExitLane != null) { // Exit lane
-            laneId = tvdtlsExitLane.getLaneId();
-        } else if ((tvdtlsEntryLane != null)) {  // Entry lane
-            laneId = tvdtlsEntryLane.getLaneId();
-        }
-
         Map genericMap = new HashMap();
-        genericMap.put(T__TIME, dateFormatter.format(new Date()));
-        genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruckLicenseNbr());
-        genericMap.put(T__TRUCK_TYPE, T__DRAYMAN);
-        genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck()? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
-        genericMap.put(T__LICENCE_NBR, inTv.getTvdtlsTruckLicenseNbr());
-        genericMap.put(T__LICENCE_STATE, inTv.getTvdtlsTruck().getTruckLicenseState() ? inTv.getTvdtlsTruck().getTruckLicenseState() : T_EMPTY);
-        genericMap.put(T__EX_ERR_REASON, T_EMPTY);
-        genericMap.put(T__EX_TEC, T_EMPTY);
-        genericMap.put(T___TYPE, T__INBOUND);
-        genericMap.put(T__LANE, laneId);
-        logMsg("getGenericDetails - END");
+        try {
+            logMsg("getGenericDetails - BEGIN");
+            GateLane tvdtlsEntryLane = inTv.getTvdtlsEntryLane();
+            GateLane tvdtlsExitLane = inTv.getTvdtlsExitLane();
+            if (tvdtlsEntryLane == null && tvdtlsExitLane == null)
+                return null;
 
+            String laneId = T_EMPTY;
+            String laneType;
+            if (tvdtlsExitLane != null) { // Exit lane
+                laneId = tvdtlsExitLane.getLaneId();
+                laneType = T__OUTBOUND;
+            } else if ((tvdtlsEntryLane != null)) {  // Entry lane
+                laneId = tvdtlsEntryLane.getLaneId();
+                laneType = T__INBOUND;
+            }
+
+            Truck truck;
+            if (ArgoUtils.isNotEmpty(inTv.getTvdtlsTruckId()))
+                truck = Truck.findTruckById(inTv.getTvdtlsTruckId());
+            if (truck == null)
+                truck = inTv.getTvdtlsTruck();
+            String truckLicenceState = truck ? truck.getTruckLicenseState() ? inTv.getTvdtlsTruck().getTruckLicenseState() : T_EMPTY : T_EMPTY
+
+            genericMap.put(T__TIME, dateFormatter.format(new Date()));
+            //genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruckLicenseNbr());
+            genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckId() : T_EMPTY);
+            genericMap.put(T__TRUCK_TYPE, T__DRAYMAN);
+            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
+            genericMap.put(T__LICENCE_NBR, inTv.getTvdtlsTruckLicenseNbr());
+            genericMap.put(T__LICENCE_STATE, truckLicenceState);
+            genericMap.put(T__EX_ERR_REASON, T_EMPTY);
+            genericMap.put(T__EX_TEC, T_EMPTY);
+            genericMap.put(T___TYPE, laneType); // Inbound or Outbound
+            genericMap.put(T__LANE, laneId);    // lane Id
+            logMsg("getGenericDetails - END");
+
+        } catch (Exception e) {
+            LOGGER.error("Exception in getGenericDetails : " + e.getMessage());
+        }
         return genericMap;
     }
 
+    private Map getChassisDetailsMap(TruckTransaction tran) {
+        if (tran.getTranChassis() != null) {
+            Map chassisDetails = new HashMap();
+            chassisDetails.put(T__ID, tran.getTranChassis().getEqIdFull());
+            return chassisDetails;
+        }
+        return null;
+    }
 
     private Map getContainerDetailsMap(TruckTransaction tran, LocPosition locPos) {
-        logMsg("getContainerDetailsMap - BEGIN : " + tran.getTranCtrNbr())
+        logMsg("getContainerDetailsMap - BEGIN : " + tran.getTranCtrNbr() + ", tranUnit: " + tran.getTranUnit());
         /*logMsg("appt: "+tran.getTranAppointment())
         Unit unit = tran.getTranUnit()? tran.getTranUnit() : tran.getTranAppointment().getGapptUnit();
-
         String unitId = unit? unit.getUnitId() : T_EMPTY;*/
+
+        String containerNbr = tran.getTranCtrNbr() ? tran.getTranCtrNbr() : (tran.getTranUnit() ? tran.getTranUnit().getUnitId() : T_EMPTY);
 
         String eqLength = "20";
         if (EquipBasicLengthEnum.BASIC40 == tran.getTranEqLength(EquipBasicLengthEnum.BASIC40)) {
             eqLength = "40";
         }
+
         String eqWeight = tran.getTranCtrGrossWeight() ? tran.getTranCtrGrossWeight().toString() : T_EMPTY;
+        logMsg("KG eqWeight : " + eqWeight)
+        if (!eqWeight.isEmpty())
+            eqWeight = String.format("%.2f", (UnitUtils.convertTo(Double.valueOf(eqWeight), MassUnitEnum.KILOGRAMS, MassUnitEnum.POUNDS)));
+        logMsg("LB eqWeight : " + eqWeight)
+
         String eqHeight = getCntrHeight(tran.getTranEqoEqHeight());
         String chassisPos = tran.getTranCtrTruckPosition() ? tran.getTranCtrTruckPosition().toString() : T_EMPTY;
+        /*if (T_EMPTY == chassisPos)
+            chassisPos = "1";*/
 
         Map posValues = new HashMap();
         if (locPos == null) {
@@ -230,23 +262,35 @@ class ITSDraymanGateAdaptor {
             posValues = getValueFromPosition(locPos);
         }
 
+        String loadStatus = T__L;
+        if (tran.getTranUnit() != null && FreightKindEnum.MTY == tran.getTranUnit().getUnitFreightKind()) {
+            loadStatus = T__E;
+        }
+
         logMsg("frame container details")
         Map containerDetails = new HashMap();
-        containerDetails.put(T__ID, tran.getTranCtrNbr());
+        containerDetails.put(T__ID, containerNbr);
         containerDetails.put(T__LENGTH, eqLength);
         containerDetails.put(T__WEIGHT, eqWeight);
         containerDetails.put(T__HEIGHT, eqHeight);
-        containerDetails.put(T__LOAD_STATUS, T__L);
+        containerDetails.put(T__LOAD_STATUS, loadStatus);
         containerDetails.put(T__CHASSIS_POSITION, chassisPos);
-        containerDetails.put(T__CUSTOM1, getCustom1(posValues.get(T__CELL)));
-        containerDetails.put(T__ROW, posValues.get(T__ROW));
-        containerDetails.put(T__BAY, posValues.get(T__BAY));
-        containerDetails.put(T__CELL, posValues.get(T__CELL));
-        containerDetails.put(T__TIER, posValues.get(T__TIER));
-        containerDetails.put(T__SLOT, posValues.get(T__SLOT));
+        containerDetails.put(T__CUSTOM1, getCustom1(getPositionValue(posValues, T__CELL)));
+        containerDetails.put(T__ROW, getPositionValue(posValues, T__ROW));
+        containerDetails.put(T__BAY, getPositionValue(posValues, T__BAY));
+        containerDetails.put(T__CELL, getPositionValue(posValues, T__CELL));
+        containerDetails.put(T__TIER, getPositionValue(posValues, T__TIER));
+        containerDetails.put(T__SLOT, getPositionValue(posValues, T__SLOT));
 
         logMsg("getContainerDetailsMap - END : " + containerDetails);
         return containerDetails;
+    }
+
+    private String getPositionValue(Map inPos, String inKey) {
+        if (inPos)
+            return inPos.get(inKey) ? inPos.get(inKey) : T_PERCENTILE;
+        else
+            return T_PERCENTILE;
     }
 
     private void createAndSendDraymanMessage(Map msgDetails) {
@@ -260,28 +304,35 @@ class ITSDraymanGateAdaptor {
     private String makeDraymanMessage(Map msgDetails) {
         String message = T_EMPTY;
         List containerList = msgDetails.get(T__CNTR);
-        if (containerList.size() == 0)
-            return message;
+        /*if (containerList.size() == 0)
+            return message;*/
 
+        logMsg("containerList: "+containerList);
         int iCount = 0;
         StringBuffer containerMessageSb = new StringBuffer();
-        for (Map containerMap : containerList) {
-            iCount++;
-            containerMessageSb.append(
-                    String.format(CONTAINER_MESSAGE, String.valueOf(iCount),
-                            containerMap.get(T__ID),
-                            containerMap.get(T__LENGTH),
-                            containerMap.get(T__WEIGHT),
-                            containerMap.get(T__HEIGHT),
-                            containerMap.get(T__LOAD_STATUS),
-                            containerMap.get(T__CHASSIS_POSITION),
-                            containerMap.get(T__CUSTOM1),
-                            containerMap.get(T__ROW),
-                            containerMap.get(T__BAY),
-                            containerMap.get(T__CELL),
-                            containerMap.get(T__TIER),
-                            containerMap.get(T__SLOT))
-            );
+        if (containerList != null) {
+            for (Map containerMap : containerList) {
+                iCount++;
+                containerMessageSb.append(
+                        String.format(CONTAINER_MESSAGE, String.valueOf(iCount),
+                                containerMap.get(T__ID),
+                                containerMap.get(T__LENGTH),
+                                containerMap.get(T__WEIGHT),
+                                containerMap.get(T__HEIGHT),
+                                containerMap.get(T__LOAD_STATUS),
+                                containerMap.get(T__CHASSIS_POSITION),
+                                containerMap.get(T__CUSTOM1),
+                                containerMap.get(T__ROW),
+                                containerMap.get(T__BAY),
+                                containerMap.get(T__CELL),
+                                containerMap.get(T__TIER),
+                                containerMap.get(T__SLOT),
+                                String.valueOf(iCount))
+                );
+            }
+        } else {
+            //Add <container1/> dummy tag
+            containerMessageSb.append(NO_CONTAINER1_MESSAGE);
         }
 
         message = String.format(DRAYMAN_MESSAGE,
@@ -333,7 +384,7 @@ class ITSDraymanGateAdaptor {
 
             IntegrationServiceMessage ism;
             IntegrationService iServ = getUriFromIntegrationService(T__DRAYMAN, IntegrationServiceDirectionEnum.OUTBOUND);
-            logMsg("iServ: "+iServ)
+            logMsg("iServ: " + iServ)
             ism = createIntegrationSrcMsg(iServ, inDraymanMessage, inMsgDetails.get(T__TAG_ID), inMsgDetails.get(T__MSG_TYPE));
 
             int timeOut = 4000;
@@ -344,7 +395,7 @@ class ITSDraymanGateAdaptor {
             try {
                 int result = future.get(timeOut, TimeUnit.MILLISECONDS);
                 logMsg("result : " + result);
-                logMsg("ism: "+ism)
+                logMsg("ism: " + ism)
                 if (result < 0)
                     ism.setIsmUserString5(T__FAILURE);
 
@@ -366,7 +417,7 @@ class ITSDraymanGateAdaptor {
 
 
     private String getCustom1(String inRow) {
-        String retValue = T_EMPTY;
+        String retValue = T_PERCENTILE;
         if (ArgoUtils.isNotEmpty(inRow)) {
             try {
                 int numRow = Integer.parseInt(inRow);
@@ -385,25 +436,25 @@ class ITSDraymanGateAdaptor {
     private LocPosition getCtrPosition(TruckTransaction inTran) {
         LocPosition locPosition = null;
         Unit unit = inTran.getTranUnit();
-        if (unit) {
-            UnitFacilityVisit ufv = unit.getUnitActiveUfv();
-            if (ufv) {
-                GateStageTypeEnum gateStage = this.getGateStageType(inTran);
-                if (gateStage == GateStageTypeEnum.IN) {
-                    if (inTran.isReceival()) {
-                        locPosition = ufv.getFinalPlannedPosition();
-                        if (locPosition == null && inTran.getTranCtrPosition() != null) {
-                            locPosition = inTran.getTranCtrPosition().isYardPosition() ? inTran.getTranCtrPosition() : null
-                        }
+        UnitFacilityVisit ufv = unit ? unit.getUnitActiveUfv() : null;
+        if (ufv) {
+            GateStageTypeEnum gateStage = this.getGateStageType(inTran);
+            logMsg("gateStage: " + gateStage)
+            if (gateStage == GateStageTypeEnum.IN) {
+                logMsg("isReceival: " + inTran.isReceival())
+                if (inTran.isReceival()) {
+                    locPosition = ufv.getFinalPlannedPosition();
+                    if (locPosition == null && inTran.getTranCtrPosition() != null) {
+                        locPosition = inTran.getTranCtrPosition().isYardPosition() ? inTran.getTranCtrPosition() : null
                     }
-                    if (inTran.isDelivery()) {
-                        locPosition = ufv.getUfvLastKnownPosition();
-                    }
-                } else if (gateStage == GateStageTypeEnum.OUT) {
+                } else { // for delivery
                     locPosition = ufv.getUfvLastKnownPosition();
                 }
+            } else {
+                locPosition = ufv.getUfvLastKnownPosition();
             }
         }
+        logMsg("locPosition: " + locPosition)
         return locPosition;
     }
 
@@ -429,56 +480,120 @@ class ITSDraymanGateAdaptor {
         return value;
     }
 
+    /*private AbstractYardBlock getAbstractYardBlock(Serializable gkey) {
+        DomainQuery dq = QueryUtils.createDomainQuery("AbstractYardBlock")
+        dq.addDqPredicate(PredicateFactory.eq(BinField.ABN_PARENT_BIN, gkey))
+        dq.addDqPredicate(PredicateFactory.eq(BinField.ABN_SUB_TYPE, "SBL"))
+        dq.setFilter(ObsoletableFilterFactory.createShowActiveFilter())
+        dq.addDqOrdering(Ordering.asc(BinField.ABN_NAME))
+        List<AbstractYardBlock> list = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
+        if (list != null && !list.isEmpty())
+            return list.get(0);
+        else
+            return null;
+    }*/
+
 
     private Map getValueFromPosition(LocPosition locPosition) {
         Map posValues = new HashMap();
-        posValues.put(T__ROW, T_EMPTY);
-        posValues.put(T__BAY, T_EMPTY);
-        posValues.put(T__CELL, T_EMPTY);
-        posValues.put(T__TIER, T_EMPTY);
-        posValues.put(T__SLOT, T_EMPTY);
+        //logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
+
+        //loc PosSlot: E130032, PosLocId: PIERG, BlockName: null, posBin: null, posName: Y-PIERG-E130032
+        //AbstractYardBlock
+        /*AbstractYardBlock abstractYardBlock = getAbstractYardBlock((ContextHelper.getThreadYard()).getYrdBinModel().getAbnGkey());
+        logMsg("full label: " + abstractYardBlock.getAyblkLabelUIFullPosition());
+
+        // B2R2C2T1
+        // B63607.1
+        String fullPosition = abstractYardBlock.getAyblkLabelUIFullPosition();
+        logMsg("fullPosition: "+fullPosition);
+
+        int startIndex = 0, endIndex = 0;
+        if (fullPosition.size() > 1) {
+            startIndex = Integer.parseInt(fullPosition.substring(1, 2));
+        }
+        if (fullPosition.size() > 3) {
+            endIndex = Integer.parseInt(fullPosition.substring(3, 4));
+        }
+        //logMsg("startIndex: "+startIndex + ", endIndex: "+endIndex);
+        (inPosSlot.length() > endIndex) ? inPosSlot.substring(startIndex, startIndex + endIndex) : null;*/
+
+        posValues.put(T__ROW, T_PERCENTILE);
+        posValues.put(T__BAY, T_PERCENTILE);
+        posValues.put(T__CELL, T_PERCENTILE);
+        posValues.put(T__TIER, T_PERCENTILE);
+        posValues.put(T__SLOT, T_PERCENTILE);
 
         if (locPosition != null) {
-            retrievePosition(locPosition, posValues);
+            boolean hasValuesAssigned = retrievePosition(locPosition, posValues);
+
+            //Y-PIERG-E4.01.05.5
+            if (!hasValuesAssigned && T_EMPTY == (String) posValues.get(T__ROW) && T_EMPTY == (String) posValues.get(T__BAY) && locPosition && !locPosition.toString().isEmpty()) {
+                String[] locArray = locPosition.toString().split(T_HYPHEN);
+                if (locArray.size() > 2) {
+                    String[] slotArray = locArray[2].split(T_DOT);
+
+                    if (slotArray.size() > 0)
+                        posValues.put(T__ROW, slotArray[0]);
+                    if (slotArray.size() > 1)
+                        posValues.put(T__BAY, slotArray[1]);
+                    if (slotArray.size() > 2)
+                        posValues.put(T__CELL, slotArray[2]);
+                    if (slotArray.size() > 3)
+                        posValues.put(T__TIER, slotArray[3]);
+                }
+            }
             posValues.put(T__TIER, locPosition.getPosTier());
         }
+        logMsg("posValues: " + posValues);
         return posValues;
     }
 
 
-    private void retrievePosition(LocPosition position, Map posValues) {
+    private boolean retrievePosition(LocPosition position, Map posValues) {
         String rowVal = null;
         String slotVal = null;
         String blockVal = null;
         AbstractBin stackBin = position.getPosBin();
+        logMsg("stackBin: " + stackBin)
         if (stackBin != null) {
             if (ABM_STACK.equalsIgnoreCase(stackBin.getAbnBinType().getBtpId())) {
+                //logMsg("In ABM-Stack")
                 String stackBinName = stackBin.getAbnName()
                 AbstractBin sectionBin = stackBin.getAbnParentBin();
                 if (sectionBin != null && ABM_SECTION.equalsIgnoreCase(sectionBin.getAbnBinType().getBtpId())) {
+                    //logMsg("In ABM_SECTION")
                     String sectionBinName = sectionBin.getAbnName()
                     rowVal = sectionBinName;
                     slotVal = stackBinName.substring(stackBinName.indexOf(sectionBinName) + sectionBinName.size())
                     AbstractBin blockBin = sectionBin.getAbnParentBin();
                     if (!position.isWheeled() && blockBin != null && ABM_BLOCK.equalsIgnoreCase(blockBin.getAbnBinType().getBtpId())) {
+                        //logMsg("set blockVal")
                         String blockBinName = blockBin.getAbnName()
                         blockVal = blockBinName;
                         rowVal = sectionBinName.substring(sectionBinName.indexOf(blockBinName) + blockBinName.size());
                     }
                 }
                 if (position.isWheeled()) {
+                    //logMsg("isWheeled")
                     posValues.put(T__ROW, rowVal);
                     posValues.put(T__SLOT, slotVal);
                 } else {
+                    //logMsg("non-wheeled pos")
                     posValues.put(T__ROW, blockVal);
                     posValues.put(T__BAY, rowVal);
                     posValues.put(T__CELL, slotVal);
                 }
+                return true;
 
             } else if (position.isWheeledHeap() || ABM_BLOCK.equalsIgnoreCase(stackBin.getAbnBinType().getBtpId())) {
+                //logMsg("else block")
                 posValues.put(T__ROW, stackBin.getAbnName());
+                return true;
             }
         }
+        logMsg("retrievePosition - posValues: " + posValues)
+        return false;
     }
 
     private GateStageTypeEnum getGateStageType(TruckTransaction truckTransaction) {
@@ -581,6 +696,8 @@ class ITSDraymanGateAdaptor {
         LOGGER.debug(inMsg);
     }
 
+    private final String NO_CONTAINER1_MESSAGE = "<container1/>";
+
     private final String CONTAINER_MESSAGE = "<container%s " +
             "id=\"%s\">\n" +
             "<length>%s</length>\n" +
@@ -594,7 +711,7 @@ class ITSDraymanGateAdaptor {
             "<cell>%s</cell>\n" +
             "<tier>%s</tier>\n" +
             "<slot>%s</slot>\n" +
-            "</container1>";
+            "</container%s>";
 
     private final String DRAYMAN_MESSAGE = "<draymanGate time=\"%s\" type=\"%s\">\n" +
             "<truck id=\"%s\">\n" +
@@ -615,8 +732,12 @@ class ITSDraymanGateAdaptor {
             "</draymanGate>";
 
 
+    private static final String T__E = "E";
     private static final String T__L = "L";
     private static final String T_EMPTY = "";
+    private static final String T_HYPHEN = "-";
+    private static final String T_DOT = ".";
+    private static final String T_PERCENTILE = "%";
     private static final String T__TIME = "stampDateTime";
     private static final String T__TRUCK_ID = "truckID";
     private static final String T__TRUCK_TYPE = "truckType";
@@ -628,6 +749,7 @@ class ITSDraymanGateAdaptor {
     private static final String T___TYPE = "type";
     private static final String T__LANE = "lane";
     private static final String T__INBOUND = "Inbound";
+    private static final String T__OUTBOUND = "Outbound";
     private static final String T_YARD = "yard";
 
     private static final String T__ID = "id";
@@ -655,6 +777,7 @@ class ITSDraymanGateAdaptor {
 
     private static final String T__MSG_TYPE = "msgType";
     private static final String T__CNTR = "cntr";
+    private static final String T__CHASSIS = "chassis";
     private static final String T__CANCEL = "CANCEL";
 
     private final String T__SITE_ARRIVAL = "SiteArrival";
