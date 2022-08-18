@@ -162,12 +162,12 @@ class ITSDraymanGateAdaptor {
         if (msgDetails != null) {
             msgDetails.put(T__MSG_TYPE, msgType);
 
-            if (containerList.isEmpty())
+            if (containerList == null || containerList.isEmpty())
                 msgDetails.put(T__CNTR, null);
             else
                 msgDetails.put(T__CNTR, containerList);
 
-            if (chassisList.isEmpty())
+            if (chassisList == null || chassisList.isEmpty())
                 msgDetails.put(T__CHASSIS, null);
             else
                 msgDetails.put(T__CHASSIS, chassisList);
@@ -543,7 +543,9 @@ class ITSDraymanGateAdaptor {
                         posValues.put(T__TIER, slotArray[3]);
                 }
             }
-            posValues.put(T__TIER, locPosition.getPosTier());
+
+            if (locPosition.isGrounded())
+                posValues.put(T__TIER, locPosition.getPosTier());
         }
         logMsg("posValues: " + posValues);
         return posValues;
