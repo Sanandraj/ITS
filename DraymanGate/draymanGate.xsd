@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2016 (http://www.altova.com) by Lily Lu (NAVIS, LLC) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:include schemaLocation="elementsLib.xsd"/>
+	<xs:element name="draymanGate">
+		<xs:annotation>
+			<xs:documentation>Comment describing your root element</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:all>
+				<xs:element name="truck">
+					<xs:complexType>
+						<xs:all>
+							<xs:element name="type">
+								<xs:annotation>
+									<xs:documentation>Type of truck. Default to “Drayman”</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="20"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element ref="tagID" minOccurs="0"/>
+							<xs:element ref="truckLicense" minOccurs="0"/>
+							<xs:element ref="state" minOccurs="0"/>
+							<xs:element ref="truckCompany" minOccurs="0"/>
+							<xs:element ref="driverLicense" minOccurs="0"/>
+							<xs:element ref="driverLicenseState" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id" use="required"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="tagException" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="errorReason" minOccurs="0"/>
+							<xs:element ref="tec" minOccurs="0"/>
+						</xs:all>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="container1" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Encapsulates the container at
+the front of the chassis that is
+arriving at or departing from the
+site.
+Required for mission</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:all>
+							<xs:element name="tagID" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>The ID of the WhereTag affixed
+to the container
+Required for sites that have
+tagged containers
+</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="length" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>Length of the container (ft)
+Required for mission</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element ref="weight" minOccurs="0"/>
+							<xs:element ref="height" minOccurs="0"/>
+							<xs:element ref="loadStatus" minOccurs="0"/>
+							<xs:element ref="chassisPosition" minOccurs="0"/>
+							<xs:element name="custom1" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation> Extends the container node by allowing a customer value to be assigned to a container by a TOS.</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:maxLength value="20"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="row" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>The row that the container is to be spotted or pulled from.
+Required for mission</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="bay" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>The bay that the container is to be spotted or pulled from.
+Required for mission going to or from stack
+</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element ref="cell" minOccurs="0"/>
+							<xs:element ref="tier" minOccurs="0"/>
+							<xs:element name="slot" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>If wheeled, the slot in the row that the container is to be spotted or pulled from.
+Required for containers going to or from wheeled.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="transferZone" type="xs:string" minOccurs="0"/>
+							<xs:element name="transferPoint" type="xs:string" minOccurs="0"/>
+							<xs:element ref="cheID" minOccurs="0"/>
+							<xs:element ref="pod" minOccurs="0"/>
+							<xs:element ref="railTrack" minOccurs="0"/>
+							<xs:element ref="railCar" minOccurs="0"/>
+							<xs:element ref="railWell" minOccurs="0"/>
+							<xs:element ref="railLevel" minOccurs="0"/>
+							<xs:element ref="railWellPos" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="container2" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="tagID" minOccurs="0"/>
+							<xs:element ref="length" minOccurs="0"/>
+							<xs:element ref="weight" minOccurs="0"/>
+							<xs:element ref="height" minOccurs="0"/>
+							<xs:element ref="loadStatus" minOccurs="0"/>
+							<xs:element ref="chassisPosition" minOccurs="0"/>
+							<xs:element name="custom1" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation> Extends the container node by allowing a customer value to be assigned to a container by a TOS.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="row" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>The row that the container is to be spotted or pulled from.
+Required for mission</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="bay" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>The bay that the container is to be spotted or pulled from.
+Required for mission going to or from stack
+</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element ref="cell" minOccurs="0"/>
+							<xs:element ref="tier" minOccurs="0"/>
+							<xs:element name="slot" minOccurs="0">
+								<xs:annotation>
+									<xs:documentation>If wheeled, the slot in the row that the container is to be spotted or pulled from.
+Required for containers going to or from wheeled.</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="transferZone" type="xs:string" minOccurs="0"/>
+							<xs:element name="transferPoint" type="xs:string" minOccurs="0"/>
+							<xs:element ref="cheID" minOccurs="0"/>
+							<xs:element ref="pod" minOccurs="0"/>
+							<xs:element ref="railTrack" minOccurs="0"/>
+							<xs:element ref="railCar" minOccurs="0"/>
+							<xs:element ref="railWell" minOccurs="0"/>
+							<xs:element ref="railWellPos" minOccurs="0"/>
+							<xs:element ref="railLevel" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="container3" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="tagID" minOccurs="0"/>
+							<xs:element ref="length" minOccurs="0"/>
+							<xs:element ref="weight" minOccurs="0"/>
+							<xs:element ref="height" minOccurs="0"/>
+							<xs:element ref="loadStatus" minOccurs="0"/>
+							<xs:element ref="chassisPosition" minOccurs="0"/>
+							<xs:element ref="custom1" minOccurs="0"/>
+							<xs:element ref="row" minOccurs="0"/>
+							<xs:element ref="bay" minOccurs="0"/>
+							<xs:element ref="cell" minOccurs="0"/>
+							<xs:element ref="tier" minOccurs="0"/>
+							<xs:element ref="slot" minOccurs="0"/>
+							<xs:element name="transferZone" type="xs:string" minOccurs="0"/>
+							<xs:element name="transferPoint" type="xs:string" minOccurs="0"/>
+							<xs:element ref="cheID" minOccurs="0"/>
+							<xs:element ref="pod" minOccurs="0"/>
+							<xs:element ref="railTrack" minOccurs="0"/>
+							<xs:element ref="railCar" minOccurs="0"/>
+							<xs:element ref="railWell" minOccurs="0"/>
+							<xs:element ref="railWellPos" minOccurs="0"/>
+							<xs:element ref="railLevel" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="container4" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="tagID" minOccurs="0"/>
+							<xs:element ref="length" minOccurs="0"/>
+							<xs:element ref="weight" minOccurs="0"/>
+							<xs:element ref="height" minOccurs="0"/>
+							<xs:element ref="loadStatus" minOccurs="0"/>
+							<xs:element ref="chassisPosition" minOccurs="0"/>
+							<xs:element ref="custom1" minOccurs="0"/>
+							<xs:element ref="row" minOccurs="0"/>
+							<xs:element ref="bay" minOccurs="0"/>
+							<xs:element ref="cell" minOccurs="0"/>
+							<xs:element ref="tier" minOccurs="0"/>
+							<xs:element ref="slot" minOccurs="0"/>
+							<xs:element name="transferZone" type="xs:string" minOccurs="0"/>
+							<xs:element name="transferPoint" type="xs:string" minOccurs="0"/>
+							<xs:element ref="cheID" minOccurs="0"/>
+							<xs:element ref="pod" minOccurs="0"/>
+							<xs:element ref="railTrack" minOccurs="0"/>
+							<xs:element ref="railCar" minOccurs="0"/>
+							<xs:element ref="railWell" minOccurs="0"/>
+							<xs:element ref="railWellPos" minOccurs="0"/>
+							<xs:element ref="railLevel" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="chassis" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="type" minOccurs="0"/>
+							<xs:element ref="tareWeight" minOccurs="0"/>
+							<xs:element ref="length" minOccurs="0"/>
+							<xs:element name="owner" type="xs:string" minOccurs="0"/>
+							<xs:element ref="damage" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="chassis2" minOccurs="0">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="type" minOccurs="0"/>
+							<xs:element ref="tareWeight" minOccurs="0"/>
+							<xs:element ref="length" minOccurs="0"/>
+							<xs:element name="owner" type="xs:string" minOccurs="0"/>
+							<xs:element ref="damage" minOccurs="0"/>
+						</xs:all>
+						<xs:attribute ref="id"/>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="gate">
+					<xs:complexType>
+						<xs:all>
+							<xs:element ref="type"/>
+							<xs:element ref="lane"/>
+						</xs:all>
+					</xs:complexType>
+				</xs:element>
+			</xs:all>
+			<xs:attribute ref="time" use="optional"/>
+			<xs:attribute name="type" use="required">
+				<xs:annotation>
+					<xs:documentation>“type” attribute may be either
+“SiteArrival”,
+“SiteDeparture”,”PickUp” or
+“PreGate”</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
