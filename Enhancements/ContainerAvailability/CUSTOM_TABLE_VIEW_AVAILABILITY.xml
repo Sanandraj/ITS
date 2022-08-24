@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+    <actions>
+        <!--
+            These are the most common used actions. Please verify needs and edit accordingly.
+        -->
+        <action id="view">view</action>
+        <action id="create">create</action>
+        <action id="update">update</action>
+        <action id="delete">delete</action>
+        <action id="query">query</action>
+    </actions>
+    <table id="CUSTOM_TABLE_VIEW_AVAILABILITY">
+        <title>Container Availability</title>
+        <customization creationType="CUSTOM_NEW"/>
+        <entity>
+            <name>UnitFacilityVisit</name>
+            <primaryKey>ufvGkey</primaryKey>
+        </entity>
+        <tableActions>
+            <tableActionMode action="update" mode="allow"/>
+            <tableActionMode action="create" mode="allow"/>
+            <tableActionMode action="delete" mode="allow"/>
+        </tableActions>
+        <!--<crudCommand variformId=""/>-->
+        <uiManager ref="customBeanCtrAvailabilityUiTableManager"/>
+        <column fieldId="ufvUnit.unitId" display="visible" complexQuery="include"/>
+        <column fieldId="ufvUnit.unitLineOperator.bzuId" display="visible" />
+        <column fieldId="ufvUnit.unitGoods.gdsBlNbr" display="visible" />
+
+    </table>
+
+</variforms>
