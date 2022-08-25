@@ -9,6 +9,10 @@ import com.navis.services.business.rules.EventType
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/**
+ * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
+ */
+
 class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtension {
     @Override
     void execute(GroovyEvent inGroovyEvent) {
