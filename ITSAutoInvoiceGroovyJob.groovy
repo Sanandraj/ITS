@@ -3,17 +3,19 @@ import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.atoms.LogicalEntityEnum
 import com.navis.argo.business.integration.IntegrationServiceMessage
 import com.navis.argo.business.model.ArgoSequenceProvider
-import com.navis.argo.business.model.GeneralReference
+import com.navis.billing.BillingField
+import com.navis.billing.business.atoms.InvoiceStatusEnum
 import com.navis.billing.business.model.Invoice
 import com.navis.billing.business.model.InvoiceItem
+import com.navis.billing.business.model.InvoiceParmValue
 import com.navis.billing.business.model.InvoiceType
+import com.navis.billing.business.model.InvoiceTypeSavedField
 import com.navis.billing.business.model.Tariff
 import com.navis.carina.integrationservice.business.IntegrationService
 import com.navis.external.argo.AbstractGroovyJobCodeExtension
 import com.navis.framework.IntegrationServiceField
 import com.navis.framework.business.atoms.IntegrationServiceDirectionEnum
 import com.navis.framework.business.atoms.IntegrationServiceTypeEnum
-import com.navis.framework.metafields.LetterCase
 import com.navis.framework.metafields.MetafieldId
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.metafields.MetafieldIdList
@@ -29,115 +31,168 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jdom.Document
 import org.jdom.Element
-import org.jdom.Namespace
 import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
+
+import javax.jms.DeliveryMode
+import javax.jms.Queue
+import javax.jms.QueueConnection
+import javax.jms.QueueConnectionFactory
+import javax.jms.QueueSender
+import javax.jms.QueueSession
+import javax.jms.Session
+import javax.jms.TextMessage
+import javax.naming.InitialContext
 
 /**
  * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
 
-class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
+class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension {
     @Override
     void execute(Map<String, Object> inParams) {
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSAutoInvoiceGroovyJob Starts :: ")
         MetafieldId metaFieldId_Inv_JMS = MetafieldIdFactory.valueOf("invoiceFlexString02")
         DomainQuery dqInvoice = QueryUtils.createDomainQuery("Invoice")
-        .addDqPredicate(PredicateFactory.isNull(metaFieldId_Inv_JMS))
-        List<Invoice> outputList =(List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dqInvoice)
-        LOGGER.debug("outputList :: "+outputList)
+                .addDqPredicate(PredicateFactory.isNull(metaFieldId_Inv_JMS))
+                .addDqPredicate(PredicateFactory.eq(BillingField.INVOICE_STATUS, InvoiceStatusEnum.FINAL))
+        List<Invoice> outputList = (List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dqInvoice)
+        LOGGER.debug("outputList :: " + outputList)
 
-        for (Invoice invoice: outputList as List<Invoice>){
-                LOGGER.debug("invoice ::"+invoice)
+        for (Invoice invoice : outputList as List<Invoice>) {
+            LOGGER.debug("invoice ::" + invoice)
             MetafieldId metafieldId = MetafieldIdFactory.valueOf("customFlexFields.invtypeCustomDFFGPDeliverables")
-            if ("Y".equals(invoice?.getInvoiceInvoiceType()?.getFieldValue(metafieldId))){
-                List<IntegrationService> integrationServiceList = getInvoiceDetailsSyncIntegrationServices("ITS_DET_EXTRACTED", false);
+            if ("Y".equals(invoice?.getInvoiceInvoiceType()?.getFieldValue(metafieldId))) {
+                List<IntegrationService> integrationServiceList = getInvoiceDetailsSyncIntegrationServices("ITSDEVOUTBOUND", false)
                 if (outputList != null) {
                     for (IntegrationService integrationService : integrationServiceList) {
-                        LOGGER.debug("integrationService ::" +integrationService)
-                        Element requestMessage;
-                        LOGGER.debug("integrationService ::"+integrationService)
-                        requestMessage = fetchInvoiceDetails(invoice);
-                        LOGGER.debug("requestMessage ::"+requestMessage)
+                        LOGGER.debug("integrationService ::" + integrationService)
+                        Element requestMessage
+                        LOGGER.debug("integrationService ::" + integrationService)
+                        requestMessage = fetchInvoiceDetails(invoice)
+                        LOGGER.debug("requestMessage ::" + requestMessage)
                         if (requestMessage != null) {
                             LOGGER.debug("requestMessage is not null")
-                            logRequestToInterfaceMessage(invoice,LogicalEntityEnum.NA, integrationService, requestMessage);
+                            logRequestToInterfaceMessage(invoice, LogicalEntityEnum.NA, integrationService, requestMessage)
                             LOGGER.debug("Inside for Setting Flex Values")
-                            invoice.setFieldValue(metaFieldId_Inv_JMS,"true")
+                            invoice.setFieldValue(metaFieldId_Inv_JMS, "true")
                             LOGGER.debug("True Value Set")
+
+                            //MessageQueue msgPath = new MessageQueue("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS" as MessageBuffer)
+                            //msg.add(requestMessage as ActiveMQMessage)
+                            /*final String WebLogicURL="FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS"
+                           Hashtable env = new Hashtable()
+                           env.put(Context.PROVIDER_URL, WebLogicURL)*/
+                            /*try{
+                                new GroovyApi().sendXml("ITSDEVOUTBOUND",requestMessage.toString())
+                            }
+                            catch (Exception e){
+                                LOGGER.error("Exception "+ e.getMessage())
+                            }*/
+                            /*InitialContext ctx = new InitialContext()
+                            LOGGER.debug("ctx :: "+ctx)
+                            Queue queue = (Queue) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
+                            LOGGER.debug("queue :: "+queue)
+                            QueueConnectionFactory connFactory = (QueueConnectionFactory) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
+                            LOGGER.debug("connFactory :: "+connFactory)
+                            QueueConnection queueConn = connFactory.createQueueConnection()
+                            QueueSession queueSession = queueConn.createQueueSession(false, Session.DUPS_OK_ACKNOWLEDGE)
+                            QueueSender queueSender = queueSession.createSender(queue)
+                            queueSender.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+                            TextMessage message = queueSession.createTextMessage(requestMessage.toString())
+                            LOGGER.debug("message :: "+message)
+                            queueSender.send(message)
+                            LOGGER.debug("sent messages: " + message.getText())
+                            queueConn.close()*/
+
+                            /*try {
+                                InitialContext ctx = new InitialContext()
+                                Queue queue = (Queue) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
+                                LOGGER.debug("queue :: "+queue)
+                                QueueConnectionFactory connFactory = (QueueConnectionFactory) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
+                                QueueConnection queueConn = connFactory.createQueueConnection()
+                                QueueSession queueSession = queueConn.createQueueSession(false, Session.DUPS_OK_ACKNOWLEDGE)
+                                QueueSender queueSender = queueSession.createSender(queue)
+                                queueSender.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+                                TextMessage message = queueSession.createTextMessage(requestMessage.toString())
+                                queueSender.send(message)
+                                LOGGER.debug("sent messages: " + message.getText())
+                                queueConn.close()
+                            }
+                            catch (Exception e){
+                                LOGGER.error("Error Exception :: "+e.getMessage())
+                            }*/
                         }
                     }
                 }
             }
         }
     }
+
     private
     static IntegrationServiceMessage logRequestToInterfaceMessage(HibernatingEntity hibernatingEntity, LogicalEntityEnum inLogicalEntityEnum,
                                                                   IntegrationService inIntegrationService, Element inMessagePayload) {
 
 
-        IntegrationServiceMessage integrationServiceMessage = new IntegrationServiceMessage();
-        integrationServiceMessage.setIsmEventPrimaryKey((Long) hibernatingEntity.getPrimaryKey());
-        integrationServiceMessage.setIsmEntityClass(inLogicalEntityEnum);
-        integrationServiceMessage.setIsmEntityNaturalKey(hibernatingEntity.getHumanReadableKey());
+        IntegrationServiceMessage integrationServiceMessage = new IntegrationServiceMessage()
+        integrationServiceMessage.setIsmEventPrimaryKey((Long) hibernatingEntity.getPrimaryKey())
+        integrationServiceMessage.setIsmEntityClass(inLogicalEntityEnum)
+        integrationServiceMessage.setIsmEntityNaturalKey(hibernatingEntity.getHumanReadableKey())
         try {
             if (inIntegrationService) {
-                integrationServiceMessage.setIsmIntegrationService(inIntegrationService);
-                integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow());
+                integrationServiceMessage.setIsmIntegrationService(inIntegrationService)
+                integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow())
             }
-            if(inMessagePayload.toString() <(3900 as String)){
-                integrationServiceMessage.setIsmMessagePayload(inMessagePayload.toString());
+            if (inMessagePayload.toString() < (3900 as String)) {
+                integrationServiceMessage.setIsmMessagePayload(inMessagePayload.toString())
+            } else {
+                integrationServiceMessage.setIsmMessagePayloadBig(inMessagePayload.toString())
             }
-            else {
-                integrationServiceMessage.setIsmMessagePayloadBig(inMessagePayload.toString());
-            }
-            integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageSequenceProvider().getNextSequenceId());
-            ScopeCoordinates scopeCoordinates = ContextHelper.getThreadUserContext().getScopeCoordinate();
-            integrationServiceMessage.setIsmScopeGkey((String) scopeCoordinates.getScopeLevelCoord(scopeCoordinates.getDepth()));
-            integrationServiceMessage.setIsmScopeLevel(scopeCoordinates.getDepth());
+            integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageSequenceProvider().getNextSequenceId())
+            ScopeCoordinates scopeCoordinates = ContextHelper.getThreadUserContext().getScopeCoordinate()
+            integrationServiceMessage.setIsmScopeGkey((String) scopeCoordinates.getScopeLevelCoord(scopeCoordinates.getDepth()))
+            integrationServiceMessage.setIsmScopeLevel(scopeCoordinates.getDepth())
             integrationServiceMessage.setIsmUserString3("false")
             HibernateApi.getInstance().save(integrationServiceMessage)
             HibernateApi.getInstance().flush()
 
         } catch (Exception e) {
-            LOGGER.debug("Exception while saving ISM"+e)
+            LOGGER.debug("Exception while saving ISM" + e)
         }
-        return integrationServiceMessage;
+        return integrationServiceMessage
+    }
+    static class IntegrationServMessageSequenceProvider extends ArgoSequenceProvider {
+        Long getNextSequenceId() {
+            return super.getNextSeqValue(serviceMsgSequence, ContextHelper.getThreadFacilityKey() != null ? (Long) ContextHelper.getThreadFacilityKey() : 1l)
+        }
+        private String serviceMsgSequence = "INT_MSG_SEQ"
     }
 
-    static class IntegrationServMessageSequenceProvider extends ArgoSequenceProvider {
-         Long getNextSequenceId() {
-            return super.getNextSeqValue(serviceMsgSequence, ContextHelper.getThreadFacilityKey() != null ? (Long) ContextHelper.getThreadFacilityKey() : 1l);
-        }
-        private String serviceMsgSequence = "INT_MSG_SEQ";
-    }
-    private static fetchInvoiceDetails(Invoice invoice){
-        Namespace sNS = Namespace.getNamespace("argo", "http://www.navis.com/sn4")
-        final Element inOutEResponse = new Element("Invoice",sNS)
-        Element responseRoot = new Element("InvoiceDetails", sNS)
-        inOutEResponse.addContent(responseRoot)
-        Element invoiceDetails = new Element("Invoices", sNS)
-        responseRoot.addContent(invoiceDetails)
-            responseRoot.setAttribute(STATUS, OK_STATUS_NO)
-            responseRoot.setAttribute(STATUS_ID, OK_STATUS)
+    private static fetchInvoiceDetails(Invoice invoice) {
+        final Element responseRoot = new Element("Invoice")
+        responseRoot.setAttribute("Update_Time", ArgoUtils.timeNow().toString())
+        // type is always "TB" hence hard-coded
+        responseRoot.setAttribute("Type", "TB")
+
+
         MetafieldId metafieldId_Inv_Batch_Id = MetafieldIdFactory.valueOf("invoiceFlexString03")
-        LOGGER.debug("metafieldId_Inv_Batch_Id ::"+metafieldId_Inv_Batch_Id)
+        LOGGER.debug("metafieldId_Inv_Batch_Id ::" + metafieldId_Inv_Batch_Id)
         DomainQuery dq = QueryUtils.createDomainQuery("Invoice")
                 .addDqPredicate(PredicateFactory.isNotNull(metafieldId_Inv_Batch_Id))
-        .addDqOrdering(Ordering.desc(metafieldId_Inv_Batch_Id))
-        List<Invoice> jobBatchList =(List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
-        LOGGER.debug("jobBatchList :: "+jobBatchList)
-        Invoice batchMax= jobBatchList.get(0)
-        LOGGER.debug("batchMax :: "+batchMax)
+                .addDqOrdering(Ordering.desc(metafieldId_Inv_Batch_Id))
+        List<Invoice> jobBatchList = (List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
+        LOGGER.debug("jobBatchList :: " + jobBatchList)
+        Invoice batchMax = jobBatchList.get(0)
+        LOGGER.debug("batchMax :: " + batchMax)
         String flexStringValue = batchMax.getInvoiceFlexString03()
-        LOGGER.debug("flexStringValue :: "+flexStringValue)
-        Long parseLong = Long.parseLong(flexStringValue)+1
-        invoice.setFieldValue(metafieldId_Inv_Batch_Id,parseLong.toString())
-        LOGGER.debug("parseLong ::"+parseLong)
+        LOGGER.debug("flexStringValue :: " + flexStringValue)
+        Long parseLong = Long.parseLong(flexStringValue) + 1
+        invoice.setFieldValue(metafieldId_Inv_Batch_Id, parseLong.toString())
+        LOGGER.debug("parseLong ::" + parseLong)
 
         Element company = new Element("Company")
-        invoiceDetails.addContent(company)
+        responseRoot.addContent(company)
         Element companyNbr = new Element("companyNbr")
         company.addContent(companyNbr)
         // the company Nbr is standard hence hardcoded
@@ -149,109 +204,182 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
 
         Element batchDate = new Element("batchDate")
         company.addContent(batchDate)
-        // the batch date fetch the present groovy job run time
+        /** the batch date fetch the present groovy job run time */
         batchDate.addContent(ArgoUtils.timeNow().toString())
 
-                String invDraftNbr= invoice?.getInvoiceDraftNbr()?.toString()
-                String invFinalDate = invoice?.getInvoiceFinalizedDate()?.toString()
-                String invTotalCharges = invoice.getInvoiceTotalCharges().toString()
-                String invDueDate = invoice?.getInvoiceDueDate()?.toString()
-                String invEffectiveDate = invoice?.getInvoiceEffectiveDate()?.toString()
-                String invIs_Merged = invoice?.getIsInvoiceMerged()?.toString()
-                String inv_GKey = invoice?.getInvoiceGkey()?.toString()
-                String inv_Currency = invoice?.getInvoiceCurrency()?.getCurrencyId()?.toString()
-                String inv_Notes = invoice?.getInvoiceNotes()?.toString()
-                String inv_Type = invoice?.getInvoiceInvoiceType()?.getInvtypeId()?.toString()
-                String inv_Total_taxes = invoice?.getInvoiceTotalTaxes()?.toString()
-                String inv_Total_Owed = invoice?.getInvoiceTotalOwed()?.toString()
-                String inv_Total_Discounts = invoice?.getInvoiceTotalDiscounts()?.toString()
-                String inv_Total_Credits  = invoice?.getInvoiceTotalCredits()?.toString()
-                String inv_Status = invoice?.getInvoiceStatus()?.toString()
-                String inv_Final_Number = invoice?.getInvoiceFinalNbr()?.toString()
-                String inv_ComplexId = invoice?.getLogEntityComplex()?.getCpxId()?.toString()
-                String inv_Paid_Thru_Date = invoice?.getInvoicePaidThruDay()?.toString()
-                String inv_Cust_Id = invoice?.getInvoicePayeeCustomer()?.getCustDebitCode()?.toString()
-                String inv_Cust_Role = invoice?.getInvoicePayeeCustomer()?.getCustName()?.toString()
-                String inv_Created = invoice?.getInvoiceCreated()?.toString()
-                String inv_Contract_Name = invoice?.getInvoiceContract()?.getContractId()?.toString()
+        String invDraftNbr = invoice?.getInvoiceDraftNbr()?.toString()
+        String invFinalDate = invoice?.getInvoiceFinalizedDate()?.toString()
+        String invTotalCharges = invoice.getInvoiceTotalCharges().toString()
+        String invDueDate = invoice?.getInvoiceDueDate()?.toString()
+        String invEffectiveDate = invoice?.getInvoiceEffectiveDate()?.toString()
+        String invIs_Merged = invoice?.getIsInvoiceMerged()?.toString()
+        String inv_GKey = invoice?.getInvoiceGkey()?.toString()
+        String inv_Currency = invoice?.getInvoiceCurrency()?.getCurrencyId()?.toString()
+        String inv_Notes = invoice?.getInvoiceNotes()?.toString()
+        String inv_Type = invoice?.getInvoiceInvoiceType()?.getInvtypeId()?.toString()
+        String inv_Total_taxes = invoice?.getInvoiceTotalTaxes()?.toString()
+        String inv_Total_Owed = invoice?.getInvoiceTotalOwed()?.toString()
+        String inv_Total_Discounts = invoice?.getInvoiceTotalDiscounts()?.toString()
+        String inv_Total_Credits = invoice?.getInvoiceTotalCredits()?.toString()
+        String inv_Status = invoice?.getInvoiceStatus()?.getKey()?.toString()
+        String inv_Final_Number = invoice?.getInvoiceFinalNbr()?.toString()
+        String inv_ComplexId = invoice?.getLogEntityComplex()?.getCpxId()?.toString()
+        String inv_Paid_Thru_Date = invoice?.getInvoicePaidThruDay()?.toString()
+        String inv_Cust_Id = invoice?.getInvoicePayeeCustomer()?.getCustDebitCode()?.toString()
+        String inv_Cust_Role = invoice?.getInvoicePayeeCustomer()?.getCustName()?.toString()
+        String inv_Created = invoice?.getInvoiceCreated()?.toString()
+        String inv_KeyWord1 = invoice?.getInvoiceKeyWord1()?.toString()
+        String inv_KeyWord2 = invoice?.getInvoiceKeyWord2()?.toString()
+        String inv_Contract_Name = invoice?.getInvoiceContract()?.getContractId()?.toString()
 
+        InvoiceType invType = InvoiceType.findInvoiceType(invoice.getInvoiceInvoiceType().getInvtypeId())
+        Set invSavedFieldsSet = invType.getInvtypeSavedFields()
+        LOGGER.debug("invSavedFieldsSet :: " + invSavedFieldsSet)
+        for (InvoiceTypeSavedField savedField : (invSavedFieldsSet as List<InvoiceTypeSavedField>)) {
+            LOGGER.debug("savedFieldDetail :: " + savedField.getFieldValue(MetafieldIdFactory.valueOf("invtypfldName")))
+        }
 
-                Element invoices = new Element("Invoice")
-                invoiceDetails.addContent(invoices)
-                invoices?.setAttribute("INVOICE_DRAFT_NBR",invDraftNbr,sNS)
-                invoices?.setAttribute("INVOICE_TYPE",inv_Type,sNS)
-                if (inv_Contract_Name!=null){
-                    invoices?.setAttribute("INVOICE_CONTRACT",inv_Contract_Name,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_CONTRACT","")
-                }
-                invoices?.setAttribute("INVOICE_STATUS",inv_Status,sNS)
-                invoices?.setAttribute("INVOICE_COMPLEX_ID",inv_ComplexId,sNS)
-                if (invFinalDate!=null && inv_Final_Number != null){
-                    invoices?.setAttribute("INVOICE_FINALIZED_DATE",invFinalDate,sNS)
-                    invoices?.setAttribute("INVOICE_FINAL_NUMBER",inv_Final_Number,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_FINALIZED_DATE","")
-                    invoices?.setAttribute("INVOICE_FINAL_NUMBER","")
-                }
-                invoices?.setAttribute("INVOICE_TOTAL_CHARGES",invTotalCharges,sNS)
-                invoices?.setAttribute("INVOICE_TOTAL_TAXES",inv_Total_taxes,sNS)
-                invoices?.setAttribute("INVOICE_TOTAL_DISCOUNTS",inv_Total_Discounts,sNS)
-                invoices?.setAttribute("INVOICE_TOTAL_CREDITS",inv_Total_Credits,sNS)
-                invoices?.setAttribute("INVOICE_TOTAL_OWED",inv_Total_Owed,sNS)
-                if (inv_Paid_Thru_Date!=null){
-                    invoices?.setAttribute("INVOICE_PAID_THRU_DATE",inv_Paid_Thru_Date,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_PAID_THRU_DATE","")
-                }
-                if (invDueDate!=null){
-                    invoices?.setAttribute("INVOICE_DUE_DATE",invDueDate,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_DUE_DATE","")
-                }
-                if (invEffectiveDate!=null){
-                    invoices?.setAttribute("INVOICE_EFFECTIVE_DATE",invEffectiveDate,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_EFFECTIVE_DATE","")
-                }
-                invoices?.setAttribute("INVOICE_IS_MERGED",invIs_Merged,sNS)
-                invoices?.setAttribute("INVOICE_GKEY",inv_GKey,sNS)
-                invoices?.setAttribute("INVOICE_CURRENCY",inv_Currency,sNS)
-                if (inv_Cust_Id!=null){
-                    invoices?.setAttribute("INVOICE_CUST_ID",inv_Cust_Id,sNS)
-                    if (inv_Cust_Role!=null){
-                        invoices?.setAttribute("INVOICE_CUST_NAME",inv_Cust_Role,sNS)
-                    }
-                    else {
-                        invoices?.setAttribute("INVOICE_CUST_ROLE","")
-                    }
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_CUST_ID","")
-                }
-                invoices?.setAttribute("INVOICE_CREATED",inv_Created,sNS)
-                if (inv_Notes !=null){
-                    invoices?.setAttribute("INVOICE_NOTES",inv_Notes,sNS)
-                }
-                else {
-                    invoices?.setAttribute("INVOICE_NOTES","")
-                }
-        List<InvoiceItem> invoiceItemList= InvoiceItem.getInvoiceItemByInvoice(invoice)
-        LOGGER.debug("invoiceItemList :: "+invoiceItemList)
+        /** getting invoice param values from the customized field details(invoice generation) - reportable entity */
+        List<InvoiceParmValue> invParmValue = InvoiceParmValue.getInvoiceParmValueByInvoice(invoice)
+        LOGGER.debug("invParmValue :: " + invParmValue)
+        List<String> parmList = new ArrayList<String>()
+        if (invParmValue != null) {
+            for (InvoiceParmValue invoiceParmValue : invParmValue) {
+                String parmListValue = invoiceParmValue.getInvparmValue()
+                parmList.add(parmListValue)
+            }
+        }
+        Element invoices = new Element("invoice")
+        responseRoot.addContent(invoices)
+        Element invoiceDraftNumber = new Element("invoiceDraftNumber")
+        invoices.addContent(invoiceDraftNumber)
+        Element invoiceType = new Element("invoiceType")
+        invoices.addContent(invoiceType)
+        Element invoiceContractName = new Element("invoiceContractName")
+        if (inv_Contract_Name != null) {
+            invoices.addContent(invoiceContractName)
+        }
+        Element invoiceStatus = new Element("invoiceStatus")
+        invoices.addContent(invoiceStatus)
+        Element invoiceComplexId = new Element("invoiceComplexId")
+        invoices.addContent(invoiceComplexId)
+        Element invoiceFinalNumber = new Element("invoiceFinalNumber")
+        Element invoiceDate=new Element("invoiceFinalDate")
+        if (invFinalDate != null && inv_Final_Number != null){
+            invoices.addContent(invoiceFinalNumber)
+            invoices.addContent(invoiceDate)
+        }
+        Element invoiceVesselCode = new Element("vesselCode")
+        if (parmList != null && parmList.size() > 0) {
+            invoices.addContent(invoiceVesselCode)
+        }
+        Element invoiceTotalCharge = new Element("invoiceTotalCharge")
+        invoices.addContent(invoiceTotalCharge)
+        Element invoiceTotalTaxes = new Element("invoiceTotalTaxes")
+        invoices.addContent(invoiceTotalTaxes)
+        Element invoiceTotalDiscounts = new Element("invoiceTotalDiscounts")
+        invoices.addContent(invoiceTotalDiscounts)
+        Element invoiceTotalCredits = new Element("invoiceTotalCredits")
+        invoices.addContent(invoiceTotalCredits)
+        Element invoiceTotalOwed = new Element("invoiceTotalOwed")
+        invoices.addContent(invoiceTotalOwed)
+        Element invoicePaidThroughDate = new Element("invoicePaidThroughDate")
+        if (inv_Paid_Thru_Date != null){
+            invoices.addContent(invoicePaidThroughDate)
+        }
+        Element invoiceDueDate = new Element("invoiceDueDate")
+        if (invDueDate!=null){
+            invoices.addContent(invoiceDueDate)
+        }
+        Element invoiceEffectiveDate = new Element("invoiceEffectiveDate")
+        if (invEffectiveDate!=null){
+            invoices.addContent(invoiceEffectiveDate)
+        }
+        Element invoiceIbId = new Element("invoiceIbId")
+        Element invoiceObId = new Element("invoiceObId")
+        if (inv_KeyWord1 != null && inv_KeyWord2 != null) {
+            invoices.addContent(invoiceIbId)
+            invoices.addContent(invoiceObId)
+        }
+        Element invoiceIsMerged = new Element("invoiceIsMerged")
+        invoices.addContent(invoiceIsMerged)
+        Element invoiceGKey = new Element("invoiceGKey")
+        invoices.addContent(invoiceGKey)
+        Element invoiceCurrency = new Element("invoiceCurrency")
+        invoices.addContent(invoiceCurrency)
+        Element invoiceCreated = new Element("invoiceCreated")
+        invoices.addContent(invoiceCreated)
+        Element invoiceNotes = new Element("invoiceNotes")
+        if (inv_Notes != null) {
+            invoices.addContent(invoiceNotes)
+        }
+        Element invoiceCustomerNbr = new Element("invoiceCustomerNbr")
+        Element invoiceCustomerName = new Element("invoiceCustomerName")
+        if (inv_Cust_Id != null) {
+            invoices.addContent(invoiceCustomerNbr)
+            if (inv_Cust_Role != null) {
+                invoices.addContent(invoiceCustomerName)
+            }
+        }
+
+        invoiceDraftNumber?.addContent(invDraftNbr)
+        invoiceType?.addContent(inv_Type)
+
+        if (inv_Contract_Name != null) {
+            invoiceContractName?.addContent(inv_Contract_Name)
+        }
+        invoiceStatus?.addContent(inv_Status)
+        invoiceComplexId?.addContent(inv_ComplexId)
+
+        if (invFinalDate != null && inv_Final_Number != null) {
+            invoiceDate?.addContent(invFinalDate)
+            invoiceFinalNumber?.addContent(inv_Final_Number)
+        }
+        if (parmList != null && parmList.size() > 0) {
+            invoiceVesselCode?.addContent(parmList.get(1).replaceAll("[^A-Z]", ""))
+        }
+        invoiceTotalCharge?.addContent(invTotalCharges)
+        invoiceTotalTaxes?.addContent(inv_Total_taxes)
+        invoiceTotalDiscounts?.addContent(inv_Total_Discounts)
+        invoiceTotalCredits?.addContent(inv_Total_Credits)
+        invoiceTotalOwed?.addContent(inv_Total_Owed)
+        if (inv_Paid_Thru_Date != null) {
+            invoicePaidThroughDate?.addContent(inv_Paid_Thru_Date)
+        }
+        if (invDueDate != null) {
+            invoiceDueDate?.addContent(invDueDate)
+        }
+        if (invEffectiveDate != null) {
+            invoiceEffectiveDate?.addContent(invEffectiveDate)
+        }
+        if (inv_KeyWord1 != null && inv_KeyWord2 != null) {
+            invoiceIbId?.addContent(inv_KeyWord1)
+            invoiceObId?.addContent(inv_KeyWord2)
+        }
+        invoiceIsMerged?.addContent(invIs_Merged)
+        invoiceGKey?.addContent(inv_GKey)
+        invoiceCurrency?.addContent(inv_Currency)
+        if (inv_Cust_Id != null) {
+            invoiceCustomerNbr?.addContent(inv_Cust_Id)
+            if (inv_Cust_Role != null) {
+                invoiceCustomerName?.addContent(inv_Cust_Role)
+            }
+        }
+        invoiceCreated?.addContent(inv_Created)
+        if (inv_Notes != null) {
+            invoiceNotes?.addContent(inv_Notes)
+        }
+        List<InvoiceItem> invoiceItemList = InvoiceItem.getInvoiceItemByInvoice(invoice)
+        LOGGER.debug("invoiceItemList :: " + invoiceItemList)
         if (invoiceItemList != null) {
-            for (InvoiceItem invItem : invoiceItemList){
+            for (InvoiceItem invItem : invoiceItemList) {
                 Element distribution = new Element("distribution")
-                invoices.addContent(distribution)
+                responseRoot.addContent(distribution)
                 Element distributionCategoryNbr = new Element("distributionCategoryNbr")
                 distribution.addContent(distributionCategoryNbr)
                 Tariff tariff = Tariff.findTariff(invItem?.getItemTariff())
-                LOGGER.debug("tariff :: "+tariff)
-                distributionCategoryNbr.addContent( tariff?.getTariffFlexString01()?.toString())
+                LOGGER.debug("tariff :: " + tariff)
+                distributionCategoryNbr.addContent(tariff?.getTariffFlexString01()?.toString())
                 Element majorAccNbr = new Element("majorAccNbr")
                 distribution.addContent(majorAccNbr)
                 majorAccNbr.addContent(invItem?.getItemGlCode())
@@ -265,9 +393,9 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
             }
         }
         XMLOutputter xmlOutputter = new XMLOutputter(Format.getPrettyFormat())
-        String finalResponse = xmlOutputter.outputString(new Document(inOutEResponse))
-        LOGGER.debug("finalResponse ::"+finalResponse)
-        return inOutEResponse
+        String finalResponse = xmlOutputter.outputString(new Document(responseRoot))
+        LOGGER.debug("finalResponse ::" + finalResponse)
+        return responseRoot
     }
 
     private static List<IntegrationService> getInvoiceDetailsSyncIntegrationServices(String integrationServiceName, boolean isGroup) {
@@ -286,8 +414,8 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension{
                 .addDqPredicate(namePredicate)
                 .addDqPredicate(PredicateFactory.eq(IntegrationServiceField.INTSERV_TYPE, IntegrationServiceTypeEnum.WEB_SERVICE))
                 .addDqPredicate(PredicateFactory.eq(IntegrationServiceField.INTSERV_ACTIVE, Boolean.TRUE))
-                .addDqPredicate(PredicateFactory.eq(IntegrationServiceField.INTSERV_DIRECTION, IntegrationServiceDirectionEnum.OUTBOUND));
-        dq.setScopingEnabled(false);
+                .addDqPredicate(PredicateFactory.eq(IntegrationServiceField.INTSERV_DIRECTION, IntegrationServiceDirectionEnum.OUTBOUND))
+        dq.setScopingEnabled(false)
 
         return HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
     }
