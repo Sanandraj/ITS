@@ -1,4 +1,8 @@
+import com.navis.argo.ArgoExtractEntity
+import com.navis.argo.ArgoExtractField
+import com.navis.argo.business.atoms.EventEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
+import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.model.CarrierVisit
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.framework.metafields.MetafieldIdFactory
@@ -12,6 +16,8 @@ import com.navis.inventory.InventoryField
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
+import com.navis.inventory.business.units.Unit
+import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.services.business.event.GroovyEvent
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Logger
@@ -36,10 +42,40 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
             VesselVisitDetails vesselVisitDetails = (VesselVisitDetails) inGroovyEvent.getEntity();
             if (vesselVisitDetails != null) {
                 CarrierVisit cv = vesselVisitDetails.getCvdCv()
+                logMsg("cv" + cv.getCvId());
+
                 if (cv != null && isVslComplete(cv.getCvId())) {
                     int moveCount = calculateMoveCount(cv.getCvId())
+                    logMsg("moveCount-- " + moveCount);
+
                     if(moveCount){
-                        vesselVisitDetails.setVvFlexString01(moveCount.toString())
+
+                        List<Serializable> ufvList = fetchUnits(cv.getCvId());
+                        UnitFacilityVisit ufv = null;
+                        Unit unit = null;
+                        if (ufvList != null && !ufvList.isEmpty()) {
+                            logMsg("ufvSize" + ufvList.size());
+                            for (Serializable gKey : ufvList) {
+                                ufv = UnitFacilityVisit.hydrate(gKey);
+                                unit = ufv != null ? ufv.getUfvUnit() : null;
+                                if (unit != null) {
+                                    DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT).
+                                            addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UFV_GKEY, ufv.getUfvGkey()))
+                                            .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EVENT_TYPE, EventEnum.UNIT_LOAD.getKey(),EventEnum.UNIT_DISCH.getKey()))
+                                    try{
+                                        ChargeableUnitEvent cue = (ChargeableUnitEvent) HibernateApi.getInstance().getUniqueEntityByDomainQuery(domainQuery)
+                                        cue.setBexuFlexString02(moveCount.toString())
+                                    } catch (Exception e){
+                                        logMsg("Error occured while updating ${unit.getUnitId()} - "+e)
+                                    }
+                                }
+                            }
+                        }
+
+                        vesselVisitDetails.setVvFlexString02(moveCount.toString())
+                        logMsg("vesselVisitDetails Flex 02 -- " + vesselVisitDetails.getVvFlexString02());
+
+                        HibernateApi.getInstance().save(vesselVisitDetails)
                     }
 
                 }
@@ -52,11 +88,11 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
     int calculateMoveCount(String cvId){
 
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT_FACILITY_VISIT)
-                .addDqPredicate(PredicateFactory.eq(InventoryField.UFV_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
                 .addDqPredicate(PredicateFactory.ne(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.THROUGH))
 
         Junction importYard = PredicateFactory.conjunction()
                 .add(PredicateFactory.eq(MetafieldIdFactory.valueOf("ufvActualIbCv.cvId"), cvId))
+                .add(PredicateFactory.eq(InventoryField.UFV_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
                 .add(PredicateFactory.in(InventoryField.UFV_TRANSIT_STATE, [UfvTransitStateEnum.S40_YARD]))
 
         Junction exportLoaded = PredicateFactory.conjunction()
@@ -71,7 +107,7 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         dq.addDqPredicate(disjunction)
 
         int count = HibernateApi.getInstance().findCountByDomainQuery(dq)
-        logMsg("Pending count- " + count)
+        logMsg("Move count- " + count)
         return count
     }
 
@@ -98,7 +134,29 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         int count = HibernateApi.getInstance().findCountByDomainQuery(dq)
         logMsg("Pending count- " + count)
         return count == 0
+    }
 
+    List<Serializable> fetchUnits(String cvId){
+        DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT_FACILITY_VISIT)
+                .addDqPredicate(PredicateFactory.ne(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.THROUGH))
+
+        Junction importYard = PredicateFactory.conjunction()
+                .add(PredicateFactory.eq(MetafieldIdFactory.valueOf("ufvActualIbCv.cvId"), cvId))
+                .add(PredicateFactory.eq(InventoryField.UFV_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
+                .add(PredicateFactory.in(InventoryField.UFV_TRANSIT_STATE, [UfvTransitStateEnum.S40_YARD]))
+
+        Junction exportLoaded = PredicateFactory.conjunction()
+                .add(PredicateFactory.eq(MetafieldIdFactory.valueOf("ufvActualObCv.cvId"), cvId))
+                .add(PredicateFactory.in(InventoryField.UFV_TRANSIT_STATE, [UfvTransitStateEnum.S60_LOADED, UfvTransitStateEnum.S70_DEPARTED]));
+
+
+        Junction disjunction = PredicateFactory.disjunction()
+                .add(importYard)
+                .add(exportLoaded);
+
+        dq.addDqPredicate(disjunction)
+
+        return (List<Serializable>) HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
     }
 
     private void logMsg(Object msg) {
