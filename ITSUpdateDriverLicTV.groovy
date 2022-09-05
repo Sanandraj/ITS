@@ -11,6 +11,7 @@ import com.navis.framework.util.message.MessageLevel
 import com.navis.road.RoadPropertyKeys
 import com.navis.road.business.atoms.TruckVisitStatusEnum
 import com.navis.road.business.model.TruckDriver
+import com.navis.road.business.model.TruckTransaction
 import com.navis.road.business.model.TruckVisitDetails
 import com.navis.road.business.workflow.TransactionAndVisitHolder
 import org.apache.commons.lang.StringUtils
@@ -28,6 +29,7 @@ class ITSUpdateDriverLicTV extends AbstractGateTaskInterceptor{
         LOGGER.setLevel(Level.DEBUG)
         TruckVisitDetails tvWS = inWfCtx.getTv()
         if(tvWS != null){
+            tvWS.setTvdtlsFlexString01(null)
             String driverLicense = tvWS.getTvdtlsFlexString01()
             Boolean hasTruckVisit = false
             if(StringUtils.isNotBlank(driverLicense)){
@@ -53,6 +55,7 @@ class ITSUpdateDriverLicTV extends AbstractGateTaskInterceptor{
                         }
                     }
                 }
+                tvWS.setTvdtlsFlexString01(null)
             }
         }
         super.execute(inWfCtx)
