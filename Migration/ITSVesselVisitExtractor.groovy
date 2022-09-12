@@ -106,7 +106,6 @@ class ITSVesselVisitExtractor extends AbstractExtensionCallback {
         String userName = "sparcsn4"
         String password = "sparcsn4"
 
-        String driver = "net.sourceforge.jtds.jdbc.Driver";
         return Sql.newInstance(dbName, userName, password);
     }
 

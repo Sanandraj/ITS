@@ -1,5 +1,4 @@
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.GroovyApi
 import com.navis.external.argo.AbstractGroovyJobCodeExtension
 import com.navis.external.framework.util.ExtensionUtils
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
@@ -18,11 +17,13 @@ class ITSExtractMastersGroovyJob extends AbstractGroovyJobCodeExtension {
             PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
             pt.invoke(new CarinaPersistenceCallback() {
                 protected void doInTransaction() {
-                  /*  def extractor = new GroovyApi().getGroovyClassInstance("ITSVesselVisitExtractor")
-                    extractor.execute()*/
 
-                    def extension = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSVesselVisitExtractor");
-                    extension.execute()
+                    listOfEntities.each {
+                        entity ->
+                            def extension = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITS${entity}Extractor");
+                            extension.execute()
+                    }
+
                 }
             })
         } catch (Exception e) {
@@ -32,4 +33,9 @@ class ITSExtractMastersGroovyJob extends AbstractGroovyJobCodeExtension {
     }
 
     private static final Logger log = Logger.getLogger(this.class)
+    def listOfEntities = ['TruckingCompanies']
+    /*def listOfEntities = ['TruckingCompanies', 'Vessel', 'VesselVisit',
+                          'RailcarTypes', 'RailCars', 'ShipClass', 'TrainVisit']*/
+
+    //['ChassisUse','ContainerUse']
 }
