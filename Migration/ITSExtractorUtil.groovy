@@ -23,7 +23,7 @@ class ITSExtractorUtil extends AbstractExtensionCallback{
     }
 
     IntegrationServiceMessage logRequestToInterfaceMessage(LogicalEntityEnum inLogicalEntityEnum,
-                                                                  IntegrationService inIntegrationService, String inMessagePayload, String primaryId) {
+                                                           IntegrationService inIntegrationService, String inMessagePayload, String primaryId) {
 
         logger.debug("hibernatingEntity"+inMessagePayload.length())
         IntegrationServiceMessage integrationServiceMessage = new IntegrationServiceMessage();
@@ -36,12 +36,15 @@ class ITSExtractorUtil extends AbstractExtensionCallback{
                 integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow());
                 //integrationServiceMessage.setIsmLastSendTime(ArgoUtils.timeNow());
             }
-            if(inMessagePayload.length() <3900){
-                integrationServiceMessage.setIsmMessagePayload(inMessagePayload);
-            }
-            else {
-                integrationServiceMessage.setIsmMessagePayloadBig(inMessagePayload);
-            }
+           // logger.warn("Payload "+inMessagePayload.length())
+            integrationServiceMessage.setIsmMessagePayload(inMessagePayload);
+
+            /* if(inMessagePayload.length() <7900){
+                 integrationServiceMessage.setIsmMessagePayload(inMessagePayload);
+             }
+             else {
+                 integrationServiceMessage.setIsmMessagePayloadBig(inMessagePayload);
+             }*/
             integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageSequenceProvider().getNextSequenceId());
             ScopeCoordinates scopeCoordinates = ContextHelper.getThreadUserContext().getScopeCoordinate();
             integrationServiceMessage.setIsmScopeGkey((String) scopeCoordinates.getScopeLevelCoord(scopeCoordinates.getDepth()));
@@ -57,7 +60,7 @@ class ITSExtractorUtil extends AbstractExtensionCallback{
         return integrationServiceMessage;
     }
 
-     class IntegrationServMessageSequenceProvider extends ArgoSequenceProvider {
+    class IntegrationServMessageSequenceProvider extends ArgoSequenceProvider {
         public Long getNextSequenceId() {
             return super.getNextSeqValue(serviceMsgSequence, ContextHelper.getThreadFacilityKey() != null ? (Long) ContextHelper.getThreadFacilityKey() : 1l);
         }

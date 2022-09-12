@@ -33,9 +33,9 @@ class ITSExtractMastersGroovyJob extends AbstractGroovyJobCodeExtension {
     }
 
     private static final Logger log = Logger.getLogger(this.class)
-    def listOfEntities = ['TruckingCompanies']
-    /*def listOfEntities = ['TruckingCompanies', 'Vessel', 'VesselVisit',
-                          'RailcarTypes', 'RailCars', 'ShipClass', 'TrainVisit']*/
+    def listOfEntities = ['RailCars','TrainVisit']
+    /*def listOfEntities = ['ShipClass', 'TruckingCompanies', 'Vessel', 'VesselVisit',
+                          'RailcarTypes', 'RailCars', 'TrainVisit']*/
 
     //['ChassisUse','ContainerUse']
 }

@@ -13,10 +13,11 @@ import wslite.json.JSONArray
 import wslite.json.JSONObject
 
 class ITSVesselVisitExtractor extends AbstractExtensionCallback {
+    def util = getLibrary("ITSExtractorUtil")
 
     @Override
     void execute() {
-        Sql sourceConn = establishDbConnection()
+        Sql sourceConn = util.establishDbConnection()
         sourceConn.eachRow(sql) {
             row ->
                 def lineList = []
