@@ -1,0 +1,1757 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright (c) 2013 Navis LLC. All Rights Reserved.
+  ~ - a 2nd line is required by Checkstyle -
+  -->
+
+<stateModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="../../../etc/schemas/stateModel.xsd">
+
+    <filters filterPackage="com.navis.ecn4.xmlrdt.filters">
+        <group name="Inbound filter">
+            <!--
+             Inbound filters will be applied at runtime in the order defined.
+            -->
+            <filter type="IN" handler="DefaultPdsSerialMessageFilter"/>
+            <filter type="IN" handler="RefIDMessageInboundFilter"/>
+            <filter type="IN" handler="GeodeticMessageFilter"/>
+        </group>
+        <group name="Outbound filter">
+            <!-- Outbound filters go here -->
+            <filter type="OUT" handler="GeodeticOutboundMessageFilter"/>
+        </group>
+    </filters>
+
+    <transitions preEventPackage="com.navis.ecn4.xmlrdt.states.pre"
+                 eventPackage="com.navis.ecn4.xmlrdt.states.transitions"
+                 postEventPackage="com.navis.ecn4.xmlrdt.states.post"
+                 conditionPackage="com.navis.ecn4.xmlrdt.states.conditions"
+                 handlerPackage="com.navis.ecn4.xmlrdt.states.handlers" ecEventPackage="com.navis.ecn4.xmlrdt.states"
+                 stateExitPackage="com.navis.ecn4.xmlrdt.states.exit">
+        <group name="initialization">
+            <transition from="INITIAL" to="PROG_LOGIN" on="initialize"/>
+        </group>
+
+        <group name="self initialization program">
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="ANY" event="UpdateTransferPointStateTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="clearMessage" event="ClearMessageTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="promoteJob" event="PromoteJobTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="cancel" event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="ecn4:abandonJob" event="EmptyStateTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="lift" event="NotifyDriverOfUnexpectedLiftOrDropTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="drop" event="NotifyDriverOfUnexpectedLiftOrDropTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="pull" event="NotifyDriverOfUnexpectedPullOrParkTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="park" event="NotifyDriverOfUnexpectedPullOrParkTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="updateUnitWeight" event="UpdateUnitWeightTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="updatePosition" when="IsStraddleCondition IsCheRemainUnmovedCondition"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="updatePosition" event="PositionUpdateTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="ecn4:completeJob" event="CompleteJobTransitionEvent"/>
+            <transition from="ANY" to="SELF" on="refresh" event="EmptyStateTransitionEvent"/>
+        </group>
+
+        <group name="login program">
+            <transition from="PROG_LOGIN" to="FORM_LOGIN"/>
+            <transition from="FORM_LOGIN" to="PROG_TRUCK" on="login" event="LoginStateTransitionEvent"
+                        when="IsTruckCondition"
+                        ecEventGeneratorArg="LGON"/>
+            <transition from="FORM_LOGIN" to="PROG_SURROGATE" on="login" event="LoginStateTransitionEvent"
+                        when="IsClerkCondition"
+                        ecEventGeneratorArg="LGON"/>
+            <transition from="FORM_LOGIN" to="PROG_OPERATOR" on="login" event="LoginStateTransitionEvent"
+                        ecEventGeneratorArg="LGON"/>
+            <transition from="FORM_LOGIN" to="FORM_LOGIN" on="drop" event="TruckFullyUnLadenTransitionEvent"
+                        when="IsTruckCondition AllITVContainersAreNotCarryUnderWayCondition"/>
+            <transition from="FORM_LOGIN" to="FORM_LOGIN" on="drop"
+                        event="TruckProcessContainerDropTransitionEvent" when="IsTruckCondition"/>
+            <transition from="FORM_LOGIN" to="FORM_LOGIN" on="logoff"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+            <transition from="FORM_LOGIN" to="FORM_LOGIN" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" />
+        </group>
+
+        <group name="surrogate program">
+            <transition from="PROG_SURROGATE" to="FORM_SURROGATE_CHE_SELECTION"/>
+            <transition from="FORM_SURROGATE_CHE_SELECTION" to="PROG_LOGIN" on="logoff" ecEventGeneratorArg="LGOF"
+                        event="LogoffStateTransitionEvent"/>
+            <transition from="FORM_SURROGATE_CHE_SELECTION" to="PROG_OPERATOR" on="login"
+                        event="SurrogateSelectCheTransitionEvent"/>
+        </group>
+
+        <group name="operator program">
+            <transition from="PROG_OPERATOR" to="FORM_UNAVAILABLE"/>
+            <transition from="FORM_UNAVAILABLE" to="PROG_STRADDLE_DISPATCH" on="becomeAvailable"
+                        when="AllCHEContainersArePlannedCondition IsStraddleCondition"
+                        event="BecomeAvailableStateTransitionEvent" ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_UNAVAILABLE" to="FORM_LADEN_TO_DEST" on="becomeAvailable"
+                        when="IsCHEGotExistingLadenJobCondition IsStraddleCondition"
+                        event="BecomeAvailableStateTransitionEvent" ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_UNAVAILABLE" to="PROG_DISPATCH" on="becomeAvailable"
+                        when="IsCHEGotExistingLadenJobCondition"
+                        event="BecomeAvailableStateTransitionEvent" ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_UNAVAILABLE" to="PROG_DISPATCH" on="becomeAvailable"
+                        when="IsCHEGotExistingPlannedJobCondition"
+                        event="BecomeAvailableStateTransitionEvent" ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_UNAVAILABLE" to="PROG_DO_IDLE" on="becomeAvailable"
+                        event="BecomeAvailableStateTransitionEvent" ecEventGeneratorArg="AVAL"/>
+
+            <transition from="FORM_UNAVAILABLE" to="PROG_SURROGATE" on="logoff" event="SurrogateLogoffTransitionEvent"
+                        when="IsClerkCondition"/>
+            <transition from="FORM_UNAVAILABLE" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_UNAVAILABLE" to="FORM_JOB_LIST" on="showJobs"
+                        event="BecomeAvailableAndJobListTransitionEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <!-- By default straddles jobstep, if a site does not want dispatching a tbd to jobstep then uncomment the below transition-->
+            <!--transition from="FORM_IDLE" to="PROG_STRADDLE_TBDUNIT" on="dispatch" when="IsDispatchedToTbdUnitCondition IsStraddleCondition"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DSPT"/-->
+            <transition from="FORM_IDLE" to="PROG_STRADDLE_DISPATCH" on="dispatch" when="IsStraddleCondition IsNeedToDeckBinCondition"
+                        preevent="RequestDeckOnDispatchPreEvent" event="DispatchStateTransitionEvent" ecEventGeneratorArg="DSPT"/>
+            <transition from="FORM_IDLE" to="PROG_STRADDLE_DISPATCH" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DSPT" when="IsStraddleCondition"/>
+
+
+
+            <transition from="FORM_IDLE" to="PROG_DO_WORK" on="dispatch"
+                        when="IsNeedToDeckBinCondition IsWSVGCCondition IsVesselDischargeMoveKindCondition"
+                        preevent="RequestDeckOnDischargePreEvent" event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_IDLE" to="PROG_DO_WORK" on="dispatch" when="IsNeedToDeckBinCondition"
+                        preevent="RequestDeckOnDispatchPreEvent" event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_IDLE" to="PROG_DO_WORK" on="dispatch" when="IsRequiresTruckCondition"
+                        event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_IDLE" to="PROG_DO_WORK" on="dispatch" when="IsPutCheCondition"
+                        preevent="RequestDropPreEvent" event="DispatchStateTransitionEvent"/>
+            <!-- Adding a default cause, always refine -->
+            <transition from="FORM_IDLE" to="PROG_DO_WORK" on="dispatch"
+                        preevent="RequestRefinementPreEvent" event="DispatchStateTransitionEvent"/>
+
+            <transition from="FORM_IDLE" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT" when="IsNOSLOTCondition"
+                        postevent="LiftTransitionPostEvent"/>
+
+            <transition from="FORM_IDLE" to="PROG_REHANDLE" on="lift" when="IsNoPayloadCondition"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsOnCheJobListCondition"/>
+
+            <transition from="FORM_IDLE" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT" when="IsRMGOrRTGCondition HasNoWorkAssignmentCondition"
+                        postevent="LiftTransitionPostEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_IDLE" on="assignCheRange"
+                        event="AssignCheRangeTransitionEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_IDLE" on="lift"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator" when="IsVESSELCondition"/>
+
+            <transition from="FORM_IDLE" to="PROG_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_IDLE" on="manualRehandle"
+                        event="CompleteRehandleStateTransitionEvent" when="IsPositionGivenAndPdsCondition"/>
+
+            <transition from="FORM_IDLE" to="PROG_REHANDLE" on="manualRehandle"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+            <transition from="FORM_IDLE" to="PROG_SURROGATE" on="logoff" event="SurrogateLogoffTransitionEvent"
+                        when="IsClerkCondition"/>
+            <transition from="FORM_IDLE" to="PROG_LOGIN" on="logoff" ecEventGeneratorArg="LGOF"
+                        event="LogoffStateTransitionEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_LADEN_TO_DEST" on="ecn4:forceLift" when="IsStraddleCondition"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_IDLE" to="FORM_DISPATCH_LIFTED" on="ecn4:forceLift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_IDLE" to="FORM_JOB_LIST" on="search"
+                        event="SearchJobsForTruckTransitionEvent"/>
+
+            <transition from="FORM_IDLE" to="FORM_JOB_LIST" on="showJobs"
+                        event="JobListTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" when="IsNoFormIdleCondition" on="becomeAvailable"
+                        event="EmptyStateTransitionEvent"/>
+
+            <!-- -->
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" when="IsForkLiftOrReachStackerCondition" on="promoteJob"
+                        event="PromoteJobTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_IDLE" on="becomeAvailable"
+                        event="LeaveJobListTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+            <!-- Note if the move requires a truck and we have a deckable bin, no external decking call is needed, -->
+            <!-- we could REFINE but that should be delayed until the container is placed on the truck, see later note -->
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch"
+                        when="IsNeedToDeckBinCondition IsWSVGCCondition IsVesselDischargeMoveKindCondition"
+                        preevent="RequestDeckOnDischargePreEvent" event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch" when="IsNeedToDeckBinCondition"
+                        preevent="RequestDeckOnDispatchPreEvent" event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch" when="IsRequiresTruckCondition"
+                        event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch" when="IsPutCheCondition IsForkLiftOrReachStackerCondition"
+                        preevent="RequestRefinementCurrentTimeFramePreEvent" event="DispatchStateTransitionEvent"/>
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch" when="IsPutCheCondition"
+                        preevent="RequestDropPreEvent" event="DispatchStateTransitionEvent"/>
+            <!-- Adding a default cause, always refine -->
+            <transition from="FORM_JOB_LIST" to="PROG_DO_WORK" on="dispatch"
+                        preevent="RequestRefinementPreEvent" event="DispatchStateTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_DISPATCH_LIFTED" on="ecn4:forceLift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" on="lift"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsVESSELCondition IsNotWSVGCCondition"/>
+            <transition from="FORM_JOB_LIST" to="FORM_DISPATCH_LIFTED" on="lift" when="IsPutCheCondition IsOnCheJobListCondition"
+                        preevent="RequestDropPreEvent" event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_JOB_LIST" to="FORM_DISPATCH_LIFTED" on="lift"
+                        preevent="RequestDeckOnDispatchPreEvent"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsNeedToDeckBinCondition IsOnCheJobListCondition"/>
+            <transition from="FORM_JOB_LIST" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsOnCheJobListCondition"/>
+
+            <!-- Weserve 07/19/2022 - to lift the non-listed job of CHE -->
+            <transition from="FORM_JOB_LIST" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsCheAcceptNonListedJobCondition"/>
+            <!-- Weserve 07/19/2022 - to lift the non-listed job of CHE -->
+
+            <transition from="FORM_JOB_LIST" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsNOSLOTCondition"
+                        ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_JOB_LIST" to="PROG_REHANDLE" on="lift" when="IsNoActivePayloadCondition"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT" when="IsRMGOrRTGCondition HasNoWorkAssignmentCondition"
+                        postevent="LiftTransitionPostEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="PROG_SURROGATE" on="logoff" event="SurrogateLogoffTransitionEvent" when="IsClerkCondition"/>
+            <transition from="FORM_JOB_LIST" to="PROG_LOGIN" on="logoff" ecEventGeneratorArg="LGOF"
+                        event="LogoffStateTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" on="manualRehandle"
+                        event="CompleteRehandleStateTransitionEvent" when="IsPositionGivenAndPdsCondition"/>
+
+            <transition from="FORM_JOB_LIST" to="PROG_REHANDLE" on="manualRehandle"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" on="search"
+                        event="SearchJobsForTruckTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_SELECT_EMPTY_DELIVERY" on="selectEmptyDeliveryJob"
+                        event="SelectEmptyDeliveryContainerStateTransitionEvent"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_SELECT_JOB_LIST_FILTER" on="selectOption"
+                        event="SelectOptionsTransitionEvent" when="IsSelectJobListFilterTypeCondition"/>
+            <transition from="FORM_JOB_LIST" to="FORM_SELECT_JOB_LIST_SORT" on="selectOption"
+                        event="SelectOptionsTransitionEvent" when="IsSelectJobListSortTypeCondition"/>
+
+            <transition from="FORM_JOB_LIST" to="FORM_JOB_LIST" on="showJobs"
+                        event="JobListTransitionEvent"/>
+
+            <transition from="FORM_SELECT_JOB_LIST_FILTER" to="FORM_SELECT_JOB_LIST_FILTER" on="selectOption"
+                        event="SelectOptionsTransitionEvent" when="IsSelectJobListFilterTypeCondition"/>
+            <transition from="FORM_SELECT_JOB_LIST_FILTER" to="PREVIOUS" on="cancel"
+                        event="JobListTransitionEvent"/>
+            <transition from="FORM_SELECT_JOB_LIST_FILTER" to="FORM_JOB_LIST" on="showJobs"
+                        event="JobListTransitionEvent"/>
+
+            <transition from="FORM_SELECT_JOB_LIST_SORT" to="FORM_SELECT_JOB_LIST_SORT" on="selectOption"
+                        event="SelectOptionsTransitionEvent" when="IsSelectJobListSortTypeCondition"/>
+            <transition from="FORM_SELECT_JOB_LIST_SORT" to="PREVIOUS" on="cancel"
+                        event="JobListTransitionEvent"/>
+            <transition from="FORM_SELECT_JOB_LIST_SORT" to="FORM_JOB_LIST" on="showJobs"
+                        event="JobListTransitionEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_DELIVERY" to="PROG_DO_WORK" on="dispatch"
+                        event="SelectEmptyDispatchStateTransitionEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_DELIVERY" to="PROG_SELECT_EMPTY_AUTO_REHANDLE" on="lift"
+                        event="SelectEmptyAndAutoRehandleStateTransitionEvent"
+                        when="IsEmptyDeliveryNotSwappableCondition"/>
+            <transition from="FORM_SELECT_EMPTY_DELIVERY" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="SelectEmptyDispatchStateTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_SELECT_EMPTY_DELIVERY" to="PROG_DO_IDLE" on="cancel"
+                        event="CancelSwapDeliverySelectionStateTransitionEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_DELIVERY" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        event="CancelSwapDeliverySelectionStateTransitionEvent"/>
+        </group>
+
+        <group name="do work choice program">
+            <transition from="PROG_DO_WORK" to="FORM_AUTO_REHANDLE" when="IsAutoRehandleRequiredCondition"
+                        preevent="AutoRehandleStateTransitionPreEvent"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        ecEventGeneratorArg="DSPT"/>
+            <transition from="PROG_DO_WORK" to="FORM_TBDUNIT" when="IsDispatchedToTbdUnitCondition"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="DSPT"/>
+            <transition from="PROG_DO_WORK" to="PROG_DISPATCH" event="EmptyStateTransitionEvent"
+                        ecEventGeneratorArg="DSPT"/>
+        </group>
+
+        <group name="Bottleneck to go either to FORM_JOB_LIST or FORM_IDLE">
+            <transition from="PROG_DO_IDLE" to="FORM_JOB_LIST"
+                        event="EmptyStateTransitionEvent" when="IsCheInJobListModeCondition"/>
+            <transition from="PROG_DO_IDLE" to="FORM_IDLE"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+        </group>
+
+        <group name="dispatch program">
+            <transition from="PROG_DISPATCH" to="FORM_DISPATCH"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="back" postevent="ClearBadInventoryPostEvent"
+                        event="UndispatchWorkAssignmentTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_UNAVAILABLE" on="becomeUnavailable" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="cancel" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="complete" postevent="ClearBadInventoryPostEvent"
+                        event="CompleteStateTransitionEvent" ecEventGeneratorArg="CMPL"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH" on="dispatch"
+                        event="RemoveOneWIFromTwinWIsTransitionEvent" when="IsSelectOneWIFromTwinWICondition"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="dispatchItv"
+                        event="DispatchITVStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_CONFIRM_TRUCK" on="drop"
+                        event="ConfirmationRequiredTruckTransitionEvent" when="IsConfirmTruckCondition"/>
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="drop"
+                        event="DropContainerTransitionEvent"
+                        ecEventGeneratorArg="DROP" postevent="ClearBadInventoryPostEvent"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="ecn4:completeJob"
+                        when="IsCheHasUnCompletedWorkInstructionsCondition"
+                        event="UnDispatchWorkInstructionTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="ecn4:completeJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CompleteJobTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH_LIFTED" on="ecn4:forceLift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <!-- Customers can use this transition for a "refine" button -->
+            <!--transition from="FORM_DISPATCH" to="FORM_DISPATCH" on="ecn4web:refineJob" preevent="RequestRefinementPreEvent"
+                        event="EmptyStateTransitionEvent"/-->
+            <!--transition from="FORM_DISPATCH" to="FORM_DISPATCH" on="ecn4web:refineJob" preevent="RequestDropPreEvent"
+                        event="EmptyStateTransitionEvent"/-->
+
+            <transition from="FORM_DISPATCH" to="PROG_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsManualRehandleOrNotSwappableCondition"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT" when="IsLiftedPlausiblyDispatchedCondition"/>
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT" when="IsRailTwinPairCondition"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsAcceptContainerCondition"
+                        ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_DISPATCH" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsConfirmationRequiredCondition"
+                        ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="DispatchLiftedTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_LOGIN" on="logoff" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_REHANDLE" on="manualRehandle"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_DISPATCH" to="PROG_DO_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH" to="FORM_DISPATCH" on="swapPosition"
+                        event="SwapPositionStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_UNAVAILABLE" on="becomeUnavailable" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_DO_IDLE" on="cancel"
+                        postevent="ClearBadInventoryPostEvent" event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_DO_IDLE" on="complete"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CompleteStateTransitionEvent" ecEventGeneratorArg="CMPL"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_CONFIRM_CONTAINER" on="correctLift"
+                        event="ConfirmationRequiredTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_DISPATCH_LIFTED" on="dispatch"
+                        event="RemoveOneWIFromTwinWIsTransitionEvent" when="IsRMGOrRTGCondition IsSelectOneWIFromTwinWICondition"/>
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_DISPATCH_LIFTED" on="dispatch"
+                        event="EmptyStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_CONFIRM_TRUCK" on="drop"
+                        event="ConfirmationRequiredTruckTransitionEvent" when="IsConfirmTruckCondition"/>
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_DISPATCH" on="drop"
+                        event="DropContainerRemainDispatchedTransitionEvent" when="IsLiftedPayloadFromPosEqualsToToPosCondition"
+                        ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_DO_IDLE" on="drop"
+                        event="DropContainerTransitionEvent" ecEventGeneratorArg="DROP" postevent="ClearBadInventoryPostEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_DO_IDLE" on="ecn4:completeJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CompleteJobTransitionEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_LOGIN" on="logoff" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="PROG_REHANDLE" on="manualRehandle"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_DISPATCH_LIFTED" to="FORM_DISPATCH_LIFTED" on="swapPosition"
+                        event="SwapPositionStateTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_TRUCK" to="PROG_DO_IDLE" on="confirmTruck"
+                        event="DropContainerTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_TRUCK" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"
+                        postevent="ClearBadInventoryPostEvent"/>
+
+            <transition from="FORM_CONFIRM_TRUCK" to="PROG_DO_IDLE" on="ecn4:completeJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CompleteJobTransitionEvent"/>
+        </group>
+
+        <group name="confirm container program">
+            <transition from="PROG_CONFIRM_CONTAINER" to="FORM_CONFIRM_CONTAINER"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_CONFIRM_CONTAINER" on="changeListMode"
+                        event="ChangeListModeTransitionEvent"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_CONFIRM_CONTAINER" on="selectOption"
+                        event="ConfirmationRequiredTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_DO_IDLE" on="cancel" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsCheInJobListModeCondition IsManualRehandleRequiredCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsRMGOrRTGCondition IsManualRehandleRequiredCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_DISPATCH_LIFTED" on="confirmContainer"
+                        preevent="RequestDeckOnDischargePreEvent" event="DispatchAndLiftStateTransitionEvent"
+                        when="IsWSVGCCondition IsVesselDischargeMoveKindCondition IsCheInJobListModeCondition IsNeedToDeckBinCondition"
+                        ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_DISPATCH_LIFTED" on="confirmContainer"
+                        preevent="RequestDeckOnDispatchPreEvent"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsNeedToDeckBinCondition IsRequireHandlerCondition HasNoWorkAssignmentCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_DISPATCH_LIFTED" on="confirmContainer"
+                        event="DispatchAndLiftStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsRequireHandlerCondition HasNoWorkAssignmentCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_REHANDLE_NO_SLOT" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsNoPayloadOrNoWorkAssignmentCondition IsCheInJobListModeCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_DISPATCH_LIFTED" on="confirmContainer"
+                        event="DispatchLiftedTransitionEvent" when="IsCheInJobListModeCondition"
+                        ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_LADEN_TO_DEST" on="confirmContainer"
+                        preevent="RequestDeckOnDispatchPreEvent"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsStraddleCondition IsLiftFeasibleEnrouteToDestinationCondition IsNeedToDeckBinCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_LADEN_TO_DEST" on="confirmContainer"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        postevent="AsyncRequestStraddleRefinementPostEvent"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsStraddleCondition IsLiftFeasibleEnrouteToDestinationCondition"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_LADEN_AT_DEST" on="confirmContainer"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        postevent="AsyncRequestStraddleRefinementPostEvent"
+                        when="IsStraddleCondition IsLiftFeasibleAtDestinationCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_LADEN_AT_DEST" on="confirmContainer"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        postevent="AsyncRequestStraddleRefinementPostEvent"
+                        when="IsStraddleCondition IsLaidAtDestinationHasNoReHandleCondition"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsStraddleCondition IsRehandlePayloadCondition"
+                        postevent="RequestYardShiftPositionPostEvent LiftRehandleTransitionPostEvent"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsManualRehandleRequiredCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_CONFIRM_CONTAINER" on="confirmContainer"
+                        event="ConfirmationRequiredTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_DO_IDLE" on="drop"
+                        event="NotifyDriverOfUnexpectedLiftOrDropTransitionEvent"
+                        when="HasNoWorkAssignmentCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="FORM_EMPTY_TO_ORIGIN" on="drop"
+                        event="NotifyDriverOfUnexpectedLiftOrDropTransitionEvent"
+                        when="IsToStateEqualPrevPreviousStateCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="PREVIOUS" on="drop"
+                        event="NotifyDriverOfUnexpectedLiftOrDropTransitionEvent" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_CONFIRM_CONTAINER" to="PROG_DO_IDLE" on="ecn4:abandonJob" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+        </group>
+
+        <group name="tbdUnit program">
+            <transition from="PROG_TBDUNIT" to="FORM_TBDUNIT"/>
+
+            <transition from="FORM_TBDUNIT" to="PROG_DO_IDLE" on="cancel" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_TBDUNIT" to="PROG_DO_IDLE" on="complete"
+                        event="CompleteStateTransitionEvent" ecEventGeneratorArg="CMPL"/>
+
+            <transition from="FORM_TBDUNIT" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_TBDUNIT" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsTbdUnitConfirmContainerCondition"/>
+            <transition from="FORM_TBDUNIT" to="PROG_REHANDLE" on="lift" postevent="RequestYardShiftPositionPostEvent"
+                        event="ManualRehandleStateTransitionEvent"
+                        when="IsLiftedCountMatchPlannedButNotValidatedCondition"/>
+            <transition from="FORM_TBDUNIT" to="PROG_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsTbdUnitNotAllowedMergeCondition"/>
+            <transition from="FORM_TBDUNIT" to="FORM_DISPATCH_LIFTED" on="lift"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"/>
+
+            <transition from="FORM_TBDUNIT" to="FORM_TBDUNIT" on="merge"
+                        event="EmptyStateTransitionEvent" when="IsTbdUnitNotAllowedMergeCondition"/>
+            <transition from="FORM_TBDUNIT" to="PROG_AUTO_REHANDLE" on="merge"
+                        event="MergeTbdUnitStateTransitionEvent AutoRehandleStateTransitionEvent" when="IsAutoRehandleRequiredCondition"
+                        ecEventGeneratorArg="DSPT"/>
+            <transition from="FORM_TBDUNIT" to="PROG_DISPATCH" on="merge"
+                        event="MergeTbdUnitStateTransitionEvent"/>
+
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="changeListMode"
+                        event="ChangeListModeTransitionEvent"/>
+
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="PROG_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsTbdUnitNotAllowedMergeCondition"/>
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="PROG_REHANDLE" on="confirmContainer"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsLiftedCountMatchPlannedButNotValidatedCondition"/>
+
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_LADEN_TO_DEST" on="confirmContainer"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsStraddleCondition IsCheNotInJobListModeCondition IsLiftFeasibleEnrouteToDestinationCondition"/>
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_LADEN_AT_DEST" on="confirmContainer"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsStraddleCondition IsCheNotInJobListModeCondition IsLiftFeasibleAtDestinationCondition"/>
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_DISPATCH_LIFTED" on="confirmContainer"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="confirmContainer"
+                        event="ConfirmationRequiredTransitionEvent"/>
+
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TBDUNIT_CONFIRM_CONTAINER" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="selectOption"
+                        event="ConfirmationRequiredTransitionEvent"/>
+        </group>
+
+        <group name="rehandle program">
+            <transition from="PROG_REHANDLE" to="FORM_REHANDLE"
+                        preevent="AutoRehandleStateTransitionPreEvent"/>
+
+            <transition from="FORM_REHANDLE" to="FORM_UNAVAILABLE" on="becomeUnavailable" postevent="ClearBadInventoryPostEvent"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_REHANDLE" to="PROG_DO_IDLE" on="cancel"
+                        event="CancelRehandleStateTransitionEvent"
+                        when="IsToStateEqualPreviousStateCondition" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_REHANDLE" to="PROG_DO_IDLE" on="cancel"
+                        event="CancelRehandleStateTransitionEvent"
+                        when="HasNoWorkAssignmentCondition" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_REHANDLE" to="PREVIOUS" on="cancel"
+                        event="CancelRehandleStateTransitionEvent"/>
+
+            <!--Notice how similar drop and complete are, wouldn't it be nice if there were the same? -->
+            <transition from="FORM_REHANDLE" to="FORM_JOB_LIST" on="complete"
+                        event="CompleteRehandleStateTransitionEvent"
+                        when="IsToStateEqualPreviousStateCondition" ecEventGeneratorArg="CMPL"/>
+            <transition from="FORM_REHANDLE" to="PROG_DO_IDLE" on="complete"
+                        event="CompleteRehandleStateTransitionEvent"
+                        when="HasNoWorkAssignmentCondition" ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_REHANDLE" to="FORM_EMPTY_TO_ORIGIN" on="complete"
+                        event="CompleteRehandleStateTransitionEvent"
+                        when="IsStraddleCondition IsCheNotInJobListModeCondition"/>
+            <!-- below is specifically b/c previous may put you on form_confirm_container or form_tbd_confirm_container-->
+            <transition from="FORM_REHANDLE" to="FORM_DISPATCH" on="complete"
+                        event="CompleteRehandleStateTransitionEvent" when="IsToStateEqualPrevPreviousStateCondition"/>
+            <transition from="FORM_REHANDLE" to="FORM_TBDUNIT" on="complete"
+                        event="CompleteRehandleStateTransitionEvent" when="IsToStateEqualPrevPreviousStateCondition"/>
+            <transition from="FORM_REHANDLE" to="PREVIOUS" on="complete"
+                        event="CompleteRehandleStateTransitionEvent" ecEventGeneratorArg="CMPL"/>
+
+            <transition from="FORM_REHANDLE" to="PROG_DO_IDLE" on="drop"
+                        event="DropRehandleStateTransitionEvent"
+                        when="HasNoWorkAssignmentCondition" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_REHANDLE" to="FORM_EMPTY_TO_ORIGIN" on="drop"
+                        event="DropRehandleStateTransitionEvent"
+                        when="IsStraddleCondition IsCheNotInJobListModeCondition"/>
+            <!-- below is specifically b/c previous may put you on form_confirm_container or form_tbd_confirm_container-->
+            <transition from="FORM_REHANDLE" to="FORM_DISPATCH" on="drop"
+                        event="DropRehandleStateTransitionEvent" when="IsToStateEqualPrevPreviousStateCondition"
+                        ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_REHANDLE" to="FORM_TBDUNIT" on="drop"
+                        event="DropRehandleStateTransitionEvent" when="IsToStateEqualPrevPreviousStateCondition"
+                        ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_REHANDLE" to="PREVIOUS" on="drop"
+                        event="DropRehandleStateTransitionEvent" ecEventGeneratorArg="DROP"/>
+
+            <!-- You can only get to FORM_REHANDLE_NO_SLOT if you were on a joblist, so doesn't need to check joblist mode here-->
+            <transition from="FORM_REHANDLE_NO_SLOT" to="FORM_JOB_LIST" on="cancel"
+                        event="CancelRehandleStateTransitionEvent"/>
+            <transition from="FORM_REHANDLE_NO_SLOT" to="FORM_JOB_LIST" on="drop"
+                        event="DropRehandleStateTransitionEvent" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_REHANDLE_NO_SLOT" to="FORM_JOB_LIST" on="complete"
+                        event="CompleteRehandleStateTransitionEvent" ecEventGeneratorArg="CMPL"/>
+        </group>
+
+        <group name="auto rehandle program">
+            <transition from="PROG_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE"
+                        preevent="AutoRehandleStateTransitionPreEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_LADEN_TO_DEST" on="lift"
+                        preevent="RequestDeckOnDispatchPreEvent"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsNeedToDeckBinCondition IsLiftFeasibleEnrouteToDestinationCondition IsStraddleCondition"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_LADEN_TO_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="AsyncRequestStraddleRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleEnrouteToDestinationCondition IsStraddleCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_LADEN_AT_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="RequestStraddleDropOrAvoidStackRefinementPostEvent"
+                        ecEventGeneratorArg="LIFT" ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleAtDestinationCondition IsStraddleCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="lift"
+                        event="LiftAndAutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsRehandlePayloadCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_CONFIRM_CONTAINER" on="lift" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        event="ConfirmationRequiredTransitionEvent"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="updatePosition"
+                        when="IsCheRemainUnmovedCondition" event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="updatePosition"
+                        event="RehandlePositionUpdateTransitionEvent"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="PROG_DO_IDLE" on="cancel" when="IsCHEGotCompletedJobCondition"
+                        event="CancelAutoRehandleAndCompleteJobStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="cancel" when="IsStraddleCondition IsCheInJobListModeCondition"
+                        event="CancelAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_EMPTY_AT_ORIGIN" on="cancel"
+                        event="CancelAutoRehandleStateTransitionEvent" when="IsStraddleCondition IsCheNotInJobListModeCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="cancel"
+                        event="CancelAutoRehandleStateTransitionEvent" when="IsStraddleCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="cancel"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsStraddleCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_JOB_LIST" on="cancel" when="IsNoPayloadOrNoWorkAssignmentCondition"
+                        event="CancelAutoRehandleStateTransitionEvent"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="cancel"
+                        event="CancelAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="cancel"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="CancelAll"
+                        event="CancelAllRehandleStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_EMPTY_AT_ORIGIN" on="drop"
+                        event="DropAutoRehandleStateTransitionEvent" when="IsStraddleCondition"
+                        ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="drop"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsStraddleCondition" ecEventGeneratorArg="DROP"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="drop"
+                        event="DropAutoRehandleStateTransitionEvent" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="drop"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        ecEventGeneratorArg="DROP"/>
+
+            <transition from="FORM_AUTO_REHANDLE" to="PROG_DO_IDLE" on="complete" when="IsCHEGotCompletedJobCondition"
+                        event="CompleteAutoRehandleAndCompleteJobStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="complete" when="IsStraddleCondition IsCheInJobListModeCondition"
+                        event="CompleteAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_EMPTY_AT_ORIGIN" on="complete"
+                        event="CompleteAutoRehandleStateTransitionEvent" when="IsStraddleCondition IsCheNotInJobListModeCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="complete"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsStraddleCondition"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_DISPATCH" on="complete"
+                        event="CompleteAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="FORM_AUTO_REHANDLE" on="complete"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+            <transition from="FORM_AUTO_REHANDLE" to="PROG_DO_IDLE" on="ecn4:abandonJob" when="IsAbandonJobValidCondition"
+                        postevent="ClearBadInventoryPostEvent" event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+        </group>
+
+        <group name="select empty auto rehandle">
+            <transition from="PROG_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE"/>
+
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="lift"
+                        event="LiftAndAutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="updatePosition"
+                        when="IsCheRemainUnmovedCondition" event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="updatePosition"
+                        event="RehandlePositionUpdateTransitionEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_DELIVERY" on="cancel"
+                        event="CancelAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="cancel"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_DELIVERY" on="drop"
+                        event="DropAutoRehandleStateTransitionEvent" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_DISPATCH" on="drop"
+                        event="DispatchRehandleStateTransitionEvent" ecEventGeneratorArg="DROP"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="drop"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        ecEventGeneratorArg="DROP"/>
+
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_DELIVERY" on="complete"
+                        event="CompleteAutoRehandleStateTransitionEvent"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_DISPATCH" on="complete"
+                        event="DispatchRehandleStateTransitionEvent"/>
+            <transition from="FORM_SELECT_EMPTY_AUTO_REHANDLE" to="FORM_SELECT_EMPTY_AUTO_REHANDLE" on="complete"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+        </group>
+
+        <group name="truck program">
+            <transition from="PROG_TRUCK" to="FORM_TRUCK_UNAVAILABLE"/>
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="becomeAvailable"
+                        event="BecomeAvailableAndSetTrailerStatusStateTransitionEvent"
+                        when="IsCHEGotExistingPlannedJobAndIsAtOrginCondition"
+                        ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="becomeAvailable"
+                        event="BecomeAvailableAndSetTrailerStatusStateTransitionEvent"
+                        when="IsCHEGotExistingPlannedJobCondition"
+                        ecEventGeneratorArg="AVAL"/>
+
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_LADEN_AT_DEST" on="becomeAvailable"
+                        event="BecomeAvailableAndCheckQueueStatusStateTransitionEvent"
+                        when="IsCHEGotExistingLadenJobAndIsAtDestinationCondition"
+                        ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_LADEN_TO_DEST" on="becomeAvailable"
+                        event="BecomeAvailableAndSetTrailerStatusStateTransitionEvent"
+                        when="IsCHEGotExistingLadenJobCondition"
+                        ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_IDLE" on="becomeAvailable"
+                        event="BecomeAvailableStateTransitionEvent" when="HasTrailerStatusCondition"
+                        ecEventGeneratorArg="AVAL"/>
+
+            <!-- Weserve 07/20/2022 - to skip the 'connect to bombcart' page -->
+            <!-- <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_TRAILER_SELECTION" on="becomeAvailable"
+                        event="EmptyStateTransitionEvent"/> -->
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="FORM_TRUCK_IDLE" on="becomeAvailable"
+                        event="BecomeAvailableStateTransitionEvent"
+                        ecEventGeneratorArg="AVAL"/>
+            <!-- Weserve 07/20/2022 - to lift the non-listed job of CHE -->
+
+
+            <transition from="FORM_TRUCK_UNAVAILABLE" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_TRUCK_TRAILER_SELECTION" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+            <transition from="FORM_TRUCK_TRAILER_SELECTION" to="FORM_TRUCK_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+            <transition from="FORM_TRUCK_TRAILER_SELECTION" to="FORM_TRUCK_IDLE" on="becomeAvailable"
+                        event="BecomeAvailableStateTransitionEvent" when="HasTrailerStatusCondition"
+                        ecEventGeneratorArg="AVAL"/>
+            <transition from="FORM_TRUCK_TRAILER_SELECTION" to="FORM_TRUCK_TRAILER_SELECTION" on="becomeAvailable"
+                        event="EmptyStateTransitionEvent"/>
+
+            <transition from="FORM_TRUCK_IDLE" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+            <transition from="FORM_TRUCK_IDLE" to="PROG_TRUCK_DISPATCH" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_IDLE" on="ecn4:landInApronOrRamp"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_LADEN_TO_DEST" on="lift"
+                        event="EmptyStateTransitionEvent" when="AllITVContainersAreCarryUnderwayCondition"
+                        postevent="TruckLadenToDestPostEvent"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="lift"
+                        event="EmptyStateTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="lift"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <!-- This happens in twin cases 2 container completions 2 drops 1st makes ITV idle-->
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_IDLE" on="drop"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkBareChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_IDLE" to="PROG_CONFIRM_CONTAINER_PULLED" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsConfirmRequiredPullCondition"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullsBareChassisFromIdleTransitionEvent"
+                        when="IsPullingBareChassisWithWorkInstructionCondition" ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_TRUCK_IDLE" to="FORM_TRUCK_IDLE" on="pull"
+                        event="TruckPullBareChassisTransitionEvent"
+                        ecEventGeneratorArg="IDLE"/>
+        </group>
+
+        <group name="truck dispatch program">
+            <!-- This transition happens when the ITV is connected to a specific bare chassis -->
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_LADEN_TO_DEST"
+                        when="IsITVRequireParkSpecificTrailerCondition"
+                        event="DispatchParkSpecificChassisTransitionEvent"/>
+            <!-- As implied, this happens when dispatched job was landed on the attached chassis -->
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_LADEN_TO_DEST"
+                        when="IsITVJobLandedOnAttachedTrailerCondition"
+                        event="DispatchLandedOnAttachedChassisTransitionEvent"/>
+            <!-- These 2 transitions happen before the ITV does the actual job -->
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_PARK_TRAILER" when="IsITVRequireParkTrailerCondition"
+                        event="ClearMessageTransitionEvent"/>
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_EMPTY_TO_ORIGIN"
+                        when="IsITVRequireGetTrailerCondition IsITVHandlingSemiLadenTrailerCondition"/>
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_FETCH_TRAILER" when="IsITVRequireGetTrailerCondition"
+                        event="ClearMessageTransitionEvent"/>
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_EMPTY_AT_ORIGIN"
+                        when="IsITVNeedMoreContainersAndIsAtOriginCondition IsITVFromBinProtectedCondition"
+                        event="UpdateJobstepTransitionEvent" ecEventGeneratorArg="ATO" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_EMPTY_AT_ORIGIN" when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        event="UpdateJobstepTransitionEvent"
+                        ecEventGeneratorArg="ATO" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="PROG_TRUCK_DISPATCH" to="FORM_TRUCK_EMPTY_TO_ORIGIN"/>
+
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_FETCH_TRAILER" on="dispatch"
+                        event="DispatchStateTransitionEvent"
+                        ecEventGeneratorArg="DISP" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_LADEN_TO_DEST" on="lift"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="PROG_CONFIRM_CONTAINER_PULLED" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsConfirmRequiredPullCondition"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="pull"
+                        event="TruckPullBareChassisTransitionEvent"
+                        when="IsITVNeedMoreContainersAndIsAtOriginCondition"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="TruckPullBareChassisTransitionEvent"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_FETCH_TRAILER" on="refresh"
+                        event="EmptyStateTransitionEvent" when="IsITVRequireGetTrailerCondition"/>
+            <transition from="FORM_TRUCK_FETCH_TRAILER" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="TruckClearTrailerJobStepStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_PARK_TRAILER" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"
+                        when="AllCHEContainersArePlannedCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_PARK_TRAILER" on="dispatch"
+                        event="DispatchStateTransitionEvent"
+                        ecEventGeneratorArg="DISP" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_PARK_TRAILER" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"
+                        when="AllCHEContainersArePlannedCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_FETCH_TRAILER" on="park"
+                        event="TruckParkBareChassisTransitionEvent" when="IsITVParkBareChassisThenFetchTrailerCondition"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="park"
+                        event="TruckParkBareChassisTransitionEvent" when="IsITVParkBareEquipmentCondition"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_FETCH_TRAILER" on="park"
+                        event="TruckParkLadenChassisTransitionEvent" when="IsITVParkLadenChassisThenFetchTrailerCondition"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="park"
+                        event="TruckParkLadenChassisTransitionEvent"/>
+
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_PARK_TRAILER" on="refresh"
+                        event="EmptyStateTransitionEvent" when="IsITVRequireParkTrailerCondition"/>
+            <transition from="FORM_TRUCK_PARK_TRAILER" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="TruckClearTrailerJobStepStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledAndLadenCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        ecEventGeneratorArg="DISP" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="drop"
+                        when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="drop"
+                        when="IsITVNeedMoreContainersAndNotAtOriginCondition"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="drop"
+                        event="TruckFullyUnLadenTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledAndLadenCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="lift"
+                        event="EmptyStateTransitionEvent" when="AllITVContainersAreCarryUnderwayCondition"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="lift"
+                        event="EmptyStateTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_CONFIRM_TRUCK_LANE" on="lift"
+                        event="EmptyStateTransitionEvent" when="IsITVFromBinProtectedCondition IsLaneInfoUnknownCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="lift"
+                        event="EmptyStateTransitionEvent" ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="park"
+                        event="EmptyStateTransitionEvent" when="IsITVParkingWithoutTrailerCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="park"
+                        event="EmptyStateTransitionEvent" when="IsParkNOSLOTCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkLadenChassisTransitionEvent"
+                        when="IsITVHandlingSemiLadenTrailerCondition"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkBareChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsTbdUnitMergeFailedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsITVHasAttachedChassisCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullAndSwapChassisTransitionEvent" ecEventGeneratorArg="LIFT" when="IsPulledChassisSwapAllowedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_PARK_TRAILER" on="pull"
+                        event="HandlePulledSwapNotAllowedEvent" when="IsPulledSwapNotAllowedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="PROG_CONFIRM_CONTAINER_PULLED" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsConfirmRequiredPullCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullLadenChassisTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="refresh"
+                        event="EmptyStateTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="refresh"
+                        event="EmptyStateTransitionEvent" when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="refresh"
+                        event="EmptyStateTransitionEvent" when="AllITVContainersAreCarryUnderwayCondition"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_CONFIRM_TRUCK_LANE" on="updatePosition"
+                        event="PositionUpdateWithoutJobStepStateTransitionEvent"
+                        when="IsITVFromBinProtectedCondition IsCoupledMoveCondition IsLaneInfoUnknownCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="updatePosition"
+                        event="PositionUpdateTransitionEvent" when="IsLaneInfoKnownCondition"
+                        ecEventGeneratorArg="ATO" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_TO_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="updatePosition"
+                        event="PositionUpdateTransitionEvent" ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledAndLadenCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        ecEventGeneratorArg="DISP" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="drop"
+                        when="IsITVNeedMoreContainersAndIsAtOriginCondition"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="drop"
+                        when="IsITVNeedMoreContainersAndNotAtOriginCondition"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="drop"
+                        event="TruckFullyUnLadenTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledAndLadenCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent" when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="PROG_ITV_LIFT" on="lift"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="park"
+                        event="EmptyStateTransitionEvent" when="IsITVParkingWithoutTrailerCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="park"
+                        event="EmptyStateTransitionEvent" when="IsParkNOSLOTCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkLadenChassisTransitionEvent"
+                        when="IsITVHandlingSemiLadenTrailerCondition"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkBareChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsTbdUnitMergeFailedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="PROG_CONFIRM_CONTAINER_PULLED" on="pull"
+                        event="EmptyStateTransitionEvent" when="IsConfirmRequiredPullCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="TruckPullLadenChassisTransitionEvent"
+                        when="IsITVNeedMoreContainersAndNotAtOriginAfterPullCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullAndSwapChassisTransitionEvent" ecEventGeneratorArg="LIFT" when="IsPulledChassisSwapAllowedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_PARK_TRAILER" on="pull"
+                        event="HandlePulledSwapNotAllowedEvent" when="IsPulledSwapNotAllowedCondition"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullLadenChassisTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_CONFIRM_TRUCK_LANE" on="refresh"
+                        event="UpdateJobstepTransitionEvent"
+                        when="IsITVNeedMoreContainersAndNotAtOriginCondition IsITVFromBinProtectedCondition IsITVStayInTZOutboundCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="refresh"
+                        event="UpdateJobstepTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="refresh"
+                        event="EmptyStateTransitionEvent" when="IsITVNeedMoreContainersAndIsAtOriginCondition"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="refresh"
+                        event="EmptyStateTransitionEvent"
+                        when="AllITVContainersAreCarryUnderwayCondition"
+                        postevent="TruckLadenToDestPostEvent"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" postevent="ResetParkAndWaitAttributePostEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_EMPTY_AT_ORIGIN" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4Web:signalOnWay"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <!-- Note that the FORM_TRUCK_LADEN_TO_DEST transitions should be the same as the -->
+            <!-- FORM_TRUCK_LADEN_AT_DEST transitions -->
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="becomeUnavailable"
+                        event="BecomePendingUnAvailableStateTransitionEvent" ecEventGeneratorArg="PEND"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="cancel"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" when="IsITVCarryCapableCondition" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <!-- "CMPL" EcEvent will be generated from BecomeUnAvailableStateTransitionEvent -->
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_UNAVAILABLE" on="drop"
+                        event="BecomeUnAvailableStateTransitionEvent" when="IsITVNotCarryingCntrsAndWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="drop"
+                        event="TruckFullyUnLadenTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition"
+                        ecEventGeneratorArg="CMPL,IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="drop"
+                        event="UpdateJobstepTransitionEvent" when="IsITVStillLadenAndNotAtDestCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_CONFIRM_TRUCK_LANE" on="drop"
+                        event="UpdateJobstepTransitionEvent" when="IsITVToBinProtectedCondition IsLaneInfoUnknownCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="drop"
+                        event="UpdateJobstepTransitionEvent" when="IsLaneInfoKnownCondition"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="ATD" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="drop"
+                        event="UpdateJobstepTransitionEvent" ecEventGeneratorArg="ATD"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4:abandonJob"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4:landInApronOrRamp"
+                        event="CraneCarryCompletesContainerEvent" when="IsITVStillCarryingAfterDivertCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="ecn4:landInApronOrRamp"
+                        event="CraneCarryCompletesContainerEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="lift"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_UNAVAILABLE" on="park"
+                        when="IsCheStatusWantToQuitCondition"
+                        event="TruckParkLadenChassisTransitionEvent BecomeUnAvailableStateTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="CMPL,UNAV"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkLadenChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" when="HasNoWorkAssignmentCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_UNAVAILABLE" on="refresh"
+                        event="BecomeUnAvailableStateTransitionEvent" when="IsITVNotCarryingCntrsAndWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition HasNoWorkAssignmentCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="TruckFullyUnLadenTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="refresh"
+                        event="EmptyStateTransitionEvent"/>
+
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_CONFIRM_TRUCK_LANE" on="updatePosition"
+                        event="PositionUpdateWithoutJobStepStateTransitionEvent"
+                        when="IsITVToBinProtectedCondition IsCoupledMoveCondition IsLaneInfoUnknownCondition"/>
+            <transition from="FORM_TRUCK_LADEN_TO_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="updatePosition"
+                        event="UpdatePositionAndQueueTransitionEvent" ecEventGeneratorArg="ATD"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="becomeUnavailable"
+                        event="BecomePendingUnAvailableStateTransitionEvent" ecEventGeneratorArg="PEND"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="cancel"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="dispatch"
+                        event="DispatchStateTransitionEvent" when="IsITVCarryCapableCondition" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="PROG_ITV_DROP" on="drop"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="ecn4:abandonJob"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="ecn4:landInApronOrRamp"
+                        event="CraneCarryCompletesContainerEvent" when="IsITVStillCarryingAfterDivertCondition"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="ecn4:landInApronOrRamp"
+                        event="CraneCarryCompletesContainerEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_TO_DEST" on="ecn4web:signalLifted"
+                        event="TruckSignalsContainerLiftedTransitionEvent"
+                        when="IsITVSignalledContainerLiftedStillCarryingCondition"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_UNAVAILABLE" on="ecn4web:signalLifted"
+                        when="IsCheStatusWantToQuitCondition"
+                        event="TruckSignalsContainerLiftedTransitionEvent BecomeUnAvailableStateTransitionEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="ecn4web:signalLifted"
+                        event="TruckSignalsContainerLiftedTransitionEvent" ecEventGeneratorArg="IDLE,CMPL"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="lift"
+                        event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="PROG_LOGIN" on="logoff"
+                        event="LogoffStateTransitionEvent" ecEventGeneratorArg="LGOF"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="park"
+                        event="TruckParkLadenChassisTransitionEvent" when="IsParkedLadenInWrongTZCondition"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkLadenChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="parkAndWait"
+                        event="TruckParkAndWaitUnLadenChassisTransitionEvent"
+                        when="IsTruckPrePositioningBareChassisCondition IsTruckInParkAndWaitGotNextMoveCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="parkAndWait"
+                        event="TruckParkAndWaitUnLadenChassisTransitionEvent" when="IsTruckPrePositioningBareChassisCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="parkAndWait"
+                        event="TruckParkAndWaitLadenChassisTransitionEvent" when="IsTruckInParkAndWaitGotNextMoveCondition"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="parkAndWait"
+                        event="TruckParkLadenChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="EmptyStateTransitionEvent" when="HasNoWorkAssignmentCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_UNAVAILABLE" on="refresh"
+                        event="BecomeUnAvailableStateTransitionEvent" when="IsITVNotCarryingCntrsAndWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition HasNoWorkAssignmentCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="TruckFullyUnLadenTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_TRUCK_LADEN_AT_DEST" to="FORM_TRUCK_LADEN_AT_DEST" on="refresh"
+                        event="EmptyStateTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="PROG_ITV_LIFT" on="lift"/>
+
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="park"
+                        event="TruckParkLadenChassisTransitionEvent" when="IsParkedLadenInWrongTZCondition"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkLadenChassisTransitionEvent" when="AllITVContainersAreCarryUnderwayCondition"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_IDLE" on="park"
+                        event="TruckParkBareChassisTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_EMPTY_AT_ORIGIN" on="updatePosition"
+                        when="IsITVFromBinProtectedCondition"
+                        event="ConfirmTruckLaneTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="ATO" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_LADEN_AT_DEST" on="updatePosition"
+                        when="IsITVToBinProtectedCondition"
+                        event="ConfirmTruckLaneTransitionEvent"
+                        postevent="MarkTransferZoneMovesPostEvent"
+                        ecEventGeneratorArg="ATD" ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="PROG_ITV_DROP" on="drop"/>
+
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_IDLE" on="refresh"
+                        event="EmptyStateTransitionEvent" when="HasNoWorkAssignmentCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_CONFIRM_TRUCK_LANE" on="refresh"
+                        event="EmptyStateTransitionEvent"/>
+
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_CONFIRM_TRUCK_LANE" on="ecn4:abandonJob"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_CONFIRM_TRUCK_LANE" to="FORM_TRUCK_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+        </group>
+
+        <group name="handle ITV lift program">
+            <transition from="PROG_ITV_LIFT" to="FORM_CONFIRM_TRUCK_LANE"
+                        event="UpdateJobstepTransitionEvent"
+                        when="IsITVNeedMoreContainersAndNotAtOriginCondition IsITVFromBinProtectedCondition IsITVStayInTZOutboundCondition"/>
+            <transition from="PROG_ITV_LIFT" to="FORM_TRUCK_LADEN_TO_DEST"
+                        event="TruckLadentoDestStateTransitionEvent" when="IsITVFromBinTransferZoneCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="PROG_ITV_LIFT" to="FORM_TRUCK_LADEN_TO_DEST"
+                        event="TruckLadentoDestStateTransitionEvent" when="AllITVContainersAreCarryUnderwayCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="PROG_ITV_LIFT" to="FORM_TRUCK_EMPTY_TO_ORIGIN"
+                        event="UpdateJobstepTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="PROG_ITV_LIFT" to="FORM_TRUCK_EMPTY_AT_ORIGIN"
+                        event="EmptyStateTransitionEvent"/>
+        </group>
+
+        <group name="handle ITV drop program">
+            <!-- "CMPL" EcEvent will be generated from BecomeUnAvailableStateTransitionEvent -->
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_UNAVAILABLE"
+                        event="BecomeUnAvailableStateTransitionEvent" when="IsITVNotCarryingCntrsAndWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_IDLE"
+                        event="TruckFullyUnLadenTransitionEvent" when="IsITVToBinProtectedCondition IsDropForAllITVContainersCondition"
+                        ecEventGeneratorArg="CMPL,IDLE"/>
+            <!-- This next transition/event throws a partial state transition execption so the following transitions are used to find where to go.-->
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_LADEN_AT_DEST"
+                        event="UndispatchDroppedContainerFromITVTransitionEvent"
+                        when="IsITVToBinProtectedCondition IsDropForSomeITVContainersCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_CONFIRM_TRUCK_LANE"
+                        event="UpdateJobstepTransitionEvent"
+                        when="IsITVStillLadenAndNotAtDestCondition IsITVToBinProtectedCondition IsITVStayInTZInboundCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_LADEN_TO_DEST"
+                        event="UpdateJobstepTransitionEvent" when="IsITVStillLadenAndNotAtDestCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_LADEN_AT_DEST"
+                        event="EmptyStateTransitionEvent" when="IsITVStillLadenAndAtDestCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_IDLE"
+                        event="TruckFullyUnLadenTransitionEvent" when="AllITVContainersAreNotCarryUnderWayCondition"
+                        ecEventGeneratorArg="IDLE,CMPL"/>
+            <!-- These next 2 transitions are required if the container is dropped in its from pos. The WI remains planned and dispatched-->
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_EMPTY_TO_ORIGIN"
+                        event="UpdateJobstepTransitionEvent" when="IsITVNeedMoreContainersAndNotAtOriginCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_EMPTY_AT_ORIGIN"
+                        event="UpdateJobstepTransitionEvent" when="IsITVNeedMoreContainersAndIsAtOriginCondition"/>
+            <transition from="PROG_ITV_DROP" to="FORM_TRUCK_LADEN_AT_DEST"
+                        event="EmptyStateTransitionEvent"/>
+        </group>
+
+        <group name="straddle dispatch program">
+
+            <transition from="PROG_STRADDLE_DISPATCH" to="FORM_EMPTY_TO_ORIGIN" when="IsStraddleNotAtOriginCondition"
+                        event="StraddleDispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="PROG_STRADDLE_DISPATCH" to="FORM_EMPTY_AT_ORIGIN" event="CheckForRehandleTransitionEvent"
+                        ecEventGeneratorArg="DISP" ecEventGenerator="StandardJobstepEventGenerator" postevent="RequestYardShiftPositionPostEvent"/>
+            <transition from="PROG_STRADDLE_DISPATCH" to="FORM_AUTO_REHANDLE"
+                        event="AutoRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_TO_ORIGIN" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="cancel"
+                        event="RejectAndBypassDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"
+                        when="IsCheInExternalPowDispatchModeCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="cancel"
+                        event="RejectDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="ecn4:drop" event="DropContainerTransitionEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_TO_ORIGIN" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <!-- Since a user is doing a forceLift from xps-client, do not refine -->
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_LADEN_TO_DEST" on="ecn4:forceLift"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsTbdUnitConfirmContainerCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_LADEN_TO_DEST" on="lift"
+                        when="IsLiftForTbdUnitRequireMergeCondition"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_REHANDLE" on="lift"
+                        when="IsLiftForTbdUnitRequireRehandleCondition"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+            <!-- After an unplanned container was rehandled, the lift resumes with the remaining planned container -->
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_PARTIAL_TWIN_LIFT" on="lift"
+                        event="PartialLiftTransitionEvent" when="IsPartialPayloadCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_LADEN_TO_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="AsyncRequestStraddleRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleEnrouteToDestinationCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_LADEN_AT_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="RequestStraddleDropOrAvoidStackRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleAtDestinationCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsNOSLOTCondition"/>
+            <!-- When lifting a mixed payload of planned and unplanned containers. Unplanned
+            container to be rehandled first, lift to resume afterwards -->
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsMixedPayloadCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <!-- When lifting a mixed payload of planned and unplanned containers. Unplanned
+            container to be rehandled first, lift to resume afterwards -->
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsRehandlePayloadCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsAcceptContainerCondition"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsConfirmationRequiredCondition"
+                        ecEventGeneratorArg="LIFT" ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_TO_ORIGIN" on="updatePosition"
+                        event="EmptyStateTransitionEvent" when="IsCheRemainUnmovedCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_TO_ORIGIN" on="updatePosition"
+                        event="StraddleDispatchStateTransitionEvent" when="IsStraddleRowBlockedCondition"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="updatePosition"
+                        event="UpdatePositionAndCheckForRehandleTransitionEvent" ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="PROG_AUTO_REHANDLE" on="updatePosition"
+                        event="AutoRehandleStateTransitionEvent" when="IsStraddleAtOriginCondition IsAutoRehandleRequiredCondition"
+                        postevent="RequestYardShiftPositionPostEvent" ecEventGeneratorArg="ATO"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_TO_ORIGIN" to="FORM_EMPTY_TO_ORIGIN" on="updatePosition"
+                        event="PositionUpdateTransitionEvent"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_UNAVAILABLE" on="becomeUnavailable"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="cancel"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="cancel"
+                        event="RejectAndBypassDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"
+                        when="IsCheInExternalPowDispatchModeCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="cancel"
+                        event="RejectDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="ecn4:drop" event="DropContainerTransitionEvent"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="ecn4:abandonJob"
+                        event="CancelUnladenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <!-- Since a user is doing a forceLift from xps-client, do not do a refine -->
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_LADEN_TO_DEST" on="ecn4:forceLift"
+                        event="LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_REHANDLE" on="manualRehandle"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_TBDUNIT_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsTbdUnitConfirmContainerCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_LADEN_TO_DEST" on="lift"
+                        when="IsLiftForTbdUnitRequireMergeCondition"
+                        event="MergeTbdUnitStateTransitionEvent LiftTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_REHANDLE" on="lift"
+                        when="IsLiftForTbdUnitRequireRehandleCondition"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"/>
+
+            <!-- After an unplanned container was rehandled, the lift resumes with the remaining planned container -->
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_PARTIAL_TWIN_LIFT" on="lift"
+                        event="PartialLiftTransitionEvent"
+                        when="IsPartialPayloadCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="lift"
+                        when="IsBlockingContainerOnLiftCondition"
+                        event="WaitAtOriginStateTransitionEvent"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_LADEN_TO_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="AsyncRequestStraddleRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleEnrouteToDestinationCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_LADEN_AT_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="RequestStraddleDropOrAvoidStackRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleAtDestinationCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT"
+                        when="IsNOSLOTCondition"/>
+            <!-- When lifting a mixed payload of planned and unplanned containers. Unplanned
+            container to be rehandled first, lift to resume afterwards -->
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsMixedPayloadCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <!-- When lifting a mixed payload of planned and unplanned containers. Unplanned
+            container to be rehandled first, lift to resume afterwards -->
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        when="IsRehandlePayloadCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsAcceptContainerCondition"
+                        ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" when="IsConfirmationRequiredCondition"
+                        ecEventGeneratorArg="LIFT" ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="merge"
+                        event="EmptyStateTransitionEvent" when="IsTbdUnitNotAllowedMergeCondition"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="merge"
+                        event="MergeTbdUnitStateTransitionEvent"/>
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_IDLE" on="refresh"
+                        event="UpdateJobstepTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_EMPTY_AT_ORIGIN" to="FORM_EMPTY_AT_ORIGIN" on="selectOption"
+                        event="UpdatePositionAndCheckForRehandleTransitionEvent"/>
+
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsAcceptContainerCondition"/>
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="PROG_CONFIRM_CONTAINER" on="lift"
+                        event="ConfirmationRequiredTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsConfirmationRequiredCondition"/>
+
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="FORM_LADEN_TO_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="AsyncRequestStraddleRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleEnrouteToDestinationCondition"/>
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="FORM_LADEN_AT_DEST" on="lift"
+                        event="LiftTransitionEvent" postevent="RequestStraddleDropOrAvoidStackRefinementPostEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsLiftFeasibleAtDestinationCondition"/>
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="PROG_STRADDLE_PAYLOAD_REHANDLE" on="lift"
+                        event="ManualRehandleStateTransitionEvent" postevent="RequestYardShiftPositionPostEvent"
+                        ecEventGeneratorArg="LIFT" ecEventGenerator="StandardJobstepEventGenerator"
+                        when="IsMixedPayloadCondition"/>
+            <transition from="FORM_PARTIAL_TWIN_LIFT" to="PROG_DO_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_TO_DEST" on="becomeUnavailable"
+                        event="BecomePendingUnAvailableStateTransitionEvent" ecEventGeneratorArg="PEND"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_TO_DEST" on="cancel"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_UNAVAILABLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_JOB_LIST" on="complete"
+                        event="CompleteReRouteStateTransitionEvent" ecEventGeneratorArg="CMPL"
+                        when="IsCheInJobListModeCondition"/>
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="complete"
+                        event="CompleteReRouteStateTransitionEvent" ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_UNAVAILABLE" on="complete"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="CMPL,UNAV"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_UNAVAILABLE" on="drop"
+                        event="DropContainerTransitionEvent BecomeUnAvailableStateTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV,CMPL"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="drop"
+                        event="DropContainerTransitionEvent" ecEventGeneratorArg="IDLE,DROP"/>
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="ecn4:drop"
+                        event="DropContainerTransitionEvent" ecEventGeneratorArg="IDLE,DROP"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_TO_DEST" on="ecn4:abandonJob"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_UNAVAILABLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_TO_DEST" on="ecn4:completeJob"
+                        event="UnDispatchWorkInstructionTransitionEvent"
+                        when="IsCheHasUnCompletedWorkInstructionsCondition"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_IDLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_TO_DEST" on="updatePosition"
+                        when="IsCheRemainUnmovedCondition" event="EmptyStateTransitionEvent"/>
+            <transition from="FORM_LADEN_TO_DEST" to="FORM_LADEN_AT_DEST" on="updatePosition"
+                        event="PositionUpdateTransitionEvent" postevent="RequestStraddleDropOrAvoidStackRefinementPostEvent" ecEventGeneratorArg="ATD"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="becomeUnavailable"
+                        event="BecomePendingUnAvailableStateTransitionEvent" ecEventGeneratorArg="PEND"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="cancel"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_UNAVAILABLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="cancel"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_JOB_LIST" on="complete"
+                        event="CompleteReRouteStateTransitionEvent" ecEventGeneratorArg="CMPL"
+                        when="IsCheInJobListModeCondition"/>
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="complete"
+                        event="CompleteReRouteStateTransitionEvent" ecEventGeneratorArg="IDLE,CMPL"/>
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_UNAVAILABLE" on="complete"
+                        event="BecomeUnAvailableStateTransitionEvent" ecEventGeneratorArg="CMPL,UNAV"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_UNAVAILABLE" on="drop"
+                        event="DropContainerTransitionEvent BecomeUnAvailableStateTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV,CMPL"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="drop"
+                        event="StraddleAtQuayOutOfSequenceEvent" when="IsStraddleAtQuayOutOfSequenceCondition"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="drop"
+                        event="DropContainerTransitionEvent" ecEventGeneratorArg="IDLE,DROP"/>
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="ecn4:drop"
+                        event="DropContainerTransitionEvent" ecEventGeneratorArg="IDLE,DROP"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="ecn4:abandonJob"
+                        event="CancelLadenWorkInstructionStateTransitionEvent"
+                        when="IsWorkInstructionCanceledCondition"/>
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="ecn4:abandonJob"
+                        event="CancelDispatchWorkAssignmentStateTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_UNAVAILABLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" when="IsCheStatusWantToQuitCondition"
+                        ecEventGeneratorArg="UNAV"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="ecn4:completeJob"
+                        event="UnDispatchWorkInstructionTransitionEvent"
+                        when="IsCheHasUnCompletedWorkInstructionsCondition"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_IDLE" on="ecn4:completeJob"
+                        event="CompleteJobTransitionEvent" ecEventGeneratorArg="IDLE"/>
+
+            <transition from="FORM_LADEN_AT_DEST" to="FORM_LADEN_AT_DEST" on="swapPosition"
+                        event="SwapPositionStateTransitionEvent"/>
+
+        </group>
+
+        <group name="straddle payload rehandle program">
+            <transition from="PROG_STRADDLE_PAYLOAD_REHANDLE" to="FORM_STRADDLE_REHANDLE_LIFT"/>
+
+            <transition from="FORM_STRADDLE_REHANDLE_LIFT" to="PREVIOUS" on="cancel"
+                        event="CancelRehandleStateTransitionEvent"/>
+
+            <!-- Resume partial lift -->
+            <transition from="FORM_STRADDLE_REHANDLE_LIFT" to="FORM_PARTIAL_TWIN_LIFT" on="complete"
+                        event="CompleteRehandleStateTransitionEvent"
+                        when="IsPartialRehandlePayloadCondition"/>
+            <transition from="FORM_STRADDLE_REHANDLE_LIFT" to="PROG_STRADDLE_DISPATCH" on="complete"
+                        event="CompleteRehandleStateTransitionEvent"/>
+
+            <!-- Resume partial lift -->
+            <transition from="FORM_STRADDLE_REHANDLE_LIFT" to="FORM_PARTIAL_TWIN_LIFT" on="drop"
+                        event="DropRehandleStateTransitionEvent"
+                        when="IsPartialRehandlePayloadCondition"/>
+            <transition from="FORM_STRADDLE_REHANDLE_LIFT" to="PROG_STRADDLE_DISPATCH" on="drop"
+                        event="DropRehandleStateTransitionEvent"/>
+        </group>
+
+        <group name="Truck confirm equipment pull program">
+            <transition from="PROG_CONFIRM_CONTAINER_PULLED" to="FORM_CONFIRM_CONTAINER_PULLED"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="PROG_TRUCK_DISPATCH" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_LADEN_TO_DEST" on="dispatch"
+                        event="DispatchStateTransitionEvent" ecEventGeneratorArg="DISP"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullAndSwapChassisTransitionEvent" when="IsPulledChassisSwapAllowedCondition" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullsBareChassisFromIdleTransitionEvent"
+                        when="IsConfirmingToPullBareChassisWithPlanCondition" ecEventGeneratorArg="LIFT"/>
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_PARK_TRAILER" on="pull"
+                        event="HandlePulledSwapNotAllowedEvent" when="IsPulledSwapNotAllowedCondition"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_IDLE" on="pull"
+                        event="TruckPullBareChassisTransitionEvent" when="IsTruckPullBareChassisRequiredCondition"
+                        ecEventGeneratorArg="IDLE"/>
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_CONFIRM_CONTAINER_PULLED" on="pull" event="EmptyStateTransitionEvent"
+                        when="IsConfirmRequiredPullCondition"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="TruckPullBareChassisTransitionEvent" when="IsITVRequireGetTrailerCondition IsPulledEquipmentWithoutPlanCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_EMPTY_TO_ORIGIN" on="pull"
+                        event="TruckPullBareChassisTransitionEvent" when="IsITVRequireGetTrailerCondition"/>
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_TRUCK_LADEN_TO_DEST" on="pull"
+                        event="TruckPullLadenChassisTransitionEvent" ecEventGeneratorArg="LIFT"
+                        ecEventGenerator="StandardJobstepEventGenerator"/>
+
+            <transition from="FORM_CONFIRM_CONTAINER_PULLED" to="FORM_CONFIRM_CONTAINER_PULLED" on="selectOption"
+                        event="EmptyStateTransitionEvent"/>
+        </group>
+
+    </transitions>
+
+</stateModel>
