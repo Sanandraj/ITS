@@ -625,8 +625,11 @@ class ITSDraymanGateAdaptor {
         return (IntegrationService) Roastery.getHibernateApi().getUniqueEntityByDomainQuery(dq);
     }
 
-    //public IntegrationServiceMessage createIntegrationSrcMsg(Event inEvent, String inEntityId, IntegrationService inIntegrationService, String inMessagePayload, String inEventGkey, String inRequestResponseId) {
     public IntegrationServiceMessage createIntegrationSrcMsg(IntegrationService inIntegrationService, String inMessagePayload, String truckTagId, String messageType) {
+        createIntegrationSrcMsg(inIntegrationService, inMessagePayload, truckTagId, messageType, null);
+    }
+
+    public IntegrationServiceMessage createIntegrationSrcMsg(IntegrationService inIntegrationService, String inMessagePayload, String truckTagId, String messageType, String responseMessage) {
         LOGGER.setLevel(Level.DEBUG);
         logMsg("createIntegrationSrcMsg");
         IntegrationServiceMessage integrationServiceMessage = new IntegrationServiceMessage();
@@ -648,10 +651,10 @@ class ITSDraymanGateAdaptor {
             integrationServiceMessage.setIsmUserString2(messageType);
             integrationServiceMessage.setIsmUserString5(T__SUCCESS);
 
-            /*if (inRequestResponseId) {
-                integrationServiceMessage.setIsmUserString2(inRequestResponseId);
+            if (responseMessage) {
+                integrationServiceMessage.setIsmUserString4(responseMessage);
             }
-            if (inEventGkey) {
+            /*if (inEventGkey) {
                 integrationServiceMessage.setIsmUserString3(inEventGkey);
             }*/
 
@@ -660,7 +663,12 @@ class ITSDraymanGateAdaptor {
 
             //logMsg("inMessagePayload length: " + inMessagePayload.length());
             integrationServiceMessage.setIsmMessagePayloadBig(inMessagePayload);
-            integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageSequenceProvider().getNextSequenceId());
+
+            if (T__DRAYMAN.equals(inIntegrationService.getIntservName())) {
+                integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageDraymanSequenceProvider().getNextSequenceId());
+            } else if (T__HKI.equals(inIntegrationService.getIntservName())) {
+                integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageHKISequenceProvider().getNextSequenceId());
+            }
 
             ScopeCoordinates scopeCoordinates = ContextHelper.getThreadUserContext().getScopeCoordinate();
             Long scopeLevel = ScopeCoordinates.GLOBAL_LEVEL;
@@ -687,11 +695,18 @@ class ITSDraymanGateAdaptor {
     }
 
 
-    public static class IntegrationServMessageSequenceProvider extends com.navis.argo.business.model.ArgoSequenceProvider {
+    public static class IntegrationServMessageDraymanSequenceProvider extends com.navis.argo.business.model.ArgoSequenceProvider {
         public Long getNextSequenceId() {
             return super.getNextSeqValue(serviceMsgSequence, (Long) ContextHelper.getThreadFacilityKey());
         }
         private String serviceMsgSequence = "DRAYMAN_SEQ";
+    }
+
+    public static class IntegrationServMessageHKISequenceProvider extends com.navis.argo.business.model.ArgoSequenceProvider {
+        public Long getNextSequenceId() {
+            return super.getNextSeqValue(serviceMsgSequence, (Long) ContextHelper.getThreadFacilityKey());
+        }
+        private String serviceMsgSequence = "HKI_SEQ";
     }
 
     private void logMsg(Object inMsg) {
@@ -786,6 +801,7 @@ class ITSDraymanGateAdaptor {
     private final String T__SITE_DEPARTURE = "SiteDeparture";
     private final String T__PICKUP = "Pickup";
 
+    private static final String T__HKI = "HKI";
 
     private static final String T_JDBC_PREFIX = "jdbc:";
     private static final String T_KALMAR = "KALMAR";
