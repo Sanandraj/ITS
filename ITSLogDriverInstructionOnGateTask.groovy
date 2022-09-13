@@ -39,6 +39,7 @@ class ITSLogDriverInstructionOnGateTask extends AbstractGateTaskInterceptor {
     private String GR_ID3_FORMAT = "STATUS_%s"
     @Override
     void execute(TransactionAndVisitHolder inWfCtx) {
+        LOGGER.setLevel(Level.DEBUG)
         TruckTransaction tran = inWfCtx.getTran();
         String grId2 = String.format(GR_ID2_FORMAT,tran.getTranStageId().toUpperCase(),tran.getTranSubType().getKey())
         List  genRef = GeneralReference.findAllEntriesById(GR_TYPE,GR_ID1,grId2)
@@ -56,17 +57,39 @@ class ITSLogDriverInstructionOnGateTask extends AbstractGateTaskInterceptor {
                         String[] params = ref.getRefValue4().split(",")
                          messageParam = new Object[params.size()]
                         for(int i =0;i < params.size(); i++){
-                            messageParam[i] = tran.getFieldValue(MetafieldIdFactory.valueOf(params[i]))
+                            /** If Value 3 is Y then read value directly from value 4 else read from field **/
+                            messageParam[i] = StringUtils.equalsIgnoreCase("Y",ref.getRefValue3()) ? params[i] :
+                                    tran.getFieldValue(MetafieldIdFactory.valueOf(params[i]))
                         }
                     }
                     /* Check if there are any fields to check for conditions */
                     if(StringUtils.isNotBlank(ref.getRefValue2())){
-                        LOGGER.debug("Condition to be checked - " + ref.getRefValue2() + "and value is - " + ref.getRefValue3())
-                        Object value = tran.getFieldValue(MetafieldIdFactory.valueOf(ref.getRefValue2()))
-                        if(value != null && value.toString() == ref.getRefValue3()){
+                        String[] fields = ref.getRefValue2().split(",")
+                        boolean hasSatisfiedAllConditions = true
+                        for(String field:fields){
+                            String[] keyAndValue = field.split("-")
+                            LOGGER.debug("Fields length - " + keyAndValue.length)
+                            if(keyAndValue.length == 2){
+                                Object value = tran.getFieldValue(MetafieldIdFactory.valueOf(keyAndValue[0]))
+                                hasSatisfiedAllConditions = hasSatisfiedAllConditions && (value != null && StringUtils.equalsIgnoreCase(value.toString(), keyAndValue[1]))
+
+                            }
+                            else if(keyAndValue.length == 1){
+                                Object value = tran.getFieldValue(MetafieldIdFactory.valueOf(keyAndValue[0]))
+                                hasSatisfiedAllConditions = hasSatisfiedAllConditions && value == null
+                            }
+                            LOGGER.debug("Condition to be checked - " + field)
+                        }
+                        if(hasSatisfiedAllConditions){
                             PropertyKey key = PropertyKeyFactory.valueOf(ref.getRefValue1())
                             RoadBizUtil.appendMessage(MessageLevel.INFO,key,messageParam)
                         }
+                        //LOGGER.debug("Condition to be checked - " + ref.getRefValue2() + "and value is - " + ref.getRefValue3())
+//                        Object value = tran.getFieldValue(MetafieldIdFactory.valueOf(ref.getRefValue2()))
+//                        if(value != null && value.toString() == ref.getRefValue3()){
+//                            PropertyKey key = PropertyKeyFactory.valueOf(ref.getRefValue1())
+//                            RoadBizUtil.appendMessage(MessageLevel.INFO,key,messageParam)
+//                        }
                     }
                     else{
                         PropertyKey key = PropertyKeyFactory.valueOf(ref.getRefValue1())
