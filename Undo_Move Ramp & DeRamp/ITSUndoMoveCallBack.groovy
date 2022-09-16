@@ -20,9 +20,8 @@ import org.apache.log4j.Logger
  * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
  * Date : 16/Sep/2022
  * Descreption: This code extension is used to undo a move like Rail Ramp/DeRamp
-   also stores the previous deleted move in a new UNDO event after successfully deleted of last move.
+ also stores the previous deleted move in a new UNDO event after successfully deleted of last move.
  */
-
 
 
 class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
@@ -73,7 +72,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                             String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
                                             if (moveEvent.evntFlexString02 == moveKind) {
                                                 throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId()
-                                                        + " as it is already undone")
+                                                        + " Move already undone")
                                             }
                                             if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
                                                 if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
@@ -92,16 +91,19 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                                     transitState = UfvTransitStateEnum.S20_INBOUND
                                                 }
 
-                                                ufv.ufvVisitState = visitState
-                                                ufv.ufvTransitState = transitState
-                                                ufv.ufvTimeIn = null
-                                                ufv.ufvVisibleInSparcs = (ufv.ufvVisitState == UnitVisitStateEnum.ACTIVE)
+                                                ufv.setUfvVisitState(visitState)
+                                                ufv.setUfvTransitState(transitState)
+                                                ufv.setUfvTimeIn(null)
+                                                if (ufv.ufvVisitState == UnitVisitStateEnum.ACTIVE) {
+                                                    ufv.setUfvVisibleInSparcs(true)
+                                                }
+
                                             }
                                             if (toPosition.getPosLocType() != LocTypeEnum.YARD && fromPosition.getPosLocType() == LocTypeEnum.YARD) {
-                                                ufv.ufvTransitState = UfvTransitStateEnum.S40_YARD
-                                                ufv.ufvVisitState = UnitVisitStateEnum.ACTIVE
-                                                ufv.ufvTimeOut = null
-                                                ufv.ufvVisibleInSparcs = true
+                                                ufv.setUfvTransitState(UfvTransitStateEnum.S40_YARD)
+                                                ufv.setUfvVisitState(UnitVisitStateEnum.ACTIVE)
+                                                ufv.setUfvTimeOut(null)
+                                                ufv.setUfvVisibleInSparcs(true)
                                                 ufv.getUfvUnit().setUnitVisitState(UnitVisitStateEnum.ACTIVE);
                                                 HibernateApi.getInstance().save(ufv.getUfvUnit());
                                             }
@@ -111,11 +113,11 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                             infoFromMoveEvent.setTimePut(currentTime);
 
                                             MoveEvent newMoveEvent = MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
-                                            newMoveEvent.evntFlexString01 = moveEvent.getPrimaryKey()
+                                            newMoveEvent.setEvntFlexString01(moveEvent.getPrimaryKey().toString())
                                             Event.hydrate(moveEvent.getPrimaryKey()).purge();
                                         }
-                                        ufv.ufvLastKnownPosition = fromPosition
-                                        ufv.ufvTimeOfLastMove = currentTime
+                                        ufv.setUfvLastKnownPosition(fromPosition)
+                                        ufv.setUfvTimeOfLastMove(currentTime)
                                         HibernateApi.getInstance().save(ufv);
                                         successCount++
                                     }
