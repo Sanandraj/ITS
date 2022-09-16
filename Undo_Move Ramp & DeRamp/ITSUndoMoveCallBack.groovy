@@ -16,16 +16,25 @@ import com.navis.services.business.rules.EventType
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/**
+ * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+ * Date : 16/Sep/2022
+ * Descreption: This code extension is used to undo a move like Rail Ramp/DeRamp
+   also stores the previous deleted move in a new UNDO event after successfully deleted of last move.
+ */
+
+
+
 class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
     private static Logger LOGGER = Logger.getLogger(ITSUndoMoveCallBack.class);
 
     @Override
     public void execute(Map inParams, Map inOutResults) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("inParams" + inParams)
         LOGGER.debug("inOutResults" + inOutResults)
         int successCount = 0;
-        String errorMsg = "";
+        String errorMessage = "";
         MoveEvent moveEvent = null
         if (inParams != null) {
             List<Serializable> inGkeys = (List<Serializable>) inParams.get("gkeys");
@@ -49,46 +58,46 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                         }
                                     }
                                     if (moveEvent != null) {
-                                        MoveInfoBean moveInfoBean = MoveInfoBean.extractMoveInfoFromMoveEvent(moveEvent);
-                                        LocPosition oldPos = moveEvent.getMveToPosition();
-                                        LocPosition newPos = moveEvent.getMveFromPosition();
-                                        Date newDate = null;
+                                        MoveInfoBean infoFromMoveEvent = MoveInfoBean.extractMoveInfoFromMoveEvent(moveEvent);
+                                        LocPosition toPosition = moveEvent.getMveToPosition();
+                                        LocPosition fromPosition = moveEvent.getMveFromPosition();
+                                        Date currentTime = null;
                                         if (moveEvent != MoveEvent.getLastMoveEvent(ufv)) {
                                             throw new Exception(
-                                                    "[FAILED] " + ufv.getUfvUnit().getUnitId() + " only the last move and be UNDONE")
+                                                    "[FAILED] " + ufv.getUfvUnit().getUnitId() + " Last move doesn't match the UNDO move")
                                         }
-                                        CarrierVisitPhaseEnum ibPhase = ufv.getUfvActualIbCv().getCvVisitPhase()
-                                        UfvTransitStateEnum tState;
-                                        UnitVisitStateEnum vState;
-                                        if (moveInfoBean.getMoveKind() != null && moveInfoBean.getMoveKind() != WiMoveKindEnum.Other) {
-                                            String operation = moveInfoBean.getMoveKind().getKey() + "_UNDONE";
-                                            if (moveEvent.evntFlexString02 == operation) {
-                                                throw new Exception("[FAILED] " + operation + ": " + ufv.getUfvUnit().getUnitId()
+                                        CarrierVisitPhaseEnum ibVisitPhase = ufv.getUfvActualIbCv().getCvVisitPhase()
+                                        UfvTransitStateEnum transitState;
+                                        UnitVisitStateEnum visitState;
+                                        if (infoFromMoveEvent.getMoveKind() != null && infoFromMoveEvent.getMoveKind() != WiMoveKindEnum.Other) {
+                                            String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
+                                            if (moveEvent.evntFlexString02 == moveKind) {
+                                                throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId()
                                                         + " as it is already undone")
                                             }
-                                            if (LocTypeEnum.YARD.equals(oldPos.getPosLocType()) && !LocTypeEnum.YARD.equals(newPos.getPosLocType())) {
-                                                if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibPhase)) {
-                                                    throw new Exception("[FAILED] " + operation + ": " + ufv.getUfvUnit().getUnitId() + " due to departed carrier")
+                                            if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
+                                                if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
+                                                    throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
                                                 }
                                             }
-                                            if (oldPos.getPosLocType() == LocTypeEnum.YARD && newPos.getPosLocType() !=
+                                            if (toPosition.getPosLocType() == LocTypeEnum.YARD && fromPosition.getPosLocType() !=
                                                     LocTypeEnum.YARD) {
-                                                if (ibPhase == CarrierVisitPhaseEnum.CREATED) {
-                                                    vState = UnitVisitStateEnum.ADVISED
-                                                    tState = UfvTransitStateEnum.S10_ADVISED
+                                                if (ibVisitPhase == CarrierVisitPhaseEnum.CREATED) {
+                                                    visitState = UnitVisitStateEnum.ADVISED
+                                                    transitState = UfvTransitStateEnum.S10_ADVISED
                                                 }
-                                                if (ibPhase == CarrierVisitPhaseEnum.INBOUND ||
-                                                        [CarrierVisitPhaseEnum.ARRIVED, CarrierVisitPhaseEnum.WORKING].contains(ibPhase)) {
-                                                    vState = UnitVisitStateEnum.ACTIVE
-                                                    tState = UfvTransitStateEnum.S20_INBOUND
+                                                if (ibVisitPhase == CarrierVisitPhaseEnum.INBOUND ||
+                                                        [CarrierVisitPhaseEnum.ARRIVED, CarrierVisitPhaseEnum.WORKING].contains(ibVisitPhase)) {
+                                                    visitState = UnitVisitStateEnum.ACTIVE
+                                                    transitState = UfvTransitStateEnum.S20_INBOUND
                                                 }
 
-                                                ufv.ufvVisitState = vState
-                                                ufv.ufvTransitState = tState
+                                                ufv.ufvVisitState = visitState
+                                                ufv.ufvTransitState = transitState
                                                 ufv.ufvTimeIn = null
                                                 ufv.ufvVisibleInSparcs = (ufv.ufvVisitState == UnitVisitStateEnum.ACTIVE)
                                             }
-                                            if (oldPos.getPosLocType() != LocTypeEnum.YARD && newPos.getPosLocType() == LocTypeEnum.YARD) {
+                                            if (toPosition.getPosLocType() != LocTypeEnum.YARD && fromPosition.getPosLocType() == LocTypeEnum.YARD) {
                                                 ufv.ufvTransitState = UfvTransitStateEnum.S40_YARD
                                                 ufv.ufvVisitState = UnitVisitStateEnum.ACTIVE
                                                 ufv.ufvTimeOut = null
@@ -96,17 +105,17 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                                 ufv.getUfvUnit().setUnitVisitState(UnitVisitStateEnum.ACTIVE);
                                                 HibernateApi.getInstance().save(ufv.getUfvUnit());
                                             }
-                                            moveInfoBean.setMoveKind(WiMoveKindEnum.Other)
+                                            infoFromMoveEvent.setMoveKind(WiMoveKindEnum.Other)
                                             Calendar calendar = Calendar.getInstance(ContextHelper.getThreadUserTimezone());
-                                            newDate = calendar.getTime();
-                                            moveInfoBean.setTimePut(newDate);
+                                            currentTime = calendar.getTime();
+                                            infoFromMoveEvent.setTimePut(currentTime);
 
-                                            MoveEvent newMoveEvent = MoveEvent.recordMoveEvent(ufv, oldPos, newPos, moveEvent.getMveCarrier(), moveInfoBean, EventEnum.UNIT_RECTIFY)
+                                            MoveEvent newMoveEvent = MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
                                             newMoveEvent.evntFlexString01 = moveEvent.getPrimaryKey()
                                             Event.hydrate(moveEvent.getPrimaryKey()).purge();
                                         }
-                                        ufv.ufvLastKnownPosition = newPos
-                                        ufv.ufvTimeOfLastMove = newDate
+                                        ufv.ufvLastKnownPosition = fromPosition
+                                        ufv.ufvTimeOfLastMove = currentTime
                                         HibernateApi.getInstance().save(ufv);
                                         successCount++
                                     }
@@ -114,7 +123,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                             }
                         }
                         catch (Exception e) {
-                            errorMsg = errorMsg + "\n" + e.message
+                            errorMessage = errorMessage + "\n" + e.message
                         }
                     }
                 }
@@ -123,7 +132,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                 LOGGER.debug("Exception " + inEx.toString())
             }
         }
-        inOutResults.put("ErrorMsg", errorMsg);
+        inOutResults.put("ErrorMsg", errorMessage);
         inOutResults.put("Success", successCount);
     }
 }

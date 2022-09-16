@@ -13,12 +13,18 @@ import com.navis.framework.util.message.MessageCollector
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/**
+ * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+ * Date : 16/Sep/2022
+ * Table view command groovy to undo a move. Calls UndoMoveCallBack
+ */
+
 class ITSUndoRampMoveTableViewCommand extends AbstractTableViewCommand {
     private static Logger LOGGER = Logger.getLogger(ITSUndoRampMoveTableViewCommand.class);
 
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSUndoRampMoveTableViewCommand Execution starts")
         Map inParam = new HashMap();
         Map outParam = new HashMap();
