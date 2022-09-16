@@ -10,7 +10,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
+ * @Author <a href="mailto:skishore@weservetech.com">Kishore.S.K.</a>
  */
 
 class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtension {
@@ -19,21 +19,13 @@ class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtens
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSReeferEventRecordGeneralNotice Starts :: ")
         Unit unit = (Unit) inGroovyEvent.getEntity()
-        LOGGER.debug("unit :: "+unit)
-        String eventType = inGroovyEvent.getEvent().getEventTypeId()
-        LOGGER.debug("eventType ::"+eventType)
-        for (UnitFacilityVisit ufv : (unit.getUnitUfvSet() as List<UnitFacilityVisit>)){
-            LOGGER.debug("Inside for")
+        UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
+        /*for (UnitFacilityVisit ufv : (unit.getUnitUfvSet() as List<UnitFacilityVisit>)){*/
             ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
-            LOGGER.debug("Field Id 1")
             UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
-            LOGGER.debug("Settings 1")
             unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
-            //UnitEventExtractManager.createChargeableReeferStorageEvent(ufv,unit,inGroovyEvent.getEvent(),null,null)
-            //unit.recordUnitEvent(EventType.findEventType("REEFER"),null,null)
             HibernateApi.getInstance().flush()
-            LOGGER.debug("COde Ends")
-        }
+        /*}*/
     }
     private static final Logger LOGGER = Logger.getLogger(ITSReeferEventRecordGeneralNotice.class)
 }
