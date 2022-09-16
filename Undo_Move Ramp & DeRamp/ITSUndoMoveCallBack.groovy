@@ -70,10 +70,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                         UnitVisitStateEnum visitState;
                                         if (infoFromMoveEvent.getMoveKind() != null && infoFromMoveEvent.getMoveKind() != WiMoveKindEnum.Other) {
                                             String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
-                                            if (moveEvent.evntFlexString02 == moveKind) {
-                                                throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId()
-                                                        + " Move already undone")
-                                            }
                                             if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
                                                 if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
                                                     throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
@@ -112,8 +108,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                             currentTime = calendar.getTime();
                                             infoFromMoveEvent.setTimePut(currentTime);
 
-                                            MoveEvent newMoveEvent = MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
-                                            newMoveEvent.setEvntFlexString01(moveEvent.getPrimaryKey().toString())
+                                            MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
                                             Event.hydrate(moveEvent.getPrimaryKey()).purge();
                                         }
                                         ufv.setUfvLastKnownPosition(fromPosition)
