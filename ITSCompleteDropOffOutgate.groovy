@@ -1,4 +1,12 @@
+import com.navis.argo.ContextHelper
+import com.navis.argo.business.reference.Container
+import com.navis.argo.business.reference.Equipment
 import com.navis.external.road.AbstractGateTaskInterceptor
+import com.navis.framework.business.Roastery
+import com.navis.framework.metafields.MetafieldIdFactory
+import com.navis.inventory.business.api.UnitFinder
+import com.navis.inventory.business.units.Unit
+import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.road.business.atoms.TranStatusEnum
 import com.navis.road.business.atoms.TransactionClassEnum
 import com.navis.road.business.model.TruckTransaction
@@ -25,10 +33,20 @@ class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor{
                 for (TruckTransaction tran : dropOffContainers) {
                     if(TranStatusEnum.OK.equals(tran.getTranStatus())) {
                         tran.setTranStatus(TranStatusEnum.COMPLETE)
+                        String containerId= tran.getTranContainer().getEqIdFull()
+                        Container container = Container.findContainer(containerId)
+                        Equipment equipment = container != null ? Equipment.findEquipment(container) : null
+                        Unit unit = getFinder().findActiveUnit(ContextHelper.getThreadComplex(),equipment)
+                        LOGGER.debug("Unit :: "+unit)
+                        unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"true")
+                        LOGGER.debug("containerId :: "+containerId)
                         LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
                     }
                 }
             }
         }
+    }
+    private static UnitFinder getFinder() {
+        return (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
     }
 }
