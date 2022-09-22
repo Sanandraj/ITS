@@ -1,34 +1,46 @@
-import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.road.AbstractGateTaskInterceptor
+import com.navis.framework.business.Roastery
+import com.navis.framework.metafields.MetafieldIdFactory
+import com.navis.inventory.business.api.UnitFinder
+import com.navis.inventory.business.units.Unit
+import com.navis.road.business.atoms.TranStatusEnum
+import com.navis.road.business.atoms.TransactionClassEnum
 import com.navis.road.business.model.TruckTransaction
+import com.navis.road.business.model.TruckVisitDetails
 import com.navis.road.business.workflow.TransactionAndVisitHolder
-import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- *  @Author <a href="mailto:skishore@weservetech.com">Kishore Kumar S</a>
+ * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
-
-class ITSRejectGateInOnLateReceivalCutOff extends AbstractGateTaskInterceptor {
-    @Override
+class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor{
+    private static final Logger LOGGER = Logger.getLogger(ITSCompleteDropOffOutGate.class)
     void execute(TransactionAndVisitHolder inWfCtx) {
         LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug( "b STARTS::")
-        TruckTransaction tran = inWfCtx.getTran()
-        if (tran.getTranAppointment().getGapptVesselVisit() != null){
-            Serializable vvd = tran.getTranAppointment().getGapptVesselVisit().getCvGkey()
-            LOGGER.debug("vvd :: "+vvd)
-            VesselVisitDetails vesselVisitDetails = VesselVisitDetails.hydrate(vvd)
-            LOGGER.debug("vesselVisitDetails :: "+vesselVisitDetails)
-            TimeZone timeZone = ContextHelper.getThreadUserTimezone();
-            LOGGER.debug("timeZone :: "+timeZone)
-            if (vesselVisitDetails.getVvFlexDate01().after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                executeInternal(inWfCtx)
-                LOGGER.debug("***** correctTime Loop *****")
+        LOGGER.debug("ITSCompleteDropOffOutGate Starts::")
+        TruckTransaction truckTransaction = inWfCtx.getTran()
+        if (truckTransaction != null && truckTransaction.isDelivery()) {
+            TruckVisitDetails truckVisitDetails = truckTransaction.getTranTruckVisit()
+            LOGGER.debug("truckVisitDetails :: "+truckVisitDetails)
+            if (truckVisitDetails != null) {
+                Set<TruckTransaction> dropOffContainers = truckVisitDetails.getTransactionsToBeHandled(TransactionClassEnum.DROPOFF)
+                LOGGER.debug("dropOffContainers :: "+dropOffContainers)
+                for (TruckTransaction tran : dropOffContainers) {
+                    Unit unit = tran.getTranUnit()
+                    if (unit != null){
+                        if(TranStatusEnum.OK.equals(tran.getTranStatus())) {
+                            tran.setTranStatus(TranStatusEnum.COMPLETE)
+                            LOGGER.debug("Unit :: "+unit)
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"Yes")
+                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
+                        }else {
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"No")
+                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
+                        }   
+                    }
+                }
             }
         }
     }
-    private static Logger LOGGER = Logger.getLogger(ITSRejectGateInOnLateReceivalCutOff.class)
 }
