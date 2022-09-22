@@ -71,7 +71,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     logMsg("fromPos: " + wi.getWiFromPosition() + ", toPos: " + wi.getWiToPosition() + ", wiPos: "+wi.getWiPosition());
                 }
 
-            } else if (T_IDLE == ecEventTypeDesc) { // Available
+            } else if (T_IDLE == ecEventTypeDesc || T_AVAL == ecEventTypeDesc) { // Available
                 message = frameMessage(buildFirstLine(cheId, null, chePowName), LINE_EMPTY, LINE_WAITING_FOR, LINE_EMPTY, LINE_JOB_INSTRUCTION, LINE_EMPTY, LINE_EMPTY, LINE_EMPTY);
 
              } else if (T_TVCO == ecEventTypeDesc || T_TRCO == ecEventTypeDesc) { // Truck assigned job 1,2
@@ -88,7 +88,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     wiCarrierLocId = wi.getWiCarrierLocId();
                     Che fetchChe = wi.getMvhsFetchChe();
                     logMsg("fetchChe: "+fetchChe);
-                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_FOUR_SPACE;
+                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_UNKNOWN;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
@@ -165,7 +165,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 List<WorkInstruction> wiList = WorkInstruction.findAssociatedWorkInstruction(ecEvent.getEceventWorkAssignmentGkey());
                 logMsg("WI list: "+wiList);
 
-                String fetchCheId, wiCarrierLocId, unitType;
+                String fetchCheId, wiCarrierLocId, unitType, powName;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
                 //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
@@ -173,15 +173,25 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 for (WorkInstruction wi : wiList) {
                     counter++;
                     wiCarrierLocId = wi.getWiCarrierLocId();
-                    Che fetchChe = wi.getMvhsFetchChe();
+
+                    try {
+                        powName = wi.getWiWorkQueue().getWqFirstRelatedShift().getWorkshiftOwnerPow().getPointofworkName();
+                    } catch (Exception e) {
+                        LOGGER.error("powName retrieval failed : "+e.getMessage());
+                        powName = T_EMPTY;
+                    }
+
+                    /*Che fetchChe = wi.getMvhsFetchChe();
                     logMsg("fetchChe: "+fetchChe);
-                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_FOUR_SPACE;
+                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_FOUR_SPACE;*/
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
-                        line3 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
+                        //line3 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
+                        line3 = String.format(LINE_WAIT_AT_FOR, powName, unitType);
                     } else {
-                        line5 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
+                        //line5 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
+                        line5 = String.format(LINE_WAIT_AT_FOR, powName, unitType);
                     }
                 }
                 logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
@@ -251,7 +261,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 List<WorkInstruction> wiList = WorkInstruction.findAssociatedWorkInstruction(ecEvent.getEceventWorkAssignmentGkey());
                 logMsg("WI list: "+wiList);
 
-                String fetchCheId, wiCarrierLocId, unitType;
+                String putCheId, wiCarrierLocId, unitType;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
                 //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
@@ -260,18 +270,18 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     counter++;
                     //LocPosition position = wi.getWiPosition();
                     wiCarrierLocId = wi.getWiCarrierLocId();
-                    Che fetchChe = wi.getMvhsFetchChe();
-                    logMsg("fetchChe: "+fetchChe);
-                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_FOUR_SPACE;
+                    Che putChe = wi.getMvhsPutChe();
+                    logMsg("putChe: "+putChe);
+                    putCheId = putChe? putChe.getCheShortName() : T_UNKNOWN;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
-                        line3 = String.format(LINE_GOTO_WITH, fetchCheId, wi.getWiUfv().getUfvUnit().getUnitId());
+                        line3 = String.format(LINE_GOTO_WITH, putCheId, wi.getWiUfv().getUfvUnit().getUnitId());
                     } else {
-                        line5 = String.format(LINE_GOTO_WITH, fetchCheId, wi.getWiUfv().getUfvUnit().getUnitId());
+                        line5 = String.format(LINE_GOTO_WITH, putCheId, wi.getWiUfv().getUfvUnit().getUnitId());
                     }
                 }
-                logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
+                logMsg("putCheId: " + putCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
                         wrapSpace(line3),
@@ -347,7 +357,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     wiContainerId = wi.getWiUfv().getUfvUnit().getUnitId();
                     Che putChe = wi.getMvhsPutChe();
                     logMsg("putChe: "+putChe);
-                    putCheId = putChe? putChe.getCheShortName() : T_EMPTY;
+                    putCheId = putChe? putChe.getCheShortName() : T_UNKNOWN;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
@@ -398,7 +408,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     if (counter == 1) {
                         if (position.isWheeled() || position.isWheeledHeap()) {
                             line3 = String.format(LINE_PARK, wiContainerId, (position? position.getBlockName() : T_EMPTY));
-                            line4 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
+                            //line4 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
                         } else {
                             line3 = String.format(LINE_WAIT_AT, formatPosition(position), wiContainerId, getUnitPod(unit)); //POD
                             line4 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
@@ -406,7 +416,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     } else {
                         if (position.isWheeled() || position.isWheeledHeap()) {
                             line7 = String.format(LINE_PARK, wiContainerId, (position? position.getBlockName() : T_EMPTY));
-                            line8 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
+                            //line8 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
                         } else {
                             line7 = String.format(LINE_WAIT_AT, formatPosition(position), wiContainerId, getUnitPod(unit)); //POD
                             line8 = putCheId? String.format(LINE_CHE, putCheId) : LINE_EMPTY;
@@ -497,6 +507,9 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("posArray: "+posArray)
                 if (posArray.size() > 1) {
                     return posArray[0] + T_DOT + posArray[1]
+
+                } else if (posArray.size() == 1) {
+                    return posArray[0]
                 }
             }
         } catch (Exception e) {
@@ -588,12 +601,17 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
 
     private String wrapSpace(String inMessage) {
         if (inMessage) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(inMessage);
-            for (int i = COLUMN_COUNT_LIMIT; i > inMessage.length(); i--) {
-                sb.append(T_SPACE);
+            if (inMessage.length() > 30) {
+                return inMessage.substring(0, 30);
+
+            } else {
+                StringBuilder sb = new StringBuilder();
+                sb.append(inMessage);
+                for (int i = COLUMN_COUNT_LIMIT; i > inMessage.length(); i--) {
+                    sb.append(T_SPACE);
+                }
+                return sb.toString();
             }
-            return sb.toString();
         } else {
             return LINE_EMPTY;
         }
@@ -619,7 +637,8 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String DEFAULT_TRANSACTION_NBR = "1234567890";
     private static final String T_FT = "ft";
     private static final String T_EMPTY = "";
-    private static final String T_UNKNOWN   = "UNKNOWN";
+    //private static final String T_UNKNOWN   = "UNKNOWN";
+    private static final String T_UNKNOWN   = "XXXX";
     private static final String T_FOUR_SPACE   = "    ";
     private static final String T_FIVE_SPACE   = "     ";
     private static final String T_ELEVEN_SPACE = "           ";
@@ -635,14 +654,14 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String LINE_CHE          = "CHE: %s                     ";
     private static final String LINE_WAITING_FOR  = "WAITING FOR                   ";
     private static final String LINE_WAIT_AT_WITH = "WAIT AT %s WITH %s";
-    private static final String LINE_WAIT_AT      = "WAIT AT %s %s %s    "; //block, bay, container, MEM/HOU
-    private static final String LINE_WAIT_AT_FOR  = "WAIT AT %s FOR %s   ";
+    private static final String LINE_WAIT_AT      = "WAIT AT %s %s %s"; //block, bay, container, MEM/HOU
+    private static final String LINE_WAIT_AT_FOR  = "WAIT AT %s FOR %s";
     private static final String LINE_AT_FOR       = "AT %s FOR %s     ";
-    private static final String LINE_PARK         = "PARK %s FOR %s     ";
+    private static final String LINE_PARK         = "PARK %s AT %s     ";
     private static final String LINE_JOB_INSTRUCTION  = "JOB INSTRUCTION               ";
 
     private String LINE_GOTO      = "GOTO %s FOR %s";
-    private String LINE_GOTO_SLOT = "GOTO %s.%s FOR %s";
+    private String LINE_GOTO_SLOT = "GOTO %s FOR %s";
     private String LINE_GOTO_SLOT_WHEELED = "GOTO %s FOR %s";
     private String LINE_GOTO_WITH = "GO TO %s WITH %s";
     //private String LINE_TAKE           = "TAKE %s TO %s.%s";
@@ -662,6 +681,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String T_LGOF = "LGOF";
     private static final String T_UNAV = "UNAV";
     private static final String T_IDLE = "IDLE";
+    private static final String T_AVAL = "AVAL";
     private static final String T_TRCO = "TRCO";
     private static final String T_TVCO = "TVCO";
     private static final String T_TYCO = "TYCO";
