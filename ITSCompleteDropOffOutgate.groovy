@@ -32,12 +32,12 @@ class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor{
                         if(TranStatusEnum.OK.equals(tran.getTranStatus())) {
                             tran.setTranStatus(TranStatusEnum.COMPLETE)
                             LOGGER.debug("Unit :: "+unit)
-                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"Yes")
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"YES")
                             LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
                         }else {
-                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"No")
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"NO")
                             LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
-                        }   
+                        }
                     }
                 }
             }
