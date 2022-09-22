@@ -9,9 +9,9 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
-* @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
+* @Author <a href="mailto:skishore@weservetech.com">Kishore Kumar S</a>
 * Date: 19/04/2022
-* Requirements:- Appointment validation should look at Visit Start time if Driver is late at the ingate
+* Requirements:- Appointment validation should look at Visit Start time if Driver is late at the in-gate
 * @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR --> Paste this code (ITSApptmntGateInApprovalGateTaskInterceptor.groovy)
 */
 
@@ -24,25 +24,22 @@ class ITSApptmntGateInApprovalGateTaskInterceptor extends AbstractGateTaskInterc
         TruckTransaction tran = inWfCtx.getTran()
         TruckVisitDetails truckDetails = inWfCtx.getTv()
         TruckTransactionStage truckVisitDetailsList= truckDetails.findTruckVisitsTranStages().get(0)
-        long timeStart= truckVisitDetailsList.getTtstageStart().time
+        Date timeStart= truckVisitDetailsList.getTtstageStart()
         LOGGER.debug("timeStart ::"+timeStart)
-        Date timeStartDate=new Date(timeStart)
-        LOGGER.debug("timeStartDate :: "+timeStartDate)
-        String dateStringFormat =  timeStartDate.format("yyyy-MM-dd hh:mm").toString()
-        LOGGER.debug("dateStringFormat :: "+dateStringFormat)
         if (tran.getTranAppointment() != null){
-            LOGGER.debug("Gappt Time Slot booked ::"+tran.getTranAppointment().getGapptTimeSlot())
-            boolean driverIsLate = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStartDate)
+            LOGGER.debug("Gate appointment Time Slot booked ::"+tran.getTranAppointment().getGapptTimeSlot())
+            boolean driverIsLate = tran.getTranAppointment().getGapptTimeSlot().isLate(timeStart)
             LOGGER.debug("Is Driver Late:::"+driverIsLate)
             if (!driverIsLate){
-                LOGGER.debug("***** In correctTime Loop *****")
-                tran.recordStageCompleted("ingate")
-                LOGGER.debug("*** Saved Transaction ***")
-            }
-            else {
                 LOGGER.debug("***** In lateTime Loop *****")
                 tran.cancelTransaction()
                 getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("Driver is Late to the Terminal against fixed appointment slot"),"Please contact Administration")
+
+            }
+            else {
+                LOGGER.debug("***** correctTime Loop *****")
+                tran.recordStageCompleted("ingate")
+                LOGGER.debug("*** Saved Transaction ***")
             }
         }
     }
