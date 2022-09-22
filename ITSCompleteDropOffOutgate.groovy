@@ -35,12 +35,26 @@ class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor{
                         tran.setTranStatus(TranStatusEnum.COMPLETE)
                         String containerId= tran.getTranContainer().getEqIdFull()
                         Container container = Container.findContainer(containerId)
-                        Equipment equipment = container != null ? Equipment.findEquipment(container) : null
+                        Equipment equipment = container != null ? Equipment.findEquipment(containerId) : null
                         Unit unit = getFinder().findActiveUnit(ContextHelper.getThreadComplex(),equipment)
                         LOGGER.debug("Unit :: "+unit)
-                        unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"true")
-                        LOGGER.debug("containerId :: "+containerId)
-                        LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
+                        if (unit!=null){
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"Yes")
+                            LOGGER.debug("containerId :: "+containerId)
+                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
+                        }
+                        
+                    }else {
+                        String containerId= tran.getTranContainer().getEqIdFull()
+                        Container container = Container.findContainer(containerId)
+                        Equipment equipment = container != null ? Equipment.findEquipment(containerId) : null
+                        Unit unit = getFinder().findActiveUnit(ContextHelper.getThreadComplex(),equipment)
+                        LOGGER.debug("Unit :: "+unit)
+                        if (unit!=null){
+                            unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"No")
+                            LOGGER.debug("containerId :: "+containerId)
+                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
+                        }
                     }
                 }
             }
