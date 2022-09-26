@@ -26,18 +26,12 @@ class ITSRejectGateInOnLateReceivalCutOff extends AbstractGateTaskInterceptor {
             LOGGER.debug("vesselVisitDetails :: "+cv)
             VesselVisitDetails vvd= VesselVisitDetails.resolveVvdFromCv(tran.getTranAppointment().getGapptVesselVisit())
             TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-            if (vvd.getVvFlexDate01() != null){
-                if ((ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)).after(vvd.getVvFlexDate01())){
-                    LOGGER.debug("Inside after cutoff")
-                    executeInternal(inWfCtx)
-                }
-                /*else {
-                    new GroovyApi().registerError("Contact Administration - Late-Receival Cutoff Past")
-                }*/
-            }
-            else {
+            if (vvd.getVvFlexDate01() == null || (ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)).after(vvd.getVvFlexDate01())){
                 executeInternal(inWfCtx)
             }
+            /*else {
+                    new GroovyApi().registerError("Contact Administration - Late-Receival Cutoff Past")
+            }*/
         }
     }
     private static Logger LOGGER = Logger.getLogger(ITSRejectGateInOnLateReceivalCutOff.class)
