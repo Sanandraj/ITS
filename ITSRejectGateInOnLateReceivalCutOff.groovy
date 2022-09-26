@@ -11,6 +11,7 @@ import org.apache.log4j.Logger
 
 /**
  *  @Author <a href="mailto:skishore@weservetech.com">Kishore Kumar S</a>
+ *  Description : Validating Late Receival Cut-Off date from Vessel Visit details .
  */
 
 class ITSRejectGateInOnLateReceivalCutOff extends AbstractGateTaskInterceptor {
