@@ -27,6 +27,12 @@ import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+
+/**
+ * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
+ * Description: This Code will be paste against Table view Command Extension Type in Code extension - This Code will cancel/reduce bookings of the selected vessel visit
+ * */
+
 class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
