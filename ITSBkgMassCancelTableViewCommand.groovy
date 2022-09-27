@@ -13,6 +13,11 @@ import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/**
+ * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
+ * Description: This Code will be paste against TTable View Command Extension Type in Code extension - This Code will cancel all selected bookings.
+ * */
+
 class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
