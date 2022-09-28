@@ -42,6 +42,10 @@ class ITSLogDriverInstructionOnGateTask extends AbstractGateTaskInterceptor {
         LOGGER.setLevel(Level.DEBUG)
         TruckTransaction tran = inWfCtx.getTran();
         String grId2 = String.format(GR_ID2_FORMAT,tran.getTranStageId().toUpperCase(),tran.getTranSubType().getKey())
+        tran.getTranStageId()
+        LOGGER.debug("Current Stage Id - " + tran.getTranStageId().toUpperCase())
+        LOGGER.debug("Next Stage Id - " + tran.getTranStageId().toUpperCase())
+        LOGGER.debug("ID2 - " + grId2)
         List  genRef = GeneralReference.findAllEntriesById(GR_TYPE,GR_ID1,grId2)
 
         if(genRef != null && !genRef.isEmpty()){
@@ -60,6 +64,7 @@ class ITSLogDriverInstructionOnGateTask extends AbstractGateTaskInterceptor {
                             /** If Value 3 is Y then read value directly from value 4 else read from field **/
                             messageParam[i] = StringUtils.equalsIgnoreCase("Y",ref.getRefValue3()) ? params[i] :
                                     tran.getFieldValue(MetafieldIdFactory.valueOf(params[i]))
+                            LOGGER.debug("Parameter Name - " + params[i] + ", Value - " + messageParam[i])
                         }
                     }
                     /* Check if there are any fields to check for conditions */

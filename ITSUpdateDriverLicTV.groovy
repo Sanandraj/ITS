@@ -29,7 +29,6 @@ class ITSUpdateDriverLicTV extends AbstractGateTaskInterceptor{
         LOGGER.setLevel(Level.DEBUG)
         TruckVisitDetails tvWS = inWfCtx.getTv()
         if(tvWS != null){
-            tvWS.setTvdtlsFlexString01(null)
             String driverLicense = tvWS.getTvdtlsFlexString01()
             Boolean hasTruckVisit = false
             if(StringUtils.isNotBlank(driverLicense)){
@@ -47,6 +46,7 @@ class ITSUpdateDriverLicTV extends AbstractGateTaskInterceptor{
                                 if(isValidDriver){
                                     LOGGER.info("Found driver with lic. - " + driverLicense)
                                     tvWS.setTvdtlsDriver(driver)
+
                                     HibernateApi.getInstance().save(tvWS)
                                     LOGGER.info("Driver details saved")
                                 }
