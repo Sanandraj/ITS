@@ -31,6 +31,7 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                 if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
                     Iterator it = inGkeys.iterator()
                     long count =0
+                    long errorCount = 0
                     boolean error = false
                     boolean bkgCancel = false
                     while(it.hasNext()){
@@ -38,7 +39,7 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                         VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         if (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
-                                vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
+                                vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
                             if (booking!=null && booking.getEqboNbr()!=null ){
                                 if (booking.eqoTallyReceive == 0){
                                     PersistenceTemplate template = new PersistenceTemplate(getUserContext())
@@ -54,15 +55,17 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                             }
                         }
                         else {
-                            error = true
-                            count = count+1
+                            errorCount = errorCount+1
+                            if (count == 0){
+                                error = true
+                            }
                         }
                     }
-                    if (bkgCancel){
-                        informationBox(count)
+                    if (!bkgCancel){
+                        informationBox(count,Long.valueOf(inGkeys.size()))
                     }
-                    if (error){
-                        OptionDialog.showError(PropertyKeyFactory.valueOf("Cannot Perform Mass Cancel for selected ${count} Bookings"),PropertyKeyFactory.valueOf("Error"))
+                    if (bkgCancel){
+                        informationBox(count,errorCount)
                     }
                 }
                 else {
@@ -71,8 +74,8 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
             }
         })
     }
-    private static final informationBox(long count){
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count} Bookings Cancelled"),PropertyKeyFactory.valueOf("Complete"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
+    private static final informationBox(long count,long errorCount){
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count}, Cutoff Passed for visits - ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
     }
     private final static Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
 }
