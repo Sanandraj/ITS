@@ -75,6 +75,8 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                                             bkgNbrNull = false
                                                             if (booking.eqoTallyReceive == 0){
                                                                 LOGGER.debug("Tally Receive is equals to 0")
+
+                                                                // TODO why multiple PersistenceTemplate?
                                                                 PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
                                                                 pt.invoke(new CarinaPersistenceCallback() {
                                                                     @Override
@@ -104,7 +106,8 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                                             registerError("Booking Number unable to find")
                                                         }
                                                     }
-                                                    updateEvent(vvd)
+                                                    //TODO move the whole section to a separate method -- and call that within the condition
+                                                    updateEvent(vvd) // TODO why is the ITSVesselEventUpdatePersistenceCallBack callback code necessary?
                                                     if (bkgCancel || bkgReduce){
                                                         informationBox(count,add)
                                                     }
