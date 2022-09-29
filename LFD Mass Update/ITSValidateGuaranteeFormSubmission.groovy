@@ -77,7 +77,6 @@ class ITSValidateGuaranteeFormSubmission extends AbstractFormSubmissionCommand {
                                     //DateUtils.isSameDay(lfdDate,guaranteeDate)
                                     ufv.setUfvLastFreeDay(ufv.getUfvGuaranteeThruDay())
                                 }
-`
                                 if (notesFc.getNewValue() != null) {
                                     String notes = notesFc.getNewValue()
                                     ufv.setUfvFlexString04(notes)
