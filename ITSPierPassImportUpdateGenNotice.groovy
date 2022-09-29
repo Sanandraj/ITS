@@ -1,13 +1,9 @@
-
-
-
 import com.navis.argo.business.atoms.FreightKindEnum
 import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.reference.RoutingPoint
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
-import com.navis.inventory.InventoryField
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.units.Unit
@@ -23,7 +19,7 @@ import java.text.SimpleDateFormat
 
 /*
 *
-* * @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 15/JUL/2022
+* * @author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 15/JUL/2022
 *
 * Requirements : This groovy is used to PIERPASS announcement for the UNIT.
 *
@@ -37,34 +33,36 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
     private static Logger LOGGER = Logger.getLogger(ITSPierPassImportUpdateGenNotice.class)
 
     public void execute(GroovyEvent inGroovyEvent) {
-        //LOGGER.setLevel(Level.DEBUG)
+        LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSPierPassImportUpdateGenNotice Started at " + new Date());
         String eventType = inGroovyEvent?.getEvent()?.getEventTypeId()
+        LOGGER.debug("eventType " + eventType)
         Unit unit = inGroovyEvent.getEntity()
         UnitFacilityVisit ufv = unit ? unit.getUnitActiveUfv() : null;
         if (!ufv) {
             return;
         }
-        if (unit!=null && unit.getUnitCategory() != UnitCategoryEnum.IMPORT ||
+        if (unit != null && unit.getUnitCategory() != UnitCategoryEnum.IMPORT ||
                 unit.getUnitFreightKind() == FreightKindEnum.MTY) {
             return;
         }
 
 
-     String TMF_EXEMPT=   unit?.getUnitRouting()?.getRtgGroup()?.getGrpFlexString01()
+        String TMF_EXEMPT = unit?.getUnitRouting()?.getRtgGroup()?.getGrpFlexString01()
+        LOGGER.debug("TMF_EXE " + TMF_EXEMPT)
         GeneralReference genRef = GeneralReference.findUniqueEntryById("PIERPASS", "IMPORT_ANNOUNCEMENT", "FILE_PATH");
         if (!genRef || !genRef.getRefValue1()) {
             return;
         }
         boolean isPodChange = false;
-        boolean isObCarrierandDestChange = true;
+        boolean isObCarrierandDestChange = false;
         String filePath = "";
 
         Set efcs = inGroovyEvent.getEvent().getEvntFieldChanges();
         for (EventFieldChange efc : efcs) {
-            if (eventType!=null && eventType.equals(UNIT_REROUTE) && ((ufv?.isTransitStateAtLeast(UfvTransitStateEnum.S40_YARD)))) {
+            if (eventType != null && eventType.equals(UNIT_REROUTE) && ((ufv?.isTransitStateAtLeast(UfvTransitStateEnum.S40_YARD)))) {
                 if ((inGroovyEvent.wasFieldChanged(UnitField.UNIT_RTG_GROUP.getFieldId())) && "YES".equals(TMF_EXEMPT)) {
-                    //Do nothing
+                    isObCarrierandDestChange = true;
                 } else {
                     isObCarrierandDestChange = false;
                     break;
@@ -75,32 +73,36 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
                 String podNew = rtg != null ? rtg.getPointUnlocId() : '';
                 if (podNew != "USSPQ")
                     FILE_STATUS = "D";
-                //isPodChange = true;
             }
         }
 
-        LOGGER.debug("Preparing Pierpass for Unit -- ${unit.getUnitId()} with isObCarrierandDestChange ${isObCarrierandDestChange}")
         String exempStatus = "";
         if (ufv.getUfvIntendedObCv().getLocType() == LocTypeEnum.RAILCAR || ufv.getUfvIntendedObCv().getLocType() == LocTypeEnum.TRAIN) {
+            LOGGER.debug("If condition :: ")
             exempStatus = "RE";
             FILE_STATUS = "R";
         } else
             exempStatus = "NE";
         ufv.setUfvFlexString05(exempStatus);
+
         if (!isObCarrierandDestChange) {
+            LOGGER.debug("Failure :: " + isObCarrierandDestChange)
             return;
         }
-
+        LOGGER.debug("exempStatus " + exempStatus)
         String pierPassMsg = "";
         String currTime = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String dateStr = currTime.substring(0, 8);
         String timeStr = currTime.substring(8, 14);
+        // String RESPONSE_DIR = "C:\\PierPass"
 
         filePath = genRef.getRefValue1() + currTime + "_" + unit.getUnitId() + ".cff";
+        //  filePath=RESPONSE_DIR+ currTime + "_" + unit.getUnitId() + ".cff";
+        LOGGER.debug("filePath " + filePath)
         File annoucFile = new File(filePath);
 
         VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(ufv.getUfvActualIbCv());
-        if (vvd == null){
+        if (vvd == null) {
             return;
         }
 
