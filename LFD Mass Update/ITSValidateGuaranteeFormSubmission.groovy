@@ -21,19 +21,21 @@ import org.apache.log4j.Logger
 
 import java.text.SimpleDateFormat
 
+/*
+*
+* @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+* Date : 28/09/2022
+* @Inclusion Location: Incorporated as a code extension of the type FORM_SUBMISSION_INTERCEPTOR. Copy --> Paste this code (ITSValidateGuaranteeFormSubmission.groovy)
+* Description : This groovy is used to validate LFD and guarantee thru date for import units.
+*
+*/
+
 class ITSValidateGuaranteeFormSubmission extends AbstractFormSubmissionCommand {
     private static final Logger LOGGER = Logger.getLogger(ITSValidateGuaranteeFormSubmission.class)
 
     @Override
     void submit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
-        //super.submit(inVariformId, inEntityId, inGkeys, inOutFieldChanges, inNonDbFieldChanges, inParams)
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("inVariformId" + inVariformId)
-        LOGGER.debug("inEntityId" + inEntityId)
-        LOGGER.debug("inGkeys" + inGkeys)
-        LOGGER.debug("inOutFieldChanges" + inOutFieldChanges)
-        LOGGER.debug("inNonDbFieldChanges" + inNonDbFieldChanges)
-        LOGGER.debug("inParams" + inParams)
+        //LOGGER.setLevel(Level.DEBUG)
         if (inGkeys != null) {
             MessageCollector mc = MessageCollectorFactory.createMessageCollector();
             StringBuilder builder = new StringBuilder()
@@ -42,11 +44,9 @@ class ITSValidateGuaranteeFormSubmission extends AbstractFormSubmissionCommand {
             pt.invoke(new CarinaPersistenceCallback() {
                 protected void doInTransaction() {
                     for (Serializable gkey : inGkeys) {
-                        //Serializable gkey = gkeys.get(0)
                         UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(gkey)
                         LOGGER.debug("ufv" + ufv)
                         Unit unit = ufv.getUfvUnit()
-                        LOGGER.debug("unit" + unit)
                         if (!unit.getUnitCategory().equals(UnitCategoryEnum.IMPORT)) {
                             builder.append("Unit ${unit.getUnitId()} is not a Import unit.").append("\n")
                             isError = true
@@ -74,7 +74,6 @@ class ITSValidateGuaranteeFormSubmission extends AbstractFormSubmissionCommand {
                                 } else if (lfdDate.after(guaranteeDate)) {
                                     ufv.setUfvLastFreeDay(lfdNewVal)
                                 } else if (DateUtils.isSameDay(lfdDate, guaranteeDate)) {
-                                    //DateUtils.isSameDay(lfdDate,guaranteeDate)
                                     ufv.setUfvLastFreeDay(ufv.getUfvGuaranteeThruDay())
                                 }
                                 if (notesFc.getNewValue() != null) {
