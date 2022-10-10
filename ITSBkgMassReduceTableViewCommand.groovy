@@ -29,7 +29,6 @@
             pt.invoke(new CarinaPersistenceCallback() {
                 @Override
                 protected void doInTransaction() {
-                    LOGGER.debug("Inside persistence Callback ")
                     if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
                         Iterator it = inGkeys.iterator()
                         long count =0
@@ -44,31 +43,21 @@
                                     vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
                                 if (booking!=null && booking.getEqboNbr()!=null){
                                     if (booking.eqoTallyReceive > 0){
-                                        LOGGER.debug("Tally Receive is equals to 0")
                                         Set bkgItems = booking.getEqboOrderItems()
                                         if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
-                                            LOGGER.debug("Inside BkgItems If")
                                             Iterator iterator = bkgItems.iterator()
-                                            LOGGER.debug("iterator :: "+iterator)
                                             while (iterator.hasNext()) {
                                                 EquipmentOrderItem eqoItem = EquipmentOrderItem.resolveEqoiFromEqboi((EqBaseOrderItem) iterator.next())
-                                                LOGGER.debug("eqoItem" + eqoItem)
                                                 Long eqoiQty = eqoItem.getEqoiQty()
                                                 Long eqoiTallyOut = eqoItem.getEqoiTally()
                                                 Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
-                                                LOGGER.debug("eqoiQty::" + eqoiQty)
-                                                LOGGER.debug("eqoiTallyOut::" + eqoiTallyOut)
-                                                LOGGER.debug("eqoiTallyIn::" + eqoiTallyIn)
                                                 if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
-                                                    LOGGER.debug("Inside 1")
                                                     if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
-                                                        LOGGER.debug("Inside 2")
                                                         eqoItem.setEqoiQty(eqoiTallyIn)
                                                         count = count+1
                                                         bkgReduce = true
                                                     }
                                                     if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
-                                                        LOGGER.debug("Inside 3")
                                                         eqoItem.setEqoiQty(eqoiTallyOut)
                                                         count = count+1
                                                         bkgReduce = true
@@ -87,7 +76,6 @@
                             }
                         }
                         if (!bkgReduce){
-                            LOGGER.debug("Inside 4")
                             informationBox(count,Long.valueOf(inGkeys.size()))
                         }
                         if (bkgReduce ){
