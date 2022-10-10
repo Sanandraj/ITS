@@ -27,7 +27,6 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                LOGGER.debug("Inside persistence Callback ")
                 if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
                     Iterator it = inGkeys.iterator()
                     long count =0
