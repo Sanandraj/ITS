@@ -1,7 +1,13 @@
+import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
+import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
+import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.inventory.business.units.EqBaseOrderItem
 import com.navis.orders.business.eqorders.EquipmentOrder
 import com.navis.orders.business.eqorders.EquipmentOrderItem
+import com.navis.services.business.rules.EventType
+import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
@@ -19,6 +25,7 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
         LOGGER.debug("ITSBkgValidationPersistenceCallback starts :: ")
         EquipmentOrder booking = (EquipmentOrder) input?.get("input")
         EquipmentOrder bookingOrder = (EquipmentOrder) input?.get("EquipmentOrder")
+        LOGGER.debug("Before Null check")
         if (booking!=null && booking.getEqboNbr()!=null){
             if (booking.eqoTallyReceive > 0){
                 LOGGER.debug("Tally Receive is equals to 0")
@@ -46,7 +53,13 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
                         }
                     }
                 }
+            }else if (booking.eqoTallyReceive == 0){
+                booking.purge()
+                LOGGER.debug("booking purged")
             }
+        }
+        else {
+            LOGGER.debug("Booking Is Null")
         }
     }
     private final static Logger LOGGER = Logger.getLogger(ITSBkgValidationPersistenceCallback.class)
