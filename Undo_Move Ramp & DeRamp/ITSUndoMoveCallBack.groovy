@@ -31,7 +31,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
     public void execute(Map inParams, Map inOutResults) {
         //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("inParams" + inParams)
-        LOGGER.debug("inOutResults" + inOutResults)
         int successCount = 0;
         String errorMessage = "";
         MoveEvent moveEvent = null
@@ -42,79 +41,84 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                     for (Serializable ufvGkey : inGkeys) {
                         try {
                             UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(ufvGkey)
-                            LOGGER.debug("unit" + ufv.getUfvUnit())
-                            if (ufv != null) {
-                                EventType rampEvent = EventType.findEventType("UNIT_RAMP")
-                                EventType deRampEvent = EventType.findEventType("UNIT_DERAMP")
-                                if (rampEvent != null || deRampEvent != null) {
-                                    String action = inParams.get("action").toString()
-                                    if (action != null) {
-                                        LOGGER.debug("action" + action)
-                                        if (action.equals("Ramp")) {
-                                            moveEvent = MoveEvent.getLastMoveEvent(ufv, rampEvent)
-                                        } else if (action.equals("DeRamp")) {
-                                            moveEvent = MoveEvent.getLastMoveEvent(ufv, deRampEvent)
-                                        }
+                            EventType rampEvent = EventType.findEventType("UNIT_RAMP")
+                            EventType deRampEvent = EventType.findEventType("UNIT_DERAMP")
+                            if (rampEvent != null || deRampEvent != null) {
+                                String action = inParams.get("action").toString()
+                                if (action != null) {
+                                    if (action.equals("Ramp")) {
+                                        moveEvent = MoveEvent.getLastMoveEvent(ufv, rampEvent)
+                                    } else if (action.equals("DeRamp")) {
+                                        moveEvent = MoveEvent.getLastMoveEvent(ufv, deRampEvent)
                                     }
-                                    if (moveEvent != null) {
-                                        MoveInfoBean infoFromMoveEvent = MoveInfoBean.extractMoveInfoFromMoveEvent(moveEvent);
-                                        LocPosition toPosition = moveEvent.getMveToPosition();
-                                        LocPosition fromPosition = moveEvent.getMveFromPosition();
-                                        Date currentTime = null;
-                                        if (moveEvent != MoveEvent.getLastMoveEvent(ufv)) {
-                                            throw new Exception(
-                                                    "[FAILED] " + ufv.getUfvUnit().getUnitId() + " Last move doesn't match the UNDO move")
-                                        }
-                                        CarrierVisitPhaseEnum ibVisitPhase = ufv.getUfvActualIbCv().getCvVisitPhase()
-                                        UfvTransitStateEnum transitState;
-                                        UnitVisitStateEnum visitState;
-                                        if (infoFromMoveEvent.getMoveKind() != null && infoFromMoveEvent.getMoveKind() != WiMoveKindEnum.Other) {
-                                            String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
-                                            if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
-                                                if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
-                                                    throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
-                                                }
-                                            }
-                                            if (toPosition.getPosLocType() == LocTypeEnum.YARD && fromPosition.getPosLocType() !=
-                                                    LocTypeEnum.YARD) {
-                                                if (ibVisitPhase == CarrierVisitPhaseEnum.CREATED) {
-                                                    visitState = UnitVisitStateEnum.ADVISED
-                                                    transitState = UfvTransitStateEnum.S10_ADVISED
-                                                }
-                                                if (ibVisitPhase == CarrierVisitPhaseEnum.INBOUND ||
-                                                        [CarrierVisitPhaseEnum.ARRIVED, CarrierVisitPhaseEnum.WORKING].contains(ibVisitPhase)) {
-                                                    visitState = UnitVisitStateEnum.ACTIVE
-                                                    transitState = UfvTransitStateEnum.S20_INBOUND
-                                                }
+                                }
+                                if (ufv != null) {
+                                    if ((ufv.getUfvTransitState().equals(UfvTransitStateEnum.S40_YARD) && action.equals("DeRamp"))
+                                            || (ufv.getUfvTransitState().equals(UfvTransitStateEnum.S60_LOADED) && action.equals("Ramp"))) {
 
-                                                ufv.setUfvVisitState(visitState)
-                                                ufv.setUfvTransitState(transitState)
-                                                ufv.setUfvTimeIn(null)
-                                                if (ufv.ufvVisitState == UnitVisitStateEnum.ACTIVE) {
+                                        if (moveEvent != null) {
+                                            MoveInfoBean infoFromMoveEvent = MoveInfoBean.extractMoveInfoFromMoveEvent(moveEvent);
+                                            LocPosition toPosition = moveEvent.getMveToPosition();
+                                            LocPosition fromPosition = moveEvent.getMveFromPosition();
+                                            Date currentTime = null;
+                                            if (moveEvent != MoveEvent.getLastMoveEvent(ufv)) {
+                                                throw new Exception(
+                                                        "[FAILED] " + ufv.getUfvUnit().getUnitId() + " Last move doesn't match the UNDO move")
+                                            }
+                                            CarrierVisitPhaseEnum ibVisitPhase = ufv.getUfvActualIbCv().getCvVisitPhase()
+                                            UfvTransitStateEnum transitState;
+                                            UnitVisitStateEnum visitState;
+                                            if (infoFromMoveEvent.getMoveKind() != null && infoFromMoveEvent.getMoveKind() != WiMoveKindEnum.Other) {
+                                                String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
+                                                if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
+                                                    if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
+                                                        throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
+                                                    }
+                                                }
+                                                if (toPosition.getPosLocType() == LocTypeEnum.YARD && fromPosition.getPosLocType() !=
+                                                        LocTypeEnum.YARD) {
+                                                    if (ibVisitPhase == CarrierVisitPhaseEnum.CREATED) {
+                                                        visitState = UnitVisitStateEnum.ADVISED
+                                                        transitState = UfvTransitStateEnum.S10_ADVISED
+                                                    }
+                                                    if (ibVisitPhase == CarrierVisitPhaseEnum.INBOUND ||
+                                                            [CarrierVisitPhaseEnum.ARRIVED, CarrierVisitPhaseEnum.WORKING].contains(ibVisitPhase)) {
+                                                        visitState = UnitVisitStateEnum.ACTIVE
+                                                        transitState = UfvTransitStateEnum.S20_INBOUND
+                                                    }
+
+                                                    ufv.setUfvVisitState(visitState)
+                                                    ufv.setUfvTransitState(transitState)
+                                                    ufv.setUfvTimeIn(null)
+                                                    if (ufv.ufvVisitState == UnitVisitStateEnum.ACTIVE) {
+                                                        ufv.setUfvVisibleInSparcs(true)
+                                                    }
+
+                                                }
+                                                if (toPosition.getPosLocType() != LocTypeEnum.YARD && fromPosition.getPosLocType() == LocTypeEnum.YARD) {
+                                                    ufv.setUfvTransitState(UfvTransitStateEnum.S40_YARD)
+                                                    ufv.setUfvVisitState(UnitVisitStateEnum.ACTIVE)
+                                                    ufv.setUfvTimeOut(null)
                                                     ufv.setUfvVisibleInSparcs(true)
+                                                    ufv.getUfvUnit().setUnitVisitState(UnitVisitStateEnum.ACTIVE);
+                                                    HibernateApi.getInstance().save(ufv.getUfvUnit());
                                                 }
+                                                infoFromMoveEvent.setMoveKind(WiMoveKindEnum.Other)
+                                                Calendar calendar = Calendar.getInstance(ContextHelper.getThreadUserTimezone());
+                                                currentTime = calendar.getTime();
+                                                infoFromMoveEvent.setTimePut(currentTime);
 
+                                                MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
+                                                Event.hydrate(moveEvent.getPrimaryKey()).purge();
                                             }
-                                            if (toPosition.getPosLocType() != LocTypeEnum.YARD && fromPosition.getPosLocType() == LocTypeEnum.YARD) {
-                                                ufv.setUfvTransitState(UfvTransitStateEnum.S40_YARD)
-                                                ufv.setUfvVisitState(UnitVisitStateEnum.ACTIVE)
-                                                ufv.setUfvTimeOut(null)
-                                                ufv.setUfvVisibleInSparcs(true)
-                                                ufv.getUfvUnit().setUnitVisitState(UnitVisitStateEnum.ACTIVE);
-                                                HibernateApi.getInstance().save(ufv.getUfvUnit());
-                                            }
-                                            infoFromMoveEvent.setMoveKind(WiMoveKindEnum.Other)
-                                            Calendar calendar = Calendar.getInstance(ContextHelper.getThreadUserTimezone());
-                                            currentTime = calendar.getTime();
-                                            infoFromMoveEvent.setTimePut(currentTime);
-
-                                            MoveEvent.recordMoveEvent(ufv, toPosition, fromPosition, moveEvent.getMveCarrier(), infoFromMoveEvent, EventEnum.UNIT_RECTIFY)
-                                            Event.hydrate(moveEvent.getPrimaryKey()).purge();
+                                            ufv.setUfvLastKnownPosition(fromPosition)
+                                            ufv.setUfvTimeOfLastMove(currentTime)
+                                            HibernateApi.getInstance().save(ufv);
+                                            successCount++
                                         }
-                                        ufv.setUfvLastKnownPosition(fromPosition)
-                                        ufv.setUfvTimeOfLastMove(currentTime)
-                                        HibernateApi.getInstance().save(ufv);
-                                        successCount++
+                                    } else {
+                                        throw new Exception(
+                                                "[FAILED] Cannot UNDO event for unit " + ufv.getUfvUnit().getUnitId() + " with T-state " + ufv.getUfvTransitState().getKey().substring(4))
                                     }
                                 }
                             }
