@@ -1,24 +1,29 @@
-//package ITS
-
-
-import com.navis.argo.ContextHelper
-import com.navis.argo.EdiRailCar
-import com.navis.argo.RailConsistTransactionDocument
-import com.navis.argo.RailConsistTransactionsDocument
+import com.navis.argo.*
 import com.navis.argo.business.api.GroovyApi
-import com.navis.argo.business.model.CarrierVisit
+import com.navis.argo.business.atoms.BizRoleEnum
+import com.navis.argo.business.reference.LineOperator
+import com.navis.edi.EdiEntity
+import com.navis.edi.EdiField
+import com.navis.edi.business.edimodel.EdiConsts
+import com.navis.edi.business.entity.EdiFilter
+import com.navis.edi.business.entity.EdiFilterEntry
+import com.navis.edi.business.entity.EdiSession
+import com.navis.edi.business.entity.EdiSessionFilter
 import com.navis.external.edi.entity.AbstractEdiPostInterceptor
+import com.navis.framework.persistence.HibernateApi
+import com.navis.framework.portal.QueryUtils
+import com.navis.framework.portal.query.DomainQuery
+import com.navis.framework.portal.query.PredicateFactory
 import com.navis.rail.business.atoms.SpottingStatusEnum
 import com.navis.rail.business.entity.Railcar
 import com.navis.rail.business.entity.RailcarVisit
-import com.navis.rail.business.entity.TrainVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.xmlbeans.XmlObject
 
 /*
  *
- * @Author <a href="mailto:sanandaraj@weservetech.com">Anandaraj S</a>, 04/AUG/2022
+ * @author <a href="mailto:sanandaraj@weservetech.com">Anandaraj S</a>, 04/AUG/2022
  *
  * Requirements : This groovy is used for Railconsist EDI - Groovy validation required.
  * Spot and IB train visit validation are checking
@@ -54,10 +59,8 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
 
     @Override
     void beforeEdiPost(XmlObject inXmlTransactionDocument, Map inParams) {
-        LOGGER.setLevel(Level.DEBUG);
+        LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSRailConsistEdiPostInterceptor - beforeEdiPost - Execution started.")
-
-
         if (RailConsistTransactionsDocument.class.isAssignableFrom(inXmlTransactionDocument.getClass())) {
             RailConsistTransactionsDocument railConsistTransactionsDocument = (RailConsistTransactionsDocument) inXmlTransactionDocument
             RailConsistTransactionsDocument.RailConsistTransactions railConsistTransactions = railConsistTransactionsDocument.getRailConsistTransactions()
@@ -65,55 +68,101 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
             if (railConsistTransactionsList != null && railConsistTransactionsList.size() == 1) {
                 RailConsistTransactionDocument.RailConsistTransaction railConsistTransaction = railConsistTransactionsList.get(0)
 
+
+                List<RailConsistTransactionDocument.RailConsistTransaction.EdiRailCarContainer> ediRailCarContainers = railConsistTransaction.getEdiRailCarContainerList()
+                if (ediRailCarContainers != null) {
+                    for (RailConsistTransactionDocument.RailConsistTransaction.EdiRailCarContainer ediRailCarContainer : ediRailCarContainers) {
+                        EdiContainer ediContainer = ediRailCarContainer.getEdiContainer()
+                        if (ediContainer != null) {
+                            EdiOperator ediOperator = ediContainer.getContainerOperator()
+                            if (ediOperator != null) {
+                                String operator = ediOperator.getOperator()
+                                if (operator != null && !operator.isEmpty()) {
+                                    LineOperator lineOperator = findLineOperatorByScac(operator)
+                                    if (lineOperator == null) {
+                                        EdiFlexFields flexFields = ediRailCarContainer.getEdiFlexFields();
+                                        if (flexFields != null) {
+                                            String val = flexFields.getUfvFlexString01()
+                                            Serializable sessionGKey = (Serializable) inParams.get(EdiConsts.SESSION_GKEY);
+                                            EdiSession ediSession = (EdiSession) HibernateApi.getInstance().load(EdiSession.class, sessionGKey);
+
+                                            DomainQuery dq = QueryUtils.createDomainQuery(EdiEntity.EDI_SESSION_FILTER)
+                                                    .addDqPredicate(PredicateFactory.eq(EdiField.EDISESSFLTR_SESSION, ediSession.getEdisessGkey()))
+                                            //.addDqField(EdiField.EDISESSFLTR_FILTER)
+                                            List<EdiSessionFilter> ediSessionFilterList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
+
+                                            if (ediSessionFilterList != null) {
+                                                for (Object ediSessionFilter : ediSessionFilterList) {
+                                                    EdiSessionFilter filter = (EdiSessionFilter) ediSessionFilter
+                                                    if (filter != null) {
+                                                        EdiFilter ediFilter = filter.getEdisessfltrFilter()
+                                                        Set ediFilterEntrys = ediFilter.getEdifltrFltrEn()
+                                                        for (Object ediFilterEntryObj : ediFilterEntrys) {
+                                                            EdiFilterEntry filterEntry = (EdiFilterEntry) ediFilterEntryObj
+                                                            if (filterEntry != null) {
+                                                                String fromVal = filterEntry.getEdifltrenFromValue()
+                                                                if (fromVal != null && val.equalsIgnoreCase(fromVal)) {
+                                                                    ediContainer.getContainerOperator().setOperator(filterEntry.getEdifltrenToValue())
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 RailConsistTransactionDocument.RailConsistTransaction.EdiRailCarVisit ediRailCarVisit = railConsistTransaction.getEdiRailCarVisit()
                 if (ediRailCarVisit != null) {
                     EdiRailCar ediRailCar = ediRailCarVisit.getRailCar()
                     if (ediRailCar != null) {
                         String railCarId = ediRailCar.getRailCarId()
-                        if (railCarId != null) {
-                            Railcar railCar = Railcar.findRailcar(railCarId)
-                            if (railCar != null) {
-                                RailcarVisit railcarVisit = RailcarVisit.findActiveRailCarVisit(railCar)
-                                if (railcarVisit != null) {
-                                    if (!SpottingStatusEnum.NOTSPOTTED.equals(railcarVisit.getRcarvSpottingStatus())) {
-                                        inParams.put("SKIP_POSTER", Boolean.TRUE);
-                                        new GroovyApi().registerWarning("Railcar " + railCarId + " Contains  the Spot Status ,So not allowed to proceed.")
+                        Railcar railCar = railCarId != null ? Railcar.findRailcar(railCarId) : null
+                        LOGGER.debug("ITSRailConsistEdiPostInterceptor - railCar : " + railCar)
+                        if (railCar != null) {
+                            RailcarVisit railcarVisit = RailcarVisit.findActiveRailCarVisit(railCar)
+                            LOGGER.debug("ITSRailConsistEdiPostInterceptor - railcarVisit : " + railcarVisit)
+                            if (railcarVisit != null) {
+                                String rcarVisitIbTrainId = railcarVisit.getCarrierIbVoyNbrOrTrainId()
 
-                                    }
-
-
-                                    String railibVisitId = railcarVisit.getRcarvTrainVisitInbound().getCvdCv() != null ? railcarVisit.getRcarvTrainVisitInbound().getCvdCv().getCvId() : null
-                                    if (railibVisitId != null) {
-                                        CarrierVisit cv = CarrierVisit.findTrainVisit(ContextHelper.getThreadComplex(), ContextHelper.getThreadFacility(), railibVisitId)
-                                        if (cv == null) {
-                                            inParams.put("SKIP_POSTER", Boolean.TRUE);
-                                            new GroovyApi().registerWarning("Given TrainVisitDetails is not Valid.")
-
-                                        } else {
-                                            TrainVisitDetails tvd = TrainVisitDetails.resolveTvdFromCv(cv)
-                                            if (tvd == null) {
-                                                inParams.put("SKIP_POSTER", Boolean.TRUE);
-                                                new GroovyApi().registerWarning("Given TrainVisitDetails  is not Valid.")
-                                            }
-                                            if (tvd != null) {
-                                                LOGGER.debug("ITSRailConsistEdiPostInterceptor - tvd : " + tvd)
-                                            }
-                                        }
-                                    }
-
-
+                                if (railcarVisit.railcarVisitSpotted == true) {
+                                    LOGGER.debug("ITSRailConsistEdiPostInterceptor - Is Spotted : " + railcarVisit.railcarVisitSpotted)
+                                    inParams.put("SKIP_POSTER", Boolean.TRUE)
+                                    new GroovyApi().registerWarning("Railcar :" + railCarId + " is spotted. Skipping EDI post.")
+                                } else if (!SpottingStatusEnum.NOTSPOTTED.equals(railcarVisit.getRcarvSpottingStatus())) {
+                                    LOGGER.debug("ITSRailConsistEdiPostInterceptor - Spotting Status : " + railcarVisit.getRcarvSpottingStatus())
+                                    inParams.put("SKIP_POSTER", Boolean.TRUE)
+                                    new GroovyApi().registerWarning("Spotting Status updated for railcar :" + railCarId + ". Skipping EDI post.")
+                                } else if (railcarVisit.getRcarvTrack() != null) {
+                                    LOGGER.debug("ITSRailConsistEdiPostInterceptor - Railcar Track : " + railcarVisit.getRcarvTrack())
+                                    inParams.put("SKIP_POSTER", Boolean.TRUE)
+                                    new GroovyApi().registerWarning("Track assigned for railcar :" + railCarId + ". Skipping EDI post.")
+                                } else if (rcarVisitIbTrainId != null && !BNSF_TRAIN_VISIT.equalsIgnoreCase(rcarVisitIbTrainId) && !UP_TRAIN_VISIT.equalsIgnoreCase(rcarVisitIbTrainId)) {
+                                    LOGGER.debug("ITSRailConsistEdiPostInterceptor - Inbound Train : " + rcarVisitIbTrainId)
+                                    inParams.put("SKIP_POSTER", Boolean.TRUE)
+                                    new GroovyApi().registerWarning("IB Train Visit assigned for railcar :" + railCarId + ". Skipping EDI post.")
                                 }
-
                             }
-
-
                         }
                     }
                 }
-
             }
         }
+        LOGGER.debug("ITSRailConsistEdiPostInterceptor - beforeEdiPost - Execution completed.")
     }
 
+    public static LineOperator findLineOperatorByScac(String inLineId) {
+        DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoRefEntity.LINE_OPERATOR)
+                .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_SCAC, inLineId))
+        .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_ROLE, BizRoleEnum.LINEOP));
+        return (LineOperator) HibernateApi.getInstance().getUniqueEntityByDomainQuery(domainQuery);
+    }
 
+    private final static String BNSF_TRAIN_VISIT = "IB_BNSF_TRAIN"
+    private final static String UP_TRAIN_VISIT = "IB_UP_TRAIN"
 }
