@@ -46,7 +46,7 @@ import org.apache.xmlbeans.XmlObject
         4. Select the extension in "Post Code Extension" tab
         5. Click on save
  *
- *
+ * 10/14/2022 - Harikumar M  - To validate operator Id based on W4 segment when W3 segment value is not found in N4.
  */
 
 class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
@@ -59,7 +59,7 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
 
     @Override
     void beforeEdiPost(XmlObject inXmlTransactionDocument, Map inParams) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSRailConsistEdiPostInterceptor - beforeEdiPost - Execution started.")
         if (RailConsistTransactionsDocument.class.isAssignableFrom(inXmlTransactionDocument.getClass())) {
             RailConsistTransactionsDocument railConsistTransactionsDocument = (RailConsistTransactionsDocument) inXmlTransactionDocument
@@ -90,7 +90,6 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
                                                     .addDqPredicate(PredicateFactory.eq(EdiField.EDISESSFLTR_SESSION, ediSession.getEdisessGkey()))
                                             //.addDqField(EdiField.EDISESSFLTR_FILTER)
                                             List<EdiSessionFilter> ediSessionFilterList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
-
                                             if (ediSessionFilterList != null) {
                                                 for (Object ediSessionFilter : ediSessionFilterList) {
                                                     EdiSessionFilter filter = (EdiSessionFilter) ediSessionFilter
@@ -123,13 +122,10 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
                     if (ediRailCar != null) {
                         String railCarId = ediRailCar.getRailCarId()
                         Railcar railCar = railCarId != null ? Railcar.findRailcar(railCarId) : null
-                        LOGGER.debug("ITSRailConsistEdiPostInterceptor - railCar : " + railCar)
                         if (railCar != null) {
                             RailcarVisit railcarVisit = RailcarVisit.findActiveRailCarVisit(railCar)
-                            LOGGER.debug("ITSRailConsistEdiPostInterceptor - railcarVisit : " + railcarVisit)
                             if (railcarVisit != null) {
                                 String rcarVisitIbTrainId = railcarVisit.getCarrierIbVoyNbrOrTrainId()
-
                                 if (railcarVisit.railcarVisitSpotted == true) {
                                     LOGGER.debug("ITSRailConsistEdiPostInterceptor - Is Spotted : " + railcarVisit.railcarVisitSpotted)
                                     inParams.put("SKIP_POSTER", Boolean.TRUE)
@@ -156,7 +152,7 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
         LOGGER.debug("ITSRailConsistEdiPostInterceptor - beforeEdiPost - Execution completed.")
     }
 
-    public static LineOperator findLineOperatorByScac(String inLineId) {
+    private static LineOperator findLineOperatorByScac(String inLineId) {
         DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoRefEntity.LINE_OPERATOR)
                 .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_SCAC, inLineId))
         .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_ROLE, BizRoleEnum.LINEOP));
