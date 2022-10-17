@@ -21,8 +21,10 @@ import com.navis.framework.presentation.ui.message.ButtonTypes
 import com.navis.framework.presentation.ui.message.MessageType
 import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.util.internationalization.PropertyKeyFactory
+import com.navis.inventory.business.units.EqBaseOrderItem
 import com.navis.orders.business.eqorders.Booking
 import com.navis.orders.business.eqorders.EquipmentOrder
+import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.services.business.rules.EventType
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
@@ -57,7 +59,7 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                 protected void safeExecute(ButtonType buttonTypes) {
                                     final Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
                                     if (ButtonType.YES == buttonTypes) {
-                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Cancel Booking","Cancelling Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand(){
+                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Vessel Cut-Off","Cancelling Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand(){
                                             @Override
                                             protected void safeExecute(ButtonType buttonType) {
                                                 if (ButtonType.YES == buttonType) {
@@ -76,7 +78,7 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                 protected void safeExecute(ButtonType buttonTypes) {
                                     final Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
                                     if (ButtonType.YES == buttonTypes) {
-                                        OptionDialog.showWarning(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Cancel Booking","Cancelling Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand(){
+                                        OptionDialog.showWarning(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Vessel Cut-Off","Cancelling Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand(){
                                             @Override
                                             protected void safeExecute(ButtonType buttonType) {
                                                 if (ButtonType.YES == buttonType) {
@@ -116,7 +118,10 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
         boolean bkgCancel = false
         Iterator it = bookingList.iterator()
         while(it.hasNext()){
-            EquipmentOrder booking = EquipmentOrder.resolveEqoFromEqbo(it.next())
+
+            Booking booking = Booking.resolveEqoFromEqbo(it.next())
+            LOGGER.debug("booking :: "+booking)
+            Set bkgItems= booking.getEqboOrderItems()
             boolean bkgNbrNull = true
             if (booking!=null && booking.getEqboNbr()!=null ){
                 bkgNbrNull = false
@@ -125,25 +130,22 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                     UserContext userContext = requestContext.getUserContext();
                     Map input = new HashMap()
                     Map results = new HashMap()
-                    input.put("entityGkey", EquipmentOrder)
-                    input.put("bkgGkey", booking)
-                    input.put("vvd",vvd)
-                    add = add + 1
-                    bkgReduce = true
+                    input.put("entityGkey", booking.getPrimaryKey())
+                    bkgCancel = true
                     IExtensionTransactionHandler handler = ExtensionBeanUtils.getExtensionTransactionHandler()
                     handler?.executeInTransaction(userContext, FrameworkExtensionTypes.TRANSACTED_BUSINESS_FUNCTION, "ITSBkgValidationPersistenceCallback", input, results)
+                    count = count + 1
                 }
-                else {
+                else if (booking.eqoTallyReceive > 0){
                     RequestContext requestContext = PresentationContextUtils.getRequestContext()
                     UserContext userContext = requestContext.getUserContext();
                     Map input = new HashMap()
                     Map results = new HashMap()
-                    input.put("entityGkey", EquipmentOrder)
-                    input.put("bkgGkey", booking)
-                    add = add + 1
+                    input.put("entityGkey", booking.getPrimaryKey())
                     bkgReduce = true
                     IExtensionTransactionHandler handler = ExtensionBeanUtils.getExtensionTransactionHandler()
                     handler?.executeInTransaction(userContext, FrameworkExtensionTypes.TRANSACTED_BUSINESS_FUNCTION, "ITSBkgValidationPersistenceCallback", input, results)
+                    add = add + 1
                 }
             }
         }
