@@ -17,6 +17,7 @@ import com.navis.framework.portal.query.PredicateFactory
 import com.navis.rail.business.atoms.SpottingStatusEnum
 import com.navis.rail.business.entity.Railcar
 import com.navis.rail.business.entity.RailcarVisit
+import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.xmlbeans.XmlObject
@@ -77,37 +78,40 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
                             EdiOperator ediOperator = ediContainer.getContainerOperator()
                             if (ediOperator != null) {
                                 String operator = ediOperator.getOperator()
-                                if (operator != null && !operator.isEmpty()) {
+                                if (operator != null && StringUtils.isNotEmpty(operator)) {
                                     LineOperator lineOperator = findLineOperatorByScac(operator)
                                     if (lineOperator == null) {
                                         EdiFlexFields flexFields = ediRailCarContainer.getEdiFlexFields();
                                         if (flexFields != null) {
                                             String val = flexFields.getUfvFlexString01()
-                                            Serializable sessionGKey = (Serializable) inParams.get(EdiConsts.SESSION_GKEY);
-                                            EdiSession ediSession = (EdiSession) HibernateApi.getInstance().load(EdiSession.class, sessionGKey);
+                                            if(StringUtils.isNotEmpty(val)){
+                                                Serializable sessionGKey = (Serializable) inParams.get(EdiConsts.SESSION_GKEY);
+                                                EdiSession ediSession = (EdiSession) HibernateApi.getInstance().load(EdiSession.class, sessionGKey);
 
-                                            DomainQuery dq = QueryUtils.createDomainQuery(EdiEntity.EDI_SESSION_FILTER)
-                                                    .addDqPredicate(PredicateFactory.eq(EdiField.EDISESSFLTR_SESSION, ediSession.getEdisessGkey()))
-                                            //.addDqField(EdiField.EDISESSFLTR_FILTER)
-                                            List<EdiSessionFilter> ediSessionFilterList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
-                                            if (ediSessionFilterList != null) {
-                                                for (Object ediSessionFilter : ediSessionFilterList) {
-                                                    EdiSessionFilter filter = (EdiSessionFilter) ediSessionFilter
-                                                    if (filter != null) {
-                                                        EdiFilter ediFilter = filter.getEdisessfltrFilter()
-                                                        Set ediFilterEntrys = ediFilter.getEdifltrFltrEn()
-                                                        for (Object ediFilterEntryObj : ediFilterEntrys) {
-                                                            EdiFilterEntry filterEntry = (EdiFilterEntry) ediFilterEntryObj
-                                                            if (filterEntry != null) {
-                                                                String fromVal = filterEntry.getEdifltrenFromValue()
-                                                                if (fromVal != null && val.equalsIgnoreCase(fromVal)) {
-                                                                    ediContainer.getContainerOperator().setOperator(filterEntry.getEdifltrenToValue())
+                                                DomainQuery dq = QueryUtils.createDomainQuery(EdiEntity.EDI_SESSION_FILTER)
+                                                        .addDqPredicate(PredicateFactory.eq(EdiField.EDISESSFLTR_SESSION, ediSession.getEdisessGkey()))
+                                                //.addDqField(EdiField.EDISESSFLTR_FILTER)
+                                                List<EdiSessionFilter> ediSessionFilterList = HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
+                                                if (ediSessionFilterList != null) {
+                                                    for (Object ediSessionFilter : ediSessionFilterList) {
+                                                        EdiSessionFilter filter = (EdiSessionFilter) ediSessionFilter
+                                                        if (filter != null) {
+                                                            EdiFilter ediFilter = filter.getEdisessfltrFilter()
+                                                            Set ediFilterEntrys = ediFilter.getEdifltrFltrEn()
+                                                            for (Object ediFilterEntryObj : ediFilterEntrys) {
+                                                                EdiFilterEntry filterEntry = (EdiFilterEntry) ediFilterEntryObj
+                                                                if (filterEntry != null) {
+                                                                    String fromVal = filterEntry.getEdifltrenFromValue()
+                                                                    if (fromVal != null && val.equalsIgnoreCase(fromVal)) {
+                                                                        ediContainer.getContainerOperator().setOperator(filterEntry.getEdifltrenToValue())
+                                                                    }
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
                                             }
+
                                         }
                                     }
                                 }
@@ -155,7 +159,7 @@ class ITSRailConsistEdiPostInterceptor extends AbstractEdiPostInterceptor {
     private static LineOperator findLineOperatorByScac(String inLineId) {
         DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoRefEntity.LINE_OPERATOR)
                 .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_SCAC, inLineId))
-        .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_ROLE, BizRoleEnum.LINEOP));
+                .addDqPredicate(PredicateFactory.eq(ArgoRefField.BZU_ROLE, BizRoleEnum.LINEOP));
         return (LineOperator) HibernateApi.getInstance().getUniqueEntityByDomainQuery(domainQuery);
     }
 
