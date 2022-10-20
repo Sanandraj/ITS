@@ -29,12 +29,12 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
         LOGGER.debug("ITSBookingAdjustmentGateTaskInterceptor starts :: ")
         TruckTransaction truckTransaction = inWfCtx.getTran()
         Booking bookingOrdr = Booking.findBookingWithoutLine(truckTransaction.getTranEqo().getEqboNbr(),truckTransaction.getCarrierVisit())
-        if (bookingOrdr.getFieldValue(MetafieldIdFactory.valueOf("eqoIsCompleteReceive")).equals(true)){
-            truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
-            new GroovyApi().registerError("Booking is full ${truckTransaction.getTranEqo().getEqboNbr()} - to TROUBLE")
-            return
-        }
         if (truckTransaction.getEquipment().getEqEquipType().getEqtypBasicLength().equals(EquipBasicLengthEnum.BASIC40)){
+            if (bookingOrdr.getFieldValue(MetafieldIdFactory.valueOf("eqoIsCompleteReceive")).equals(true)){
+                truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
+                new GroovyApi().registerError("Booking is full ${truckTransaction.getTranEqo().getEqboNbr()} - to TROUBLE")
+                return
+            }
             EqBaseOrder eqboNbr= truckTransaction.getTranUnit().getUnitDepartureOrderItem().getEqboiOrder()
             LOGGER.debug("eqboNbr :: "+eqboNbr)
             TimeZone timeZone = ContextHelper.getThreadUserTimezone()
