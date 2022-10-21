@@ -41,11 +41,11 @@ class ITSShutoutEmptyTaskInterceptor extends AbstractGateTaskInterceptor impleme
         LOGGER.warn("iso "+iso)
         LOGGER.warn("lineOp "+lineOp)
         if (iso != null && lineOp != null) {
-            GeneralReference generalReference = GeneralReference.findUniqueEntryById("MTY_QUOTA", "RCV_BLOCK", lineOp, iso)
+            GeneralReference generalReference = GeneralReference.findUniqueEntryById("MTY_QUOTA", "RCV_EMPTIES", lineOp, iso)
             LOGGER.warn("generalReference "+generalReference)
             // LOGGER.warn("generalReference "+generalReference.getRefValue1())
 
-            if (generalReference != null && "YES".equalsIgnoreCase(generalReference.getRefValue1())) {
+            if (generalReference != null && !("YES".equalsIgnoreCase(generalReference.getRefValue1()))) {
                 Object[] params = new Object[2];
                 params[0] = lineOp;
                 params[1] = iso;
