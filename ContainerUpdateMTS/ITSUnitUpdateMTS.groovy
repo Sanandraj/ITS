@@ -268,7 +268,7 @@ class ITSUnitUpdateMTS extends AbstractGeneralNoticeCodeExtension {
             startIndex = Integer.parseInt(fullPosition.substring(1, 2));
         }
         if (fullPosition.size() > 3) {
-            endIndex = Integer.parseInt(fullPosition.substring(3, 4));
+            endIndex = Integer.parseInt(fullPosition.substring(4, 5));
         }
         //logMsg("startIndex: "+startIndex + ", endIndex: "+endIndex);
         return (inPosSlot.length() > endIndex) ? inPosSlot.substring(startIndex, startIndex + endIndex) : null;
