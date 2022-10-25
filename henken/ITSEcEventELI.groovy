@@ -42,6 +42,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
             logMsg("notifyHKI - inEntity:: " + inEntity + ", inOriginalFieldChanges: " + inOriginalFieldChanges + ", inMoreFieldChanges: " + inMoreFieldChanges);
             String ecEventTypeDesc = (String) getNewFieldValue(inOriginalFieldChanges, ArgoGuiMetafield.ECEVENT_TYPE_DESCRIPTION);
             logMsg("ecEventTypeDesc: " + ecEventTypeDesc);
+            Thread.sleep(2000);
 
             String cheId, cheStatus, chePowName, transactionNumber, message;
             double MsgHighlight = 26;
@@ -88,7 +89,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     wiCarrierLocId = wi.getWiCarrierLocId();
                     Che fetchChe = wi.getMvhsFetchChe();
                     logMsg("fetchChe: "+fetchChe);
-                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_UNKNOWN;
+                    fetchCheId = fetchChe? fetchChe.getCheShortName() : chePowName;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
@@ -100,12 +101,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
+                        wrapSpace(line3, false),
                         LINE_EMPTY,
-                        wrapSpace(line5),
+                        wrapSpace(line5, false),
                         LINE_EMPTY,
                         LINE_EMPTY,
-                        wrapSpace(String.format((T_TVCO == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId)));
+                        wrapSpace(String.format((T_TVCO == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId), false));
 
 
             } else if (T_TYCO == ecEventTypeDesc) { // Truck assigned job 3,4,5
@@ -154,11 +155,11 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
-                        wrapSpace(line4),
+                        wrapSpace(line3, false),
+                        wrapSpace(line4, false),
                         LINE_EMPTY,
-                        wrapSpace(line6),
-                        wrapSpace(line7),
+                        wrapSpace(line6, false),
+                        wrapSpace(line7, false),
                         LINE_EMPTY);
 
             } else if (T_AVCO == ecEventTypeDesc || T_ARCO == ecEventTypeDesc) { //Unladen at dest - 1,2
@@ -197,12 +198,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
+                        wrapSpace(line3, false),
                         LINE_EMPTY,
-                        wrapSpace(line5),
+                        wrapSpace(line5, false),
                         LINE_EMPTY,
                         LINE_EMPTY,
-                        wrapSpace(String.format((T_AVCO == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId)));
+                        wrapSpace(String.format((T_AVCO == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId), false));
 
             } else if (T_AYCO == ecEventTypeDesc) { //Unladen at dest - 3,4,5
                 List<WorkInstruction> wiList = WorkInstruction.findAssociatedWorkInstruction(ecEvent.getEceventWorkAssignmentGkey());
@@ -249,11 +250,11 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("fetchCheId: " + fetchCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
-                        wrapSpace(line4),
+                        wrapSpace(line3, false),
+                        wrapSpace(line4, false),
                         LINE_EMPTY,
-                        wrapSpace(line6),
-                        wrapSpace(line7),
+                        wrapSpace(line6, false),
+                        wrapSpace(line7, false),
                         LINE_EMPTY);
 
 
@@ -272,7 +273,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     wiCarrierLocId = wi.getWiCarrierLocId();
                     Che putChe = wi.getMvhsPutChe();
                     logMsg("putChe: "+putChe);
-                    putCheId = putChe? putChe.getCheShortName() : T_UNKNOWN;
+                    putCheId = putChe? putChe.getCheShortName() : chePowName;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
@@ -284,12 +285,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("putCheId: " + putCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
+                        wrapSpace(line3, false),
                         LINE_EMPTY,
-                        wrapSpace(line5),
+                        wrapSpace(line5, false),
                         LINE_EMPTY,
                         LINE_EMPTY,
-                        wrapSpace(String.format((T_TVDR == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId)));
+                        wrapSpace(String.format((T_TVDR == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId), false));
 
 
             } else if (T_TYDR == ecEventTypeDesc) { //Laden to dest - 3,4
@@ -335,11 +336,11 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("putCheId: " + putCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
-                        wrapSpace(line4),
+                        wrapSpace(line3, false),
+                        wrapSpace(line4, false),
                         LINE_EMPTY,
-                        wrapSpace(line6),
-                        wrapSpace(line7),
+                        wrapSpace(line6, false),
+                        wrapSpace(line7, false),
                         LINE_EMPTY);
 
             } else if (T_AVDR == ecEventTypeDesc || T_ARDR == ecEventTypeDesc) { // Laden at dest 1,2
@@ -357,7 +358,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                     wiContainerId = wi.getWiUfv().getUfvUnit().getUnitId();
                     Che putChe = wi.getMvhsPutChe();
                     logMsg("putChe: "+putChe);
-                    putCheId = putChe? putChe.getCheShortName() : T_UNKNOWN;
+                    putCheId = putChe? putChe.getCheShortName() : chePowName;
                     unitType = getEquipmentFeetType(wi);
 
                     if (counter == 1) {
@@ -369,12 +370,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 logMsg("fetchCheId: " + putCheId + ", wiCarrierLocId: "+wiCarrierLocId + ", wiContainerId: "+wiContainerId + ", unitType: "+unitType);
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3),
+                        wrapSpace(line3, false),
                         LINE_EMPTY,
-                        wrapSpace(line5),
+                        wrapSpace(line5, false),
                         LINE_EMPTY,
                         LINE_EMPTY,
-                        wrapSpace(String.format((T_AVDR == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId)));
+                        wrapSpace(String.format((T_AVDR == ecEventTypeDesc? LINE_VESSEL : LINE_RAIL), wiCarrierLocId), false));
 
 
             } else if (T_AYDR == ecEventTypeDesc) { // Laden at dest 4,5
@@ -427,12 +428,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
 
                 message = frameMessage(buildFirstLine(cheId, null, chePowName),
                         LINE_EMPTY,
-                        wrapSpace(line3), //MEM or HOU
-                        wrapSpace(line4),
+                        wrapSpace(line3, false), //MEM or HOU
+                        wrapSpace(line4, false),
                         LINE_EMPTY,
                         LINE_EMPTY,
-                        wrapSpace(line7),
-                        wrapSpace(line8));
+                        wrapSpace(line7, false),
+                        wrapSpace(line8, false));
             }
 
             logMsg("message:\n"+message);
@@ -530,22 +531,29 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
             StringBuilder sbFirstLine = new StringBuilder();
             if (!inCheId.isEmpty()) {
                 sbFirstLine.append(inCheId); // 4 chars
-                sbFirstLine.append(T_FIVE_SPACE); // 5 chars
-                if (inCheStatus != null)
+                sbFirstLine.append(T_SPACE); // 5 chars
+                if (inCheStatus != null) {
+                    if (inCheStatus.length()>4) {
+                        inCheStatus = inCheStatus.substring(0, 4);
+                    } else {
+                        inCheStatus = inCheStatus;
+                    }
                     sbFirstLine.append(inCheStatus); // 11 chars
-                else
-                    sbFirstLine.append(T_ELEVEN_SPACE);
+                } else
+                    sbFirstLine.append(T_SPACE);
 
-                sbFirstLine.append(T_FIVE_SPACE); // 5 chars
+                sbFirstLine.append(T_SPACE); // 5 chars
                 if (inChePowName != null)
                     sbFirstLine.append(inChePowName); // 5 chars
             }
-            return wrapSpace(sbFirstLine.toString());
+            return wrapSpace(sbFirstLine.toString(), true);
 
         } catch (Exception e) {
             LOGGER.error("Exception in buildFirstLine : "+e.getMessage());
         }
-        return LINE_EMPTY;
+        //return LINE_EMPTY;
+        return FIRST_LINE_EMPTY;
+        //return "123456789012345678901234567890"
     }
 
     private String frameMessage(String inLine1, String inLine2, String inLine3, String inLine4, String inLine5, String inLine6, String inLine7, String inLine8) {
@@ -599,15 +607,16 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
         return null;
     }
 
-    private String wrapSpace(String inMessage) {
+    private String wrapSpace(String inMessage, boolean isFirstLine) {
         if (inMessage) {
-            if (inMessage.length() > 30) {
-                return inMessage.substring(0, 30);
+            int limit = isFirstLine? FIRSTLINE_COUNT_LIMIT : COLUMN_COUNT_LIMIT;
+            if (inMessage.length() > limit) {
+                return inMessage.substring(0, limit);
 
             } else {
                 StringBuilder sb = new StringBuilder();
                 sb.append(inMessage);
-                for (int i = COLUMN_COUNT_LIMIT; i > inMessage.length(); i--) {
+                for (int i = limit; i > inMessage.length(); i--) {
                     sb.append(T_SPACE);
                 }
                 return sb.toString();
@@ -641,6 +650,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String T_UNKNOWN   = "XXXX";
     private static final String T_FOUR_SPACE   = "    ";
     private static final String T_FIVE_SPACE   = "     ";
+    private static final String T_TWO_SPACE   = "  ";
     private static final String T_ELEVEN_SPACE = "           ";
     private static final String T_SPACE = " ";
     private static final String T_DOT = ".";
@@ -648,6 +658,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String T_HYPHEN = "-";
     private static final String T_UNAVAILABLE = "UNAVAILABLE";
     private static final String LINE_EMPTY = "                              ";
+    private static final String FIRST_LINE_EMPTY = "                   ";
     private static final String LINE_LOGGED_OUT   = "         LOGGED OUT           ";
     private static final String LINE_CALL_CLERK   = "         CALL CLERK           ";
     private static final String LINE_TO_LOG_IN    = "         TO LOG IN            ";
@@ -674,6 +685,7 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String HKI_API = "ECN4XMLtoHKIMDT";
 
     private final int COLUMN_COUNT_LIMIT = 30;
+    private final int FIRSTLINE_COUNT_LIMIT = 19;
     private final int ROW_COUNT_LIMIT = 8;
     private final int POW_SPACE_LIMIT = 5;
 
