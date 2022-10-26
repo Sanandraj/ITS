@@ -1,3 +1,4 @@
+import com.navis.argo.ArgoPropertyKeys
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.atoms.DataSourceEnum
@@ -10,6 +11,7 @@ import com.navis.external.framework.util.ExtensionUtils
 import com.navis.framework.business.Roastery
 import com.navis.framework.persistence.Entity
 import com.navis.framework.persistence.HibernatingEntity
+import com.navis.framework.util.BizViolation
 import com.navis.orders.business.eqorders.Booking
 import com.navis.services.business.event.Event
 import com.navis.vessel.business.api.VesselFinder
@@ -68,15 +70,14 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         if (thisDataSource == DataSourceEnum.EDI_BKG) {
             CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit();
             if (carrierVisit != null) {
-                VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit.getCvCvd());
+                VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit?.getCvCvd());
                 if (vvd != null) {
-                    VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, thisBooking.getEqoLine())
+                    VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, thisBooking?.getEqoLine())
                     if (vvl != null) {
                         Date ediCutoffDate = vvd.getVvFlexDate02()
                         LOGGER.debug("Edi cut off   : : " + ediCutoffDate)
                         Date lineCutoffDate = vvl.getVvlineTimeActivateYard()
                         LOGGER.debug("Edi cut off   : : " + lineCutoffDate)
-
                         Date currentDate = new Date()
                         LOGGER.debug("currentDate   : : " + currentDate)
 
@@ -86,7 +87,9 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
                             LOGGER.debug("Edi cut off/Line cut off should be allow to post : : ")
                         } else {
                             LOGGER.debug("Edi cut off/Line cut off should not allow to post : : ")
-                            new GroovyApi().registerError("Vessel Visit EDI Cut-Off/Line Cut Off is Locked. Could not post EDI .")
+                            getMessageCollector().registerExceptions(BizViolation.create(ArgoPropertyKeys.GROOVY_EXECUTION_FAILURE,
+                                    (BizViolation) null,
+                                    "Vessel Visit EDI Cut-Off/Line Cut Off is Locked. Could not post EDI ."))
 
                         }
                     }
