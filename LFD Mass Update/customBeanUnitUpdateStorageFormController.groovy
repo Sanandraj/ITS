@@ -39,7 +39,9 @@ class customBeanUnitUpdateStorageFormController extends UnitUpdateStorageFormCon
                 }
             });
         }
+
     }
+
     private static final Logger LOGGER = Logger.getLogger(customBeanUnitUpdateStorageFormController.class);
 
 }
