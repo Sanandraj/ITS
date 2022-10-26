@@ -43,14 +43,14 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
             if (eqoItem!=null){
                 if (!eqoItem.getEqoiEqIsoGroup().equals(truckTransaction.getTranEq().getEqIsoGroup()) &&
                         !eqoItem.getEqoiSampleEquipType().getEqtypNominalLength().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalLength()) &&
-                        !eqoItem.getEqoiSampleEquipType().getEqtypNominalHeight().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalLength())){
+                        !eqoItem.getEqoiSampleEquipType().getEqtypNominalHeight().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalHeight())){
                     truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
                     new GroovyApi().registerError("The Booking is for ${eqoItem.getEqoiSampleEquipType().getEqtypArchetype()} and the Truck arrives with an ${truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype()}")
                     return
                 }
                 if (eqoItem.getEqoiEqIsoGroup().equals(truckTransaction.getTranEq().getEqIsoGroup())){
                     if (eqoItem.getEqoiSampleEquipType().getEqtypNominalLength().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalLength())){
-                        if (!eqoItem.getEqoiSampleEquipType().getEqtypNominalHeight().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalLength())){
+                        if (!eqoItem.getEqoiSampleEquipType().getEqtypNominalHeight().equals(truckTransaction.getEquipment().getEqEquipType().getEqtypNominalHeight())){
                             if (truckTransaction.getTranEqo().getEqboOrderItems().size()==1){
                                 EquipmentOrderItem orderItem= EquipmentOrderItem.createOrderItem(truckTransaction.getTranEqo(),1,truckTransaction.getEquipment().getEqEquipType())
                                 LOGGER.debug("orderItem :: "+orderItem)
