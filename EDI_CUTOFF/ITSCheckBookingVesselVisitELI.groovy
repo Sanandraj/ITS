@@ -60,13 +60,12 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         LOGGER.debug("ITSCheckBookingVesselVisitELI: Started")
         Booking thisBooking = inEntity._entity
         DataSourceEnum thisDataSource = ContextHelper.getThreadDataSource()
-        this.CheckForBookingLock(thisBooking, thisDataSource, inOriginalFieldChanges)
+        this.CheckForBookingLock(thisBooking, thisDataSource)
 
     }
 
     private void CheckForBookingLock(@NotNull Booking thisBooking,
-                                     @NotNull DataSourceEnum thisDataSource,
-                                     EFieldChangesView inFieldChange) {
+                                     @NotNull DataSourceEnum thisDataSource) {
         if (thisDataSource == DataSourceEnum.EDI_BKG) {
             CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit()
             if (carrierVisit != null) {
@@ -83,7 +82,6 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
                             //Do Nothing
                             LOGGER.debug("Edi cut off/Line cut off should be allow to post : : ")
                         } else {
-                            LOGGER.debug("Edi cut off/Line cut off should not allow to post : : ")
                             getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
 
 
