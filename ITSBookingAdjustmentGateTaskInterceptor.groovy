@@ -6,6 +6,7 @@ import com.navis.external.road.AbstractGateTaskInterceptor
 import com.navis.framework.business.Roastery
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.util.BizViolation
+import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.inventory.business.units.EqBaseOrder
 import com.navis.orders.OrdersField
 import com.navis.orders.business.api.OrdersFinder
@@ -35,7 +36,7 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
         if (truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypBasicLength()?.equals(EquipBasicLengthEnum.BASIC40)){
             if (bookingOrdr.getFieldValue(MetafieldIdFactory.valueOf("eqoIsCompleteReceive"))?.equals(true)){
                 truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
-                getMessageCollector().registerExceptions(BizViolation.create(ArgoPropertyKeys.GROOVY_EXECUTION_FAILURE,
+                getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
                         (BizViolation)null,
                         "Booking is full ${truckTransaction.getTranEqo().getEqboNbr()} - to TROUBLE"));
                 return
@@ -51,7 +52,7 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
                         !eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalLength()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalLength()) &&
                         !eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalHeight()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalHeight())){
                     truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
-                    getMessageCollector().registerExceptions(BizViolation.create(ArgoPropertyKeys.GROOVY_EXECUTION_FAILURE,
+                    getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
                             (BizViolation)null,
                             "The Booking is for ${eqoItem.getEqoiSampleEquipType().getEqtypArchetype()} and the Truck arrives with an ${truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype()}"))
                     return
@@ -74,7 +75,7 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
                 else if (!eqoItem?.getEqoiEqIsoGroup()?.equals(truckTransaction?.getTranEq()?.getEqIsoGroup()) &&
                         truckTransaction?.getTranEqo()?.getEqboOrderItems()?.size() == 0){
                     truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
-                    getMessageCollector().registerExceptions(BizViolation.create(ArgoPropertyKeys.GROOVY_EXECUTION_FAILURE,
+                    getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
                             (BizViolation)null,
                             "The Booking is for ${eqoItem.getEqoiSampleEquipType().getEqtypArchetype()} and the Truck arrives with an ${truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype()}"))
                 }
