@@ -34,16 +34,6 @@ import org.jdom.Element
 import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
 
-import javax.jms.DeliveryMode
-import javax.jms.Queue
-import javax.jms.QueueConnection
-import javax.jms.QueueConnectionFactory
-import javax.jms.QueueSender
-import javax.jms.QueueSession
-import javax.jms.Session
-import javax.jms.TextMessage
-import javax.naming.InitialContext
-
 /**
  * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
