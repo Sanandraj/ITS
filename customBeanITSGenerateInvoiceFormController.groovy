@@ -39,7 +39,7 @@ class customBeanITSGenerateInvoiceFormController extends GenerateInvoiceFormCont
                             @Override
                             protected void doInTransaction() {
                                 InvoiceType invType = InvoiceType.hydrate(invTypeNewValueGKEY as Serializable)
-                                GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_CUSTOMER_SERVICE",invType.getInvtypeId())
+                                GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_CUSTOMER_SERVICE",invType?.getInvtypeId())
                                 if (gn!=null){
                                     Customer customer= Customer.hydrate(payeeCustomer as Serializable)
                                     customer?.setFieldValue(MetafieldIdFactory.valueOf("custDebitCode"),gn?.getRefValue1())
