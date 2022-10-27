@@ -1,6 +1,5 @@
 import com.navis.argo.ArgoPropertyKeys
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.atoms.DataSourceEnum
 import com.navis.argo.business.model.CarrierVisit
 import com.navis.external.framework.entity.AbstractEntityLifecycleInterceptor
@@ -19,6 +18,7 @@ import com.navis.vessel.business.schedule.VesselVisitDetails
 import com.navis.vessel.business.schedule.VesselVisitLine
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+import org.jetbrains.annotations.NotNull
 
 /*
 *
@@ -33,7 +33,7 @@ import org.apache.log4j.Logger
 public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterceptor {
 
     def vesselFinder = Roastery.getBean(VesselFinder.BEAN_ID)
-    private static Logger LOGGER = Logger.getLogger(ITSCheckBookingVesselVisitELI.class);
+    private static Logger LOGGER = Logger.getLogger(ITSCheckBookingVesselVisitELI.class)
 
     @Override
     void onCreate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
@@ -47,7 +47,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
 
     @Override
     public void preDelete(Entity inEntity) {
-        def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary");
+        def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary")
         Event event = null
         LOGGER.debug("preDelete" + inEntity)
         if (inEntity != null) {
@@ -57,20 +57,20 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges, String inType) {
         LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSCheckBookingVesselVisitELI: Started");
-        Booking thisBooking = inEntity._entity;
-        DataSourceEnum thisDataSource = ContextHelper.getThreadDataSource();
-        this.CheckForBookingLock(thisBooking, thisDataSource, inOriginalFieldChanges);
+        LOGGER.debug("ITSCheckBookingVesselVisitELI: Started")
+        Booking thisBooking = inEntity._entity
+        DataSourceEnum thisDataSource = ContextHelper.getThreadDataSource()
+        this.CheckForBookingLock(thisBooking, thisDataSource, inOriginalFieldChanges)
 
     }
 
-    private void CheckForBookingLock(Booking thisBooking, DataSourceEnum thisDataSource, EFieldChangesView inFieldChange) {
-        boolean isNotValid = Boolean.FALSE, isLineNotValid = Boolean.FALSE, isNull = Boolean.FALSE;
-
+    private void CheckForBookingLock(@NotNull Booking thisBooking,
+                                     @NotNull DataSourceEnum thisDataSource,
+                                     EFieldChangesView inFieldChange) {
         if (thisDataSource == DataSourceEnum.EDI_BKG) {
-            CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit();
+            CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit()
             if (carrierVisit != null) {
-                VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit?.getCvCvd());
+                VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit?.getCvCvd())
                 if (vvd != null) {
                     VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, thisBooking?.getEqoLine())
                     if (vvl != null) {
@@ -78,6 +78,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
                         LOGGER.debug("Edi cut off   : : " + ediCutoffDate)
                         Date lineCutoffDate = vvl.getVvlineTimeActivateYard()
                         LOGGER.debug("Edi cut off   : : " + lineCutoffDate)
+
                         Date currentDate = new Date()
                         LOGGER.debug("currentDate   : : " + currentDate)
 
