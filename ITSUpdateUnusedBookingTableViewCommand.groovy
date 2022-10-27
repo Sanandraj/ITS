@@ -34,7 +34,7 @@ import org.apache.log4j.Logger
 /**
  * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
  * Description: This Code will be paste against Table view Command Extension Type in Code extension - This Code will cancel/reduce bookings of the selected vessel visit
- * */
+ **/
 
 class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
     @Override
@@ -53,13 +53,13 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                         EventType event = EventType.findEventTypeProxy("TO_BE_DETERMINED")
 
                         if (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
-                                vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                            OptionDialog.showQuestion(PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff - Cancel or Reduce Booking ","Cancel and Reduce Booking"), PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff","Cancel and Reduce Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand() {
+                                vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
+                            OptionDialog.showQuestion(PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff - Cancel or Reduce Booking ","Cancel and Reduce Booking"), PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff","Cancel and Reduce Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand() {
                                 @Override
                                 protected void safeExecute(ButtonType buttonTypes) {
                                     final Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
                                     if (ButtonType.YES == buttonTypes) {
-                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Vessel Cut-Off","Cancelling Booking"), ButtonTypes.YES_NO_CANCEL, new AbstractCarinaOptionCommand(){
+                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Vessel Cut-Off","Cancelling Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand(){
                                             @Override
                                             protected void safeExecute(ButtonType buttonType) {
                                                 if (ButtonType.YES == buttonType) {
