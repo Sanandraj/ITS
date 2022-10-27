@@ -17,6 +17,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
+ * Date : 27-01-2022
  * Description: This Code will be paste against BEAN_PROTOTYPE Code Extension Type - This code performs updating cutDebitCode value(Customer Number - Customer Entity) by general reference value.
  **/
 
