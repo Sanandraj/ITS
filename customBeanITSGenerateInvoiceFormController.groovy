@@ -30,29 +30,36 @@ class customBeanITSGenerateInvoiceFormController extends GenerateInvoiceFormCont
                 Logger LOGGER1 = Logger.getLogger(this.class)
                 LOGGER1.setLevel(Level.DEBUG)
                 LOGGER1.debug("customBeanITSGenerateInvoiceFormController Starts :: ")
-                FieldChanges fieldChange = (FieldChanges) inFieldChanges
-                String invTypeNewValueGKEY = fieldChange?.getFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType"))?.getNewValue()
-                String payeeCustomer = fieldChange?.getFieldChange(MetafieldIdFactory.valueOf("invoicePayeeCustomer"))?.getNewValue()
-                if (fieldChange?.hasFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType"))) {
-                    if (invTypeNewValueGKEY != null) {
-                        PersistenceTemplate persistenceTemplate = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
-                        persistenceTemplate.invoke(new CarinaPersistenceCallback() {
-                            @Override
-                            protected void doInTransaction() {
-                                InvoiceType invType = InvoiceType.hydrate(invTypeNewValueGKEY as Serializable)
-                                GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_CUSTOMER_SERVICE",invType?.getInvtypeId())
-                                if (gn!=null){
-                                    Customer customer= Customer.hydrate(payeeCustomer as Serializable)
-                                    customer?.setFieldValue(MetafieldIdFactory.valueOf("custDebitCode"),gn?.getRefValue1())
+                FieldChanges fieldChanges = (FieldChanges) inFieldChanges
+                String invTypeNewValueGKEY = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf(INVOICE_INVOICE_TYPE))?.getNewValue()
+                String payeeCustomer = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf(INVOICE_PAYEE_CUSTOMER))?.getNewValue()
+                if (fieldChanges?.hasFieldChange(MetafieldIdFactory.valueOf(INVOICE_INVOICE_TYPE)) && invTypeNewValueGKEY != null) {
+                    PersistenceTemplate persistenceTemplate = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
+                    persistenceTemplate.invoke(new CarinaPersistenceCallback() {
+                        @Override
+                        protected void doInTransaction() {
+                            InvoiceType invType = InvoiceType.hydrate(invTypeNewValueGKEY as Serializable)
+                            GeneralReference gn = GeneralReference.findUniqueEntryById(ITS_CUSTOMER_SERVICE,invType?.getInvtypeId())
+                            if (gn!=null && payeeCustomer != null){
+                                Customer customer= Customer.hydrate(payeeCustomer as Serializable)
+                                if (customer.getCustDebitCode()==null || customer.getCustDebitCode().isEmpty() || !customer.getCustDebitCode().equals(gn?.getRefValue1())){
+                                    customer?.setFieldValue(MetafieldIdFactory.valueOf(CUST_DEBIT_CODE),gn?.getRefValue1())
                                 }
                             }
-                        })
-                    }
+                        }
+                    })
                 }
                 getFormUiProcessor()?.hideWindow(this.getFormController())
                 return new BizResponse()
             }
         }
     }
-    private static final Logger LOGGER = Logger.getLogger(customBeanITSGenerateInvoiceFormController.class)
+    @Override
+    String getDetailedDiagnostics() {
+        return "customBeanITSGenerateInvoiceFormController"
+    }
+    public static final String INVOICE_INVOICE_TYPE = "invoiceInvoiceType"
+    public static final String INVOICE_PAYEE_CUSTOMER = "invoicePayeeCustomer"
+    public static final String CUST_DEBIT_CODE = "custDebitCode"
+    public static final String ITS_CUSTOMER_SERVICE = "ITS_CUSTOMER_SERVICE"
 }
