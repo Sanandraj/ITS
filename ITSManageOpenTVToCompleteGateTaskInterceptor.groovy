@@ -27,7 +27,6 @@ class ITSManageOpenTVToCompleteGateTaskInterceptor extends AbstractGateTaskInter
         LOGGER.debug("truckVisitDetails :: "+truckVisitDetails)
         for (TruckVisitDetails tvd : truckVisitDetails as List<TruckVisitDetails> ){
             if (tvd.getTvdtlsStatus().equals(TruckVisitStatusEnum.OK) || tvd.getTvdtlsStatus().equals(TruckVisitStatusEnum.TROUBLE)){
-                tran.cancelTransaction()
                 tvd.setTvdtlsStatus(TruckVisitStatusEnum.CLOSED)
             }
         }
