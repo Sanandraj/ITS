@@ -10,6 +10,12 @@ import com.navis.road.business.workflow.TransactionAndVisitHolder
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/** Date: 31-10-2022
+ *  @Author <a href="mailto:skishore@weservetech.com">Kishore Kumar S</a>
+ * Requirements:- Verifying whether previous truck visit for the same Truck-Id is Complete or closed, else changing status to close while revisiting
+ * @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR --> Paste this code (ITSManageOpenTVToCompleteGateTaskInterceptor.groovy)
+*/
+
 class ITSManageOpenTVToCompleteGateTaskInterceptor extends AbstractGateTaskInterceptor{
     @Override
     void execute(TransactionAndVisitHolder inWfCtx) {
