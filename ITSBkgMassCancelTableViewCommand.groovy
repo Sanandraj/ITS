@@ -1,5 +1,4 @@
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.presentation.ui.message.ButtonTypes
@@ -9,7 +8,6 @@ import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.orders.business.eqorders.Booking
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
 import com.navis.framework.persistence.hibernate.PersistenceTemplate
-import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -29,29 +27,25 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
             protected void doInTransaction() {
                 if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
                     Iterator it = inGkeys.iterator()
+                    List<Serializable> bookingGkeysDelete = new ArrayList<Serializable>()
                     long count =0
                     long errorCount = 0
                     boolean error = false
                     boolean bkgCancel = false
                     while(it.hasNext()){
                         Booking booking = Booking.hydrate(it.next())
-                        VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        if (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
-                                vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                            if (booking!=null && booking.getEqboNbr()!=null ){
-                                if (booking.eqoTallyReceive == 0){
-                                    PersistenceTemplate template = new PersistenceTemplate(getUserContext())
-                                    template.invoke(new CarinaPersistenceCallback() {
-                                        @Override
-                                        protected void doInTransaction() {
-                                            booking.purge()
-                                            count = count+1
-                                            bkgCancel = true
-                                        }
-                                    })
+                        if (timeZone != null && booking!=null && booking.getEqboNbr()!=null && booking.eqoTallyReceive == 0){
+                            PersistenceTemplate template = new PersistenceTemplate(getUserContext())
+                            template.invoke(new CarinaPersistenceCallback() {
+                                @Override
+                                protected void doInTransaction() {
+                                    final Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
+                                    bookingGkeysDelete.add(booking.getPrimaryKey())
+                                    count = count+1
+                                    bkgCancel = true
                                 }
-                            }
+                            })
                         }
                         else {
                             errorCount = errorCount+1
@@ -59,6 +53,9 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                                 error = true
                             }
                         }
+                    }
+                    if (bookingGkeysDelete.size()>0){
+                        deleteBookingsByGkeys(bookingGkeysDelete)
                     }
                     if (!bkgCancel){
                         informationBox(count,Long.valueOf(inGkeys.size()))
@@ -75,6 +72,13 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
     }
     private static final informationBox(long count,long errorCount){
         OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count}, Cutoff Passed for visits - ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
+    }
+    private static final deleteBookingsByGkeys(List<Serializable> inGkeys){
+        Iterator it = inGkeys.iterator()
+        while(it.hasNext()){
+            Booking booking = Booking.hydrate(it.next())
+            booking.purge()
+        }
     }
     private final static Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
 }
