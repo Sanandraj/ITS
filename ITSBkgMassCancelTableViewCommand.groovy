@@ -25,15 +25,14 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
-                    Iterator it = inGkeys.iterator()
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){ // todo, what for equal to 1
                     List<Serializable> bookingGkeysDelete = new ArrayList<Serializable>()
                     long count =0
                     long errorCount = 0
                     boolean error = false
                     boolean bkgCancel = false
-                    while(it.hasNext()){
-                        Booking booking = Booking.hydrate(it.next())
+                    for(Serializable it: inGkeys){
+                        Booking booking = Booking.hydrate(it)
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         if (timeZone != null && booking!=null && booking.getEqboNbr()!=null && booking.eqoTallyReceive == 0){
                             PersistenceTemplate template = new PersistenceTemplate(getUserContext())
@@ -74,9 +73,8 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
         OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count}, Cutoff Passed for visits - ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
     }
     private static final deleteBookingsByGkeys(List<Serializable> inGkeys){
-        Iterator it = inGkeys.iterator()
-        while(it.hasNext()){
-            Booking booking = Booking.hydrate(it.next())
+        for(Serializable it:inGkeys){
+            Booking booking = Booking.hydrate(it)
             booking.purge()
         }
     }
