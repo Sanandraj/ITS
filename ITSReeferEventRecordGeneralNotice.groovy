@@ -19,12 +19,17 @@ class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtens
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSReeferEventRecordGeneralNotice Starts :: ")
         Unit unit = (Unit) inGroovyEvent.getEntity()
+        LOGGER.debug("Unit ::"+unit)
         UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
+        LOGGER.debug("ufv ::"+ufv)
         boolean unitIsReefer= unit.getUnitIsReefer()
         if (unitIsReefer){
             ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
+            LOGGER.debug("1111")
             UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
+            LOGGER.debug("2222")
             unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
+            LOGGER.debug("3333")
             HibernateApi.getInstance().flush()
         }
     }

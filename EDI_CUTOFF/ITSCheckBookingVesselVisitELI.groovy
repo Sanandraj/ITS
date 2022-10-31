@@ -45,7 +45,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges, "onUpdate")
     }
 
-    @Override
+    /*@Override
     public void preDelete(Entity inEntity) {
         def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary")
         Event event = null
@@ -53,7 +53,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         if (inEntity != null) {
             library.execute((HibernatingEntity) inEntity, event)
         }
-    }
+    }*/
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges, String inType) {
         LOGGER.setLevel(Level.DEBUG)

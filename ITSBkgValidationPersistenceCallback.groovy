@@ -1,3 +1,5 @@
+package ITSIntegration
+
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.inventory.business.units.EqBaseOrderItem
 import com.navis.orders.business.eqorders.EquipmentOrder

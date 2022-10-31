@@ -54,10 +54,6 @@ class customBeanITSGenerateInvoiceFormController extends GenerateInvoiceFormCont
             }
         }
     }
-    @Override
-    String getDetailedDiagnostics() {
-        return "customBeanITSGenerateInvoiceFormController"
-    }
     public static final String INVOICE_INVOICE_TYPE = "invoiceInvoiceType"
     public static final String INVOICE_PAYEE_CUSTOMER = "invoicePayeeCustomer"
     public static final String CUST_DEBIT_CODE = "custDebitCode"

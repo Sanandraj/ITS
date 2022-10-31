@@ -94,7 +94,7 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
         List<Invoice> jobBatchList = (List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
         Invoice batchMax = jobBatchList.get(0)
         String flexStringValue = batchMax.getInvoiceFlexString03()
-        Long parseLong = Long.parseLong(flexStringValue) + 1
+        long parseLong = Long.parseLong(flexStringValue) + 1
         invoice.setFieldValue(metafieldId_Inv_Batch_Id, parseLong.toString())
 
         Element company = new Element("Company")
