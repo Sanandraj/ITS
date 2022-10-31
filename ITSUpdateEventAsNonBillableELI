@@ -25,17 +25,17 @@ import org.apache.log4j.Logger
 class ITSUpdateEventAsNonBillableELI extends AbstractEntityLifecycleInterceptor {
     @Override
     void onCreate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
-        LOG_MSG.setLevel(Level.DEBUG)
-        LOG_MSG.debug("ITSUpdateEventAsNonBillableELI is invoked ::")
-        Event event = inEntity._entity
-        LOG_MSG.debug("event::" + event)
+        logger.setLevel(Level.DEBUG)
+        logger.debug("ITSUpdateEventAsNonBillableELI is invoked ::")
+        Event event = (Event)inEntity._entity
+        logger.debug("event::" + event)
         if (LogicalEntityEnum.UNIT.equals(event.getEventAppliedToClass()) && event.getEventTypeIsBillable()) {
-            LOG_MSG.debug(event.getEventTypeId() + " is a billable event::")
+            logger.debug(event.getEventTypeId() + " is a billable event::")
             Unit unit = Unit.hydrate((Serializable) inOriginalFieldChanges.findFieldChange(ServicesField.EVNT_APPLIED_TO_PRIMARY_KEY).getNewValue())
-            LOG_MSG.debug("unit::"+unit)
-            if (unit != null && unit.getUnitLineOperator() != null && unit.getUnitLineOperator().getBzuId()) {
+            logger.debug("unit::"+unit)
+            if (unit != null && unit.getUnitLineOperator() != null && unit.getUnitLineOperator()?.getBzuId()) {
                 GeneralReference generalReference = GeneralReference.findUniqueEntryById(ITS, POWER_CONTAINERS, unit.getUnitLineOperator().getBzuId())
-                LOG_MSG.debug("general reference::" + generalReference)
+                logger.debug("general reference::" + generalReference)
                 if (generalReference != null  && generalReference.getRefValue1() != null) {
                     if (unit.getPrimaryEq() != null && unit.getPrimaryEq().getEqEquipType() != null && generalReference.getRefValue1().toUpperCase().contains(unit.getPrimaryEq().getEqEquipType().getEqtypId())) {
                         inMoreFieldChanges.setFieldChange(ServicesField.EVNT_BILLING_EXTRACT_BATCH_ID, null)
@@ -43,11 +43,11 @@ class ITSUpdateEventAsNonBillableELI extends AbstractEntityLifecycleInterceptor 
                 }
             }
         }
-        LOG_MSG.debug("ITSUpdateEventAsNonBillableELI completed ::")
+        logger.debug("ITSUpdateEventAsNonBillableELI completed ::")
 
     }
     private static final String ITS = "ITS";
     private static final String POWER_CONTAINERS = "POWER_CONTAINERS"
-    private static final Logger LOG_MSG = Logger.getLogger(this.class);
+    private static final Logger logger = Logger.getLogger(this.class);
 
 }
