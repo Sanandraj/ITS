@@ -22,43 +22,51 @@ import org.apache.log4j.Logger
  * */
 
 class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExtension {
+    public static final String UNIT_RESERVE = "UNIT_RESERVE"
+    public static final String UNIT_CANCEL_RESERVE = "UNIT_CANCEL_RESERVE"
+
     @Override
     void execute(GroovyEvent inGroovyEvent) {
-        LOG_MSG.setLevel(Level.DEBUG)
-        LOG_MSG.debug("ITSUpdateUnitsCountToBLGenaralNotice is invoked::")
-        if (inGroovyEvent.getEvent().getEvntEventType().equals(EventType.findEventType("UNIT_RESERVE"))){
-            Unit unit = (Unit) inGroovyEvent.getEntity()
-            if (unit.getUnitGoods() != null && unit.getUnitGoods().getGdsBlNbr()) {
+        LOGGER.setLevel(Level.DEBUG)
+        LOGGER.debug("ITSUpdateUnitsCountToBLGenaralNotice is invoked::")
+        if (inGroovyEvent.getEvent().getEvntEventType().equals(EventType.findEventType(UNIT_RESERVE))){
+            Unit unit = (Unit) inGroovyEvent.getEntity() // wrap with try/catch, so the case don't throw error
+            if (unit.getUnitGoods() != null && unit.getUnitGoods().getGdsBlNbr()) { // null check on unit missing
                 Collection blGoodsblCollection = inventoryCargoManager1.getBlGoodsBls(unit)
-                for (BlGoodsBl blGoodsBl : (blGoodsblCollection as List<BlGoodsBl>)) {
-                    if (blGoodsBl.getBlgdsblBl() != null) {
-                        List unitList = inventoryCargoManager1.findUnitsForBillOfLading(blGoodsBl.getBlgdsblBl())
-                        if (unitList != null && unitList.size() > 0) {
-                            blGoodsBl.getBlgdsblBl().setBlFlexString01(String.valueOf(unitList.size()))
-                        } else {
-                            blGoodsBl.getBlgdsblBl().setBlFlexString01(0)
+                if (blGoodsblCollection != null){
+                    for (BlGoodsBl blGoodsBl : (blGoodsblCollection as List<BlGoodsBl>)) {
+                        if (blGoodsBl.getBlgdsblBl() != null) {
+                            List unitList = inventoryCargoManager1.findUnitsForBillOfLading(blGoodsBl.getBlgdsblBl())
+                            if (unitList != null && unitList.size() > 0) {
+                                blGoodsBl.getBlgdsblBl().setBlFlexString01(String.valueOf(unitList.size()))
+                            } else {
+                                blGoodsBl.getBlgdsblBl().setBlFlexString01(0)
+                            }
                         }
                     }
                 }
             }
         }
-        else if (inGroovyEvent.getEvent().getEvntEventType().equals(EventType.findEventType("UNIT_CANCEL_RESERVE"))){
+        else if (inGroovyEvent.getEvent().getEvntEventType().equals(EventType.findEventType(UNIT_CANCEL_RESERVE))){
             Unit unit = (Unit) inGroovyEvent.getEntity()
-            LOG_MSG.debug("unit::" + unit)
+            LOGGER.debug("unit::" + unit)
             String  evntNote = inGroovyEvent.getEvent()?.getEventNote()
-            LOG_MSG.debug("Event Notes :: "+evntNote)
+            LOGGER.debug("Event Notes :: "+evntNote)
             if (evntNote != null){
                 String blNbr = getLastWordUsingSplit(evntNote)
-                LOG_MSG.debug("BlNbr :: "+blNbr)
+                LOGGER.debug("BlNbr :: "+blNbr)
                 if (blNbr != null && !blNbr.isEmpty()){
                     List<BillOfLading> billOfLading= BillOfLading.findAllBillsOfLading(blNbr)
                     for (BillOfLading bl : billOfLading){
                         Collection blGoodsblCollection = bl?.getBlBlGoodsBls()
-                        for (BlGoodsBl blGoodsBl : (blGoodsblCollection as List<BlGoodsBl>)) {
-                            if (blGoodsBl.getBlgdsblBl() != null) {
-                                List unitList = inventoryCargoManager1.findUnitsForBillOfLading(blGoodsBl?.getBlgdsblBl())
-                                if (unitList != null && unitList.size() > 0) {
-                                    blGoodsBl?.getBlgdsblBl()?.setBlFlexString01(String.valueOf(unitList?.size()))
+                        if (blGoodsblCollection!=null){
+                            for (BlGoodsBl blGoodsBl : (blGoodsblCollection as List<BlGoodsBl>))
+                            {
+                                if (blGoodsBl.getBlgdsblBl() != null) {
+                                    List unitList = inventoryCargoManager1.findUnitsForBillOfLading(blGoodsBl?.getBlgdsblBl())
+                                    if (unitList != null && unitList.size() > 0) {
+                                        blGoodsBl?.getBlgdsblBl()?.setBlFlexString01(String.valueOf(unitList?.size()))
+                                    }
                                 }
                             }
                         }
@@ -67,11 +75,11 @@ class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExte
             }
         }
     }
-    private static final Logger LOG_MSG = Logger.getLogger(this.class);
-   private static  InventoryCargoManager inventoryCargoManager1 = (InventoryCargoManager) Roastery.getBean(InventoryCargoManager.BEAN_ID);
+    private static final Logger LOGGER = Logger.getLogger(ITSUpdateUnitsCountToBLGenaralNotice.class)
+    private static  InventoryCargoManager inventoryCargoManager1 = (InventoryCargoManager) Roastery.getBean(InventoryCargoManager.BEAN_ID)
 
     private static String getLastWordUsingSplit(String input) {
         String[] tokens = input.split(" ");
-        return tokens[tokens.length - 3];
+        return tokens[tokens.length - 3]
     }
 }
