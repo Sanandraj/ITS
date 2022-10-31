@@ -1,8 +1,6 @@
 package ITSIntegration
 
 import com.navis.external.road.AbstractGateTaskInterceptor
-import com.navis.framework.presentation.ui.message.OptionDialog
-import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.road.business.atoms.TruckVisitStatusEnum
 import com.navis.road.business.model.TruckTransaction
 import com.navis.road.business.model.TruckVisitDetails
@@ -31,7 +29,6 @@ class ITSManageOpenTVToCompleteGateTaskInterceptor extends AbstractGateTaskInter
             if (tvd.getTvdtlsStatus().equals(TruckVisitStatusEnum.OK) || tvd.getTvdtlsStatus().equals(TruckVisitStatusEnum.TROUBLE)){
                 tran.cancelTransaction()
                 tvd.setTvdtlsStatus(TruckVisitStatusEnum.CLOSED)
-                OptionDialog.showWarning(PropertyKeyFactory.valueOf("Open Status for Truck Id ${tvd.getTruckLicenseNbr()} has closed"),PropertyKeyFactory.valueOf("Open TruckVisit Detail"))
             }
         }
     }
