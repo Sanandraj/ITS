@@ -1,21 +1,16 @@
 package ITS
 
-import com.navis.argo.business.atoms.EventEnum
 import com.navis.cargo.business.model.BillOfLading
 import com.navis.cargo.business.model.BlGoodsBl
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.framework.business.Roastery
-import com.navis.framework.portal.FieldChange
 import com.navis.inventory.business.api.InventoryCargoManager
-import com.navis.inventory.business.moves.MoveEvent
 import com.navis.inventory.business.units.Unit
-import com.navis.services.business.api.EventManager
-import com.navis.services.business.event.Event
-import com.navis.services.business.event.EventFieldChange
 import com.navis.services.business.event.GroovyEvent
 import com.navis.services.business.rules.EventType
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+
 
 /**
  * Date: 31-10-2022
