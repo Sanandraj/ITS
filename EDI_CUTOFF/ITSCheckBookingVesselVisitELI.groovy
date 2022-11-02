@@ -1,4 +1,5 @@
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.atoms.DataSourceEnum
 import com.navis.argo.business.model.CarrierVisit
 import com.navis.external.framework.entity.AbstractEntityLifecycleInterceptor
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.NotNull
 
 public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterceptor {
 
-    def vesselFinder = Roastery.getBean(VesselFinder.BEAN_ID)
+    VesselFinder vesselFinder = Roastery.getBean(VesselFinder.BEAN_ID)
     private static Logger LOGGER = Logger.getLogger(ITSCheckBookingVesselVisitELI.class)
 
     @Override
@@ -45,15 +46,15 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges, "onUpdate")
     }
 
-    /*@Override
+    @Override
     public void preDelete(Entity inEntity) {
-        def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary")
+        Object library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary")
         Event event = null
         LOGGER.debug("preDelete" + inEntity)
         if (inEntity != null) {
             library.execute((HibernatingEntity) inEntity, event)
         }
-    }*/
+    }
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges, String inType) {
         LOGGER.setLevel(Level.DEBUG)
@@ -70,22 +71,22 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
             CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit()
             if (carrierVisit != null) {
                 VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit?.getCvCvd())
+                Date ediCutoffDate = vvd.getVvFlexDate02();
+                Date lineCutoffDate = null;
                 if (vvd != null) {
                     VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, thisBooking?.getEqoLine())
                     if (vvl != null) {
-                        Date ediCutoffDate = vvd.getVvFlexDate02()
-                        Date lineCutoffDate = vvl.getVvlineTimeActivateYard()
-                        Date currentDate = new Date()
+                        lineCutoffDate = vvl.getVvlineTimeActivateYard()
+                    }
+                    //Date currentDate = new Date();
 
-                        //validating Vessel visit Edi cut off date and Line Cut off date
-                        if ((ediCutoffDate != null && ediCutoffDate.after(currentDate)) || (lineCutoffDate != null && lineCutoffDate.after(currentDate))) {
-                            //Do Nothing
-                            LOGGER.debug("Edi cut off/Line cut off should be allow to post : : ")
-                        } else {
-                            getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
+                    TimeZone timeZone = ContextHelper.getThreadUserTimezone()
+                    Date currentDate = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)
 
-
-                        }
+                    LOGGER.debug("currentDate" +currentDate)
+                    //validating Vessel visit Edi cut off date and Line Cut off date
+                    if ((ediCutoffDate != null && ediCutoffDate.before(currentDate)) || (lineCutoffDate != null && lineCutoffDate.before(currentDate))) {
+                        getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
                     }
 
                 }
@@ -93,8 +94,4 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         }
 
     }
-
-
 }
-
-
