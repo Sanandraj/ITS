@@ -41,8 +41,11 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
                         "Booking is full ${truckTransaction.getTranEqo().getEqboNbr()} - to TROUBLE"));
                 return
             }
-            EqBaseOrder eqboNbr= truckTransaction.getTranUnit()?.getUnitDepartureOrderItem()?.getEqboiOrder()
-            LOGGER.debug("eqboNbr :: "+eqboNbr)
+            EqBaseOrder eqboNbr = null
+            if (truckTransaction.getTranUnit()?.getUnitDepartureOrderItem() != null){
+                eqboNbr= truckTransaction.getTranUnit()?.getUnitDepartureOrderItem()?.getEqboiOrder()
+                LOGGER.debug("eqboNbr :: "+eqboNbr)
+            }
             TimeZone timeZone = ContextHelper.getThreadUserTimezone()
             OrdersFinder ordersFinder= Roastery.getBean(OrdersFinder.BEAN_ID)
             EquipmentOrderItem eqoItem= ordersFinder.findEqoItemByEqType(truckTransaction?.getTranEqo(),
@@ -84,10 +87,12 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
                 if (truckTransaction?.getTranEqo()?.getEqboOrderItems()?.size()>1){
                     if (truckTransaction?.getTranEqo()?.getEqboOrderItems()?.contains(eqoItem)){
                         eqoItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiQty"),eqoItem.getEqoiQty()-1)
-                        EquipmentOrderItem orderItem= EquipmentOrderItem.createOrderItem(eqboNbr,1,truckTransaction?.getEquipment()?.getEqEquipType())
-                        LOGGER.debug("orderItem :: "+orderItem)
-                        if (eqoItem.isHazardous()){
-                            orderItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"),eqoItem.getEqoiHazards())
+                        if (eqboNbr != null){
+                            EquipmentOrderItem orderItem= EquipmentOrderItem.createOrderItem(eqboNbr,1,truckTransaction?.getEquipment()?.getEqEquipType())
+                            LOGGER.debug("orderItem :: "+orderItem)
+                            if (eqoItem.isHazardous()){
+                                orderItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"),eqoItem.getEqoiHazards())
+                            }
                         }
                     }
                 }
