@@ -1,14 +1,11 @@
-import com.navis.argo.ArgoPropertyKeys
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
-import com.navis.argo.business.api.GroovyApi
 import com.navis.external.road.AbstractGateTaskInterceptor
 import com.navis.framework.business.Roastery
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.util.BizViolation
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.inventory.business.units.EqBaseOrder
-import com.navis.orders.OrdersField
 import com.navis.orders.business.api.OrdersFinder
 import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.road.business.atoms.TranStatusEnum
@@ -34,27 +31,27 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
         TruckTransaction truckTransaction = inWfCtx.getTran()
         Booking bookingOrdr = Booking.findBookingWithoutLine(truckTransaction?.getTranEqo()?.getEqboNbr(),truckTransaction?.getCarrierVisit())
         if (truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypBasicLength()?.equals(EquipBasicLengthEnum.BASIC40)){
-            if (bookingOrdr.getFieldValue(MetafieldIdFactory.valueOf("eqoIsCompleteReceive"))?.equals(true)){
-                truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
-                getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
+            if (bookingOrdr?.getFieldValue(MetafieldIdFactory.valueOf("eqoIsCompleteReceive"))?.equals(true)){
+                truckTransaction?.setTranStatus(TranStatusEnum.TROUBLE)
+                getMessageCollector()?.registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
                         (BizViolation)null,
                         "Booking is full ${truckTransaction.getTranEqo().getEqboNbr()} - to TROUBLE"));
                 return
             }
             EqBaseOrder eqboNbr = null
-            if (truckTransaction.getTranUnit()?.getUnitDepartureOrderItem() != null){
-                eqboNbr= truckTransaction.getTranUnit()?.getUnitDepartureOrderItem()?.getEqboiOrder()
+            if (truckTransaction?.getTranUnit()?.getUnitDepartureOrderItem() != null){
+                eqboNbr= truckTransaction?.getTranUnit()?.getUnitDepartureOrderItem()?.getEqboiOrder()
                 LOGGER.debug("eqboNbr :: "+eqboNbr)
             }
             TimeZone timeZone = ContextHelper.getThreadUserTimezone()
             OrdersFinder ordersFinder= Roastery.getBean(OrdersFinder.BEAN_ID)
-            EquipmentOrderItem eqoItem= ordersFinder.findEqoItemByEqType(truckTransaction?.getTranEqo(),
+            EquipmentOrderItem eqoItem= ordersFinder?.findEqoItemByEqType(truckTransaction?.getTranEqo(),
                     truckTransaction?.getEquipment()?.getEqEquipType())
             if (eqoItem!=null){
                 if (!eqoItem?.getEqoiEqIsoGroup()?.equals(truckTransaction?.getTranEq()?.getEqIsoGroup()) &&
                         !eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalLength()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalLength()) &&
                         !eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalHeight()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalHeight())){
-                    truckTransaction.setTranStatus(TranStatusEnum.TROUBLE)
+                    truckTransaction?.setTranStatus(TranStatusEnum.TROUBLE)
                     getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Booking Adjustment Execution Failure"),
                             (BizViolation)null,
                             "The Booking is for ${eqoItem.getEqoiSampleEquipType().getEqtypArchetype()} and the Truck arrives with an ${truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype()}"))
@@ -66,11 +63,11 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
                             if (truckTransaction?.getTranEqo()?.getEqboOrderItems()!=null && truckTransaction?.getTranEqo()?.getEqboOrderItems()?.size()==1){
                                 EquipmentOrderItem orderItem= EquipmentOrderItem.createOrderItem(truckTransaction?.getTranEqo(),1,truckTransaction?.getEquipment()?.getEqEquipType())
                                 LOGGER.debug("orderItem :: "+orderItem)
-                                truckTransaction.getTranEqo().recordEvent(EventType.findEventType("TBD"),null,"Booking Adjustment", ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
-                                if (eqoItem.isHazardous()){
-                                    orderItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"),eqoItem.getEqoiHazards())
+                                truckTransaction?.getTranEqo()?.recordEvent(EventType.findEventType("TBD"),null,"Booking Adjustment", ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+                                if (eqoItem?.isHazardous()){
+                                    orderItem?.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"),eqoItem?.getEqoiHazards())
                                 }
-                                eqoItem.purge()
+                                eqoItem?.purge()
                             }
                         }
                     }
