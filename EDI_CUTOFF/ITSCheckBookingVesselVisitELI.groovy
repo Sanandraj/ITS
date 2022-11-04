@@ -21,6 +21,8 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.NotNull
 
+import java.text.SimpleDateFormat
+
 /*
 *
 * @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 26/OCT/2022
@@ -71,22 +73,33 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
             CarrierVisit carrierVisit = thisBooking.getEqoVesselVisit()
             if (carrierVisit != null) {
                 VesselVisitDetails vvd = vesselFinder.findVvByVisitDetails(carrierVisit?.getCvCvd())
-                Date ediCutoffDate = vvd.getVvFlexDate02();
-                Date lineCutoffDate = null;
+                Date cutOffDate = vvd.getVvFlexDate02();
+
                 if (vvd != null) {
                     VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, thisBooking?.getEqoLine())
-                    if (vvl != null) {
-                        lineCutoffDate = vvl.getVvlineTimeActivateYard()
+                    if (vvl != null && vvl.getVvlineTimeActivateYard() !=null) {
+                        cutOffDate = vvl.getVvlineTimeActivateYard()
                     }
-                    //Date currentDate = new Date();
+
 
                     TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                     Date currentDate = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)
+                    cutOffDate=ArgoUtils.convertDateToLocalDateTime(cutOffDate, timeZone)
 
-                    LOGGER.debug("currentDate" +currentDate)
+                    //Date currentDate = ArgoUtils.timeNow()
+
+                    LOGGER.debug("currentDate" + currentDate)
+
+
+                    LOGGER.debug("ediCutoffDate" + cutOffDate)
+
                     //validating Vessel visit Edi cut off date and Line Cut off date
-                    if ((ediCutoffDate != null && ediCutoffDate.before(currentDate)) || (lineCutoffDate != null && lineCutoffDate.before(currentDate))) {
-                        getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
+
+                    if(cutOffDate != null && currentDate!=null){
+                        if(currentDate.after(cutOffDate)){
+                            LOGGER.debug("currentDate after cutOffDate ::" )
+                               getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
+                        }
                     }
 
                 }
