@@ -47,7 +47,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
     void onUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges, "onUpdate")
     }
-
+ 
     @Override
     public void preDelete(Entity inEntity) {
         Object library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSEmodalLibrary")
