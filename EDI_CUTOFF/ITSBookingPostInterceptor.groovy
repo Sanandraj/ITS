@@ -122,6 +122,7 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
                 if (ediCutoffDate != null && currentDate.after(ediCutoffDate)) {
                     new GroovyApi().registerError("Vessel Visit past EDI cut-off. Could not post EDI.")
                 }*/
+
                 if (NON_VISIT.equalsIgnoreCase(vvd.getVvFlexString01())) {
                     bkgTrans.setEdiBookingType(EDO)
                     ediBooking.setBookingHandlingInstructions("Requested Vessel Visit does not have call at ITS. [Vessel: " + ediVV.getVesselName() + ". Voyage: " + ediVV.getOutVoyageNbr() + "]")
