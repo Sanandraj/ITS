@@ -54,7 +54,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
         Event event = null
         LOGGER.debug("preDelete" + inEntity)
         if (inEntity != null) {
-            library.execute((HibernatingEntity) inEntity, event)
+            library.execute(inEntity, event)
         }
     }
 
@@ -98,7 +98,7 @@ public class ITSCheckBookingVesselVisitELI extends AbstractEntityLifecycleInterc
                     if(cutOffDate != null && currentDate!=null){
                         if(currentDate.after(cutOffDate)){
                             LOGGER.debug("currentDate after cutOffDate ::" )
-                               getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
+                            getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post EDI ."), (BizViolation) null))
                         }
                     }
 

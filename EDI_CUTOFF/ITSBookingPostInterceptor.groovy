@@ -4,7 +4,6 @@
  */
 
 import com.navis.argo.*
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.api.VesselVisitFinder
 import com.navis.argo.business.atoms.BizRoleEnum
@@ -25,7 +24,6 @@ import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.BizViolation
-import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.message.MessageCollectorUtils
 import com.navis.inventory.InventoryEntity
 import com.navis.inventory.InventoryField
@@ -37,7 +35,6 @@ import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.orders.OrdersPropertyKeys
 import com.navis.orders.business.eqorders.Booking
 import com.navis.vessel.business.schedule.VesselVisitDetails
-import com.navis.vessel.business.schedule.VesselVisitLine
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -52,14 +49,8 @@ import java.text.SimpleDateFormat
  *
  * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 10/March/2022
  *
- *
  * Requirements : This groovy is used to update the msg funciton and EDO Type based on the criteria.
  *
- *
- * Modified by @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 04/NOV/2022
-*
-* Requirements : This groovy is used to validate an EDI Booking Vessel Visit Cut Off/Line Cut Off and also to send the booking details to Emodal while deleting the booking.
-*
  * @Inclusion Location	: Incorporated as a code extension of the type EDI_POST_INTERCEPTOR.
  *
  *  Load Code Extension to N4:
@@ -78,6 +69,10 @@ import java.text.SimpleDateFormat
         4. Select the extension in "Post Code Extension" tab
         5. Click on save
  *
+ *
+ * Modified by @Author <a href="mailto:sanandaraj@weservetech.com">Anandaraj S</a>, 04/NOV/2022
+ *
+ * Commented the Error:Vessel Visit past EDI cut-off. Could not post EDI
  */
 
 
@@ -122,38 +117,11 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
             VesselVisitDetails vvd = ediCv != null ? VesselVisitDetails.resolveVvdFromCv(ediCv) : null;
 
             if (vvd != null) {
-                Date cutoffDate = vvd.getVvFlexDate02()
-
-
-                VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, bkgLineOp)
-                if (vvl != null && vvl.getVvlineTimeActivateYard() !=null) {
-                    cutoffDate = vvl.getVvlineTimeActivateYard()
-                }
-                TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                Date currentDate = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)
-                cutoffDate=ArgoUtils.convertDateToLocalDateTime(cutoffDate, timeZone)
-
-                LOGGER.debug("currentDate EDI POST" + currentDate)
-                LOGGER.debug("ediCutoffDate EDI POST" + cutoffDate)
-
-                //validating Vessel visit Edi cut off date and Line Cut off date
-
-                if(cutoffDate != null && currentDate!=null){
-                    if(currentDate.after(cutoffDate)){
-                        LOGGER.debug("currentDate after cutOffDate EDI POST ::" )
-                        getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("VesselVisit EDI CutOff/Line CutOff is Locked. Could not post in EDI POST Interceptor."), (BizViolation) null))
-                    }
-                }
-
-
-
-
-                //Date currentDate = new Date()
-                /*if (cutoffDate != null && currentDate.after(cutoffDate)) {
+                Date ediCutoffDate = vvd.getVvFlexDate02()
+             /*   Date currentDate = new Date()
+                if (ediCutoffDate != null && currentDate.after(ediCutoffDate)) {
                     new GroovyApi().registerError("Vessel Visit past EDI cut-off. Could not post EDI.")
                 }*/
-
-
                 if (NON_VISIT.equalsIgnoreCase(vvd.getVvFlexString01())) {
                     bkgTrans.setEdiBookingType(EDO)
                     ediBooking.setBookingHandlingInstructions("Requested Vessel Visit does not have call at ITS. [Vessel: " + ediVV.getVesselName() + ". Voyage: " + ediVV.getOutVoyageNbr() + "]")
