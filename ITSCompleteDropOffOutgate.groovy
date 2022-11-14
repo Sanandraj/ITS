@@ -1,7 +1,5 @@
 import com.navis.external.road.AbstractGateTaskInterceptor
-import com.navis.framework.business.Roastery
 import com.navis.framework.metafields.MetafieldIdFactory
-import com.navis.inventory.business.api.UnitFinder
 import com.navis.inventory.business.units.Unit
 import com.navis.road.business.atoms.TranStatusEnum
 import com.navis.road.business.atoms.TransactionClassEnum
@@ -22,21 +20,16 @@ class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor{
         TruckTransaction truckTransaction = inWfCtx.getTran()
         if (truckTransaction != null && truckTransaction.isDelivery()) {
             TruckVisitDetails truckVisitDetails = truckTransaction.getTranTruckVisit()
-            LOGGER.debug("truckVisitDetails :: "+truckVisitDetails)
             if (truckVisitDetails != null) {
                 Set<TruckTransaction> dropOffContainers = truckVisitDetails.getTransactionsToBeHandled(TransactionClassEnum.DROPOFF)
-                LOGGER.debug("dropOffContainers :: "+dropOffContainers)
                 for (TruckTransaction tran : dropOffContainers) {
                     Unit unit = tran.getTranUnit()
                     if (unit != null){
                         if(TranStatusEnum.OK.equals(tran.getTranStatus())) {
                             tran.setTranStatus(TranStatusEnum.COMPLETE)
-                            LOGGER.debug("Unit :: "+unit)
                             unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"YES")
-                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
                         }else {
                             unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"),"NO")
-                            LOGGER.debug("ITSCompleteDropOffOutGate Code Ends")
                         }
                     }
                 }
