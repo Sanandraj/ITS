@@ -7,6 +7,15 @@ import com.navis.inventory.presentation.controller.UnitUpdateStorageFormControll
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
+/*
+*
+*  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+*  Date: 20/Oct/2022
+*  Requirement: To make the LFD Reason Notes(flexField) visible and required only when LFD field not empty
+*  @Inclusion Location	: Incorporated as a code extension of the type BEAN_PROTOTYPE.Copy --> Paste this code (customBeanUnitUpdateStorageFormController.groovy)
+*
+*/
+
 class customBeanUnitUpdateStorageFormController extends UnitUpdateStorageFormController implements EBean {
     @Override
     boolean initForm() {
