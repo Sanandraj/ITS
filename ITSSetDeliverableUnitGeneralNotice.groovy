@@ -53,7 +53,6 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                 Date firstAvailableDay = ufv.getUfvFlexDate01()
 
 
-
                 LocPosition position = null
                 String blockName = null
                 if (currPosition != null) {
@@ -81,8 +80,11 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
 
                     }
                     unit.setUnitFlexString03("Y")
-                    unit.setUnitFlexString06("N") // to understand that fdd is set for deliverable block move and not for hold release
-                    ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                    unit.setUnitFlexString06("N")
+                    // to understand that fdd is set for deliverable block move and not for hold release
+                    if (ufv.getUfvFlexDate01() == null) { // DO not clear the FDD - [Container sorting Fee]
+                        ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                    }
                     //First available day - storage rule start time
                 } else {
                     unit.setUnitFlexString03("N")
@@ -90,8 +92,11 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                     ufv.setUfvFlexDate01(null)
                 }
 
+
+                // Billing 7-4 Container sorting Fee
                 //  if (firstAvailableDay != null && DateUtil.differenceInDays(firstAvailableDay, ArgoUtils.timeNow(), ContextHelper.getThreadUserTimezone()) >= 4) {
-                if("Y".equalsIgnoreCase(unit.getUnitFlexString03()) && ufv.getUfvLineLastFreeDay() != null && ArgoUtils.timeNow() > ufv.getUfvLineLastFreeDay()){ // TODO confirm with Gopal
+                if ("Y".equalsIgnoreCase(unit.getUnitFlexString03()) && ufv.getUfvCalculatedLineStorageLastFreeDay() != null && ArgoUtils.timeNow() > DateUtil.parseStringToDate(ufv.getUfvCalculatedLineStorageLastFreeDay(),getUserContext())) {
+                    // TODO confirm with Gopal
                     EventType deliverableMove = EventType.findEventType("UNIT_DELIVERABLE_MOVE")
                     FieldChanges fc = new FieldChanges()
                     fc.setFieldChange(UnitField.POS_SLOT, currPosition != null ? currPosition : null, lastKnownPosition.getPosSlot())
@@ -111,7 +116,7 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
             bl ->
                 holdMap.each {
                     if (isFlagActive(bl, it)) {
-                        flagReleased =  Boolean.FALSE
+                        flagReleased = Boolean.FALSE
                     }
                 }
         }
@@ -128,6 +133,15 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
 
     boolean isBlockDeliverable(String blkId) {
         GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", blkId)
+
+        if (genRef != null && genRef.getRefValue1().equalsIgnoreCase("Y")) {
+            return true
+        }
+        return false
+    }
+
+    boolean isBayDeliverable(String blkId, String bayId) {
+        GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BAY", blkId, bayId)
 
         if (genRef != null && genRef.getRefValue1().equalsIgnoreCase("Y")) {
             return true
