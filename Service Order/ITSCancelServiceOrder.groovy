@@ -3,6 +3,7 @@
  *
  */
 import com.navis.argo.ArgoExtractField
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.ServicesManager
 import com.navis.argo.business.atoms.BizRoleEnum
 import com.navis.argo.business.atoms.ServiceOrderStatusEnum
@@ -92,27 +93,30 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
 
                     List<AbstractServiceOrder> serviceOrderList = this.getHibernateApi().findEntitiesByDomainQuery(dq);
-                    for (Object list : serviceOrderList) {
-                        AbstractServiceOrder serviceOrder = (AbstractServiceOrder) list;
-                        if ((serviceOrder != null) && (serviceOrder.getSrvoStatus().equals(ServiceOrderStatusEnum.CANCELLED))) {
-                            mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("SERVICE_ORDER_ALREADY_CANCELED"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
-                            return
-                        }
+                    if (serviceOrderList != null && !serviceOrderList.isEmpty()) {
+                        for (Object list : serviceOrderList) {
+                            AbstractServiceOrder serviceOrder = (AbstractServiceOrder) list;
+                            if ((serviceOrder != null) && (serviceOrder.getSrvoStatus().equals(ServiceOrderStatusEnum.CANCELLED))) {
+                                mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("SERVICE_ORDER_ALREADY_CANCELED"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
+                                return
+                            }
 
-                        if ((serviceOrder != null) && (!serviceOrder.getSrvoStatus().equals(ServiceOrderStatusEnum.CANCELLED))) {
-                            Date currentDate = new Date();
-                            serviceOrder.setSrvoStatus(ServiceOrderStatusEnum.CANCELLED);
-                            serviceOrder.setSrvoCancelDate(currentDate);
-                            serviceOrder.setSrvoCancelNotes(cancelNotes);
+                            if ((serviceOrder != null) && (!serviceOrder.getSrvoStatus().equals(ServiceOrderStatusEnum.CANCELLED))) {
+                                Date currentDate = ArgoUtils.timeNow();
+                                serviceOrder.setSrvoStatus(ServiceOrderStatusEnum.CANCELLED);
+                                serviceOrder.setSrvoCancelDate(currentDate);
+                                serviceOrder.setSrvoCancelNotes(cancelNotes);
 
-                            updateUnitHistory(serviceOrder);
+                                updateUnitHistory(serviceOrder);
 
-                            def baseUtil = getLibrary("BaseGroovyUtil")
-                            baseUtil.refreshEntity(serviceOrder);
-                            mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_CANCELED_SUCCESSFULLY"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
-                            LOGGER.debug("Values :: Cancelled Service Order Nbr:" + serviceOrder?.getSrvoNbr() + " status :" + serviceOrder?.getSrvoStatus());
+                                def baseUtil = getLibrary("BaseGroovyUtil")
+                                baseUtil.refreshEntity(serviceOrder);
+                                mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_CANCELED_SUCCESSFULLY"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
+                                LOGGER.debug("Values :: Cancelled Service Order Nbr:" + serviceOrder?.getSrvoNbr() + " status :" + serviceOrder?.getSrvoStatus());
+                            }
                         }
                     }
+
                 }
             }
         });
@@ -123,45 +127,46 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
         try {
             String srvOrderNbr = asOrder.getSrvoNbr();
             ServiceOrder serviceOrder = ServiceOrder.findServiceOrderByNbr(srvOrderNbr);
-
-            LOGGER.debug("serviceOrder gkey : " + serviceOrder.getSrvoGkey());
-
             Set<ServiceOrderItem> serviceOrderItems = serviceOrder.getSrvoItems();
-            for (ServiceOrderItem serviceOrderItem : serviceOrderItems) {
-                LOGGER.debug(" - ServiceOrderItem gkey : " + serviceOrderItem.getSrvoiGkey());
+            if (serviceOrderItems != null && !serviceOrderItems.isEmpty()) {
+                for (ServiceOrderItem serviceOrderItem : serviceOrderItems) {
+                    Set<ItemServiceType> serviceTypes = serviceOrderItem?.getItemServiceTypes();
+                    if (serviceTypes != null && !serviceTypes.isEmpty()) {
+                        for (ItemServiceType serviceType : serviceTypes) {
+                            Iterator iterator = serviceType?.getItemServiceTypeUnits()?.iterator()
+                            if (iterator != null) {
+                                while (iterator.hasNext()) {
+                                    ItemServiceTypeUnit itemServiceTypeUnit = (ItemServiceTypeUnit) iterator.next();
+                                    Event unitEvent = itemServiceTypeUnit?.getItmsrvtypunitEvent();
+                                    String unitEventId = unitEvent?.getEventTypeId();
+                                    Unit unit = itemServiceTypeUnit?.getItmsrvtypunitUnit();
+                                    itemServiceTypeUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.CACNCELLED);
 
-                Set<ItemServiceType> serviceTypes = serviceOrderItem?.getItemServiceTypes();
-                for (ItemServiceType serviceType : serviceTypes) {
-                    Iterator iterator = serviceType?.getItemServiceTypeUnits()?.iterator()
-                    if (iterator != null) {
-                        while (iterator.hasNext()) {
-                            ItemServiceTypeUnit itemServiceTypeUnit = (ItemServiceTypeUnit) iterator.next();
-                            Event unitEvent = itemServiceTypeUnit?.getItmsrvtypunitEvent();
-                            String unitEventId = unitEvent?.getEventTypeId();
-                            Unit unit = itemServiceTypeUnit?.getItmsrvtypunitUnit();
-                            itemServiceTypeUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.CACNCELLED);
+                                    ServicesManager servicesManager = (ServicesManager) Roastery.getBean("servicesManager");
+                                    List<Event> events = servicesManager.getEventHistory(unit);
 
-                            ServicesManager servicesManager = (ServicesManager) Roastery.getBean("servicesManager");
-                            List<Event> events = servicesManager.getEventHistory(unit);
+                                    if (events != null) {
+                                        for (Event event : events) {
+                                            LOGGER.debug("     --- event - " + event);
+                                            if (unitEventId.equals(event?.getEventTypeId())) {
+                                                if (event?.isEventTypeBillable()) {
+                                                    event.setEventTypeIsBillable(false);
+                                                }
+                                                event.setEvntNote("Event Cancelled, as service order cancels this unit");
 
-                            for (Event event : events) {
-                                LOGGER.debug("     --- event - " + event);
-                                if (unitEventId.equals(event?.getEventTypeId())) {
-                                    if (event?.isEventTypeBillable()) {
-                                        event.setEventTypeIsBillable(false);
+                                                List<ChargeableUnitEvent> cueList = findChargeableUnitEventByServiceOrderNbr(srvOrderNbr);
+                                                for (cue in cueList) {
+                                                    LOGGER.debug("cue: " + cue?.getBexuBatchId());
+                                                    cue.setBexuStatus("CANCELLED")
+                                                }
+                                            }
+                                        }
                                     }
-                                    event.setEvntNote("Event Cancelled, as service order cancels this unit");
 
-                                    List<ChargeableUnitEvent> cueList = findChargeableUnitEventByServiceOrderNbr(srvOrderNbr);
-                                    for (cue in cueList) {
-                                        LOGGER.debug("cue: " + cue?.getBexuBatchId());
-                                        //cue.setStatusCancelled();
-                                        cue.setBexuStatus("CANCELLED")
+                                    if (!unit.getUnitLineOperator().equals(serviceOrder?.getSrvoBillingParty()) && serviceOrder?.getSrvoBillingParty() != null && BizRoleEnum.LINEOP.equals(serviceOrder.getSrvoBillingParty()?.getBzuRole())) {
+                                        iterator.remove()
                                     }
                                 }
-                            }
-                            if (!unit.getUnitLineOperator().equals(serviceOrder?.getSrvoBillingParty()) && serviceOrder?.getSrvoBillingParty() != null && BizRoleEnum.LINEOP.equals(serviceOrder.getSrvoBillingParty()?.getBzuRole())) {
-                                iterator.remove()
                             }
                         }
                     }

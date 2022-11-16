@@ -110,38 +110,46 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
                         if (!ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || !ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder.getSrvoStatus())) {
                             try {
                                 Set<ServiceOrderItem> serviceOrderItems = inSrvOrder?.getSrvoItems();
-                                for (Object itemSet : serviceOrderItems) {
-                                    ServiceOrderItem serviceOrderItem = (ServiceOrderItem) itemSet;
-                                    if (serviceOrderItem != null) {
-                                        Set<ItemServiceType> itemServiceTypes = serviceOrderItem?.getItemServiceTypes();
-                                        for (Object serviceTypeSet : itemServiceTypes) {
-                                            ItemServiceType itemServiceType = (ItemServiceType) serviceTypeSet;
-                                            Set<ItemServiceTypeUnit> istUnits = itemServiceType?.getItemServiceTypeUnits();
+                                if (serviceOrderItems != null && !serviceOrderItems.isEmpty()){
+                                    for (Object itemSet : serviceOrderItems) {
+                                        ServiceOrderItem serviceOrderItem = (ServiceOrderItem) itemSet;
+                                        if (serviceOrderItem != null) {
+                                            Set<ItemServiceType> itemServiceTypes = serviceOrderItem?.getItemServiceTypes();
+                                            if (itemServiceTypes != null && !itemServiceTypes.isEmpty()){
+                                                for (Object serviceTypeSet : itemServiceTypes) {
+                                                    ItemServiceType itemServiceType = (ItemServiceType) serviceTypeSet;
+                                                    Set<ItemServiceTypeUnit> istUnits = itemServiceType?.getItemServiceTypeUnits();
+                                                    if (istUnits != null && !istUnits.isEmpty()){
+                                                        for (Object istUnitSet : istUnits) {
+                                                            ItemServiceTypeUnit istUnit = (ItemServiceTypeUnit) istUnitSet;
+                                                            String istuEventId = null;
 
+                                                            Double quantity = 0;
+                                                            quantity = (Double) istUnit.getFieldValue(MetafieldIdFactory.valueOf("customFlexFields.itmsrvtypunitCustomDFFQuantity"))
+                                                            if (null != istUnit?.getItmsrvtypunitEvent()) {
+                                                                LOGGER.debug("istUnit EvnttypeId" + istUnit?.getItmsrvtypunitEvent()?.getEventTypeId());
+                                                                istuEventId = istUnit.getItmsrvtypunitEvent().getEventTypeId();
 
-                                            for (Object istUnitSet : istUnits) {
-                                                ItemServiceTypeUnit istUnit = (ItemServiceTypeUnit) istUnitSet;
-                                                String istuEventId = null;
-
-                                                Double quantity = 0;
-                                                quantity = (Double) istUnit.getFieldValue(MetafieldIdFactory.valueOf("customFlexFields.itmsrvtypunitCustomDFFQuantity"))
-                                                if (null != istUnit?.getItmsrvtypunitEvent()) {
-                                                    LOGGER.debug("istUnit EvnttypeId" + istUnit.getItmsrvtypunitEvent().getEventTypeId());
-                                                    istuEventId = istUnit.getItmsrvtypunitEvent().getEventTypeId();
-
-                                                }
-                                                if (null != itemServiceType?.getItmsrvtypEventType()) {
-                                                    LOGGER.debug("serviceTypeSet EvnttypeId" + itemServiceType.getItmsrvtypEventType().getEvnttypeId());
-                                                    if (!itemServiceType.getItmsrvtypEventType().getEvnttypeId().equalsIgnoreCase(istuEventId)) {
-                                                        baseUtil.recordEventOnCompleteServiceOrder(itemServiceType.getItmsrvtypEventType().getEvnttypeId(), istUnit.getItmsrvtypunitUnit(), inSrvOrder, billParty, quantity);
-                                                        istUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.COMPLETED);
+                                                            }
+                                                            if (null != itemServiceType?.getItmsrvtypEventType()) {
+                                                                LOGGER.debug("serviceTypeSet EvnttypeId" + itemServiceType?.getItmsrvtypEventType()?.getEvnttypeId());
+                                                                if (!itemServiceType.getItmsrvtypEventType().getEvnttypeId().equalsIgnoreCase(istuEventId)) {
+                                                                    baseUtil.recordEventOnCompleteServiceOrder(itemServiceType.getItmsrvtypEventType().getEvnttypeId(), istUnit.getItmsrvtypunitUnit(), inSrvOrder, billParty, quantity);
+                                                                    istUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.COMPLETED);
+                                                                }
+                                                            }
+                                                        }
                                                     }
+
+
                                                 }
                                             }
-                                        }
 
+
+                                        }
                                     }
                                 }
+
                                 inSrvOrder.setSrvoStatus(ServiceOrderStatusEnum.COMPLETED);
                                 baseUtil.refreshEntity(inSrvOrder);
                                 mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_ORDER_COMPLETED"), null, inSrvOrder.getSrvoNbr())

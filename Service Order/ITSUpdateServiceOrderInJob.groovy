@@ -55,7 +55,6 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
         dq.addDqPredicate(PredicateFactory.eq(OrdersField.SRVO_SUB_TYPE, ServiceOrderTypeEnum.SRVO))
         dq.addDqPredicate(PredicateFactory.in(OrdersField.SRVO_STATUS, status))
         Serializable[] serviceOrderGkeys = HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
-        LOGGER.debug("ITSUpdateServiceOrderInJob - serviceOrderGkeys  :" + serviceOrderGkeys)
         if (serviceOrderGkeys != null) {
             int threadCount = 5;
             GeneralReference generalReference = GeneralReference.findUniqueEntryById("SERVICEORDER", "THREADCOUNT")
@@ -68,18 +67,13 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
             ExecutorService executorService = Executors.newFixedThreadPool(threadCount, threadFactory);
             Serializable[] primaryKeyInBatch;
             UserContext userContext = ContextHelper.getThreadUserContext();
-            LOGGER.debug("Current User Context :: " + userContext)
             for (int j = 0; j < serviceOrderGkeys.size(); j = j + threadCount) {
                 primaryKeyInBatch = (Serializable[]) Arrays.copyOfRange(serviceOrderGkeys, j, j + threadCount);
-                LOGGER.debug("Current fetched primary keys : $primaryKeyInBatch :: during run :: $j");
 
                 for (int i = 0; i < threadCount; i++) {
-
-                    LOGGER.debug("Current record for the service order checkinng :: $i the Pkey in the batch :: " + primaryKeyInBatch[i]);
                     if (primaryKeyInBatch[i] != null) {
                         Serializable primaryKey = primaryKeyInBatch[i];
                         executorService.submit(new Callable() {
-                            private static final Logger LOGGER1 = Logger.getLogger(this.class)
 
                             @Override
                             Object call() throws Exception {
@@ -88,25 +82,17 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                 persistenceTemplate.invoke(new CarinaPersistenceCallback() {
                                     @Override
                                     protected void doInTransaction() {
-                                        LOGGER1.debug("Fetching Service Order for Primary Key :: " + primaryKey); ;
                                         serviceOrder = (ServiceOrder) HibernateApi.getInstance().get(ServiceOrder.class, primaryKey);
                                         String lastInvoiceDraftNbr = null
                                         Boolean cueStatus = false
-                                        LOGGER1.debug("Current Service Order :: $serviceOrder");
                                         List<ChargeableUnitEvent> cueList = serviceOrder != null ? findChargeableUnitEventByServiceOrderNbr(serviceOrder?.getSrvoNbr()) : null
-                                        LOGGER1.debug("ITSUpdateServiceOrderInJob - cueList  :" + cueList)
                                         if (cueList != null && !cueList.isEmpty()) {
                                             for (ChargeableUnitEvent cue : cueList) {
-                                                LOGGER1.debug("cue: " + cue)
                                                 if (cue != null) {
-                                                    LOGGER1.debug("ITSUpdateServiceOrderInJob - cue.getBexuLastDraftInvNbr()  :" + cue?.getBexuLastDraftInvNbr() + " is updated for Service Order Nbr :" + serviceOrder.getSrvoNbr())
-                                                    LOGGER1.debug("CUE status::" + cue?.getStatus())
                                                     if ("INVOICED".equalsIgnoreCase(cue?.getStatus()) || "DRAFT".equalsIgnoreCase(cue?.getStatus())) {
                                                         lastInvoiceDraftNbr = cue?.getBexuLastDraftInvNbr()
-                                                        LOGGER1.debug("Invoice recorded" + lastInvoiceDraftNbr)
                                                         if ("INVOICED".equalsIgnoreCase(cue?.getStatus())) {
                                                             cueStatus = true
-                                                            LOGGER1.debug("cuestatus::" + cueStatus.toString())
                                                         }
                                                     }
                                                 }
