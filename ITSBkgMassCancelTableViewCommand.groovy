@@ -1,50 +1,96 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
 import com.navis.framework.metafields.entity.EntityId
+import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
+import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.presentation.ui.message.ButtonTypes
 import com.navis.framework.presentation.ui.message.MessageType
 import com.navis.framework.presentation.ui.message.OptionDialog
-import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.orders.business.eqorders.Booking
-import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
-import com.navis.framework.persistence.hibernate.PersistenceTemplate
+import com.navis.framework.util.internationalization.PropertyKeyFactory
+import com.navis.inventory.business.units.EqBaseOrderItem
+import com.navis.orders.business.eqorders.EquipmentOrderItem
+import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/**
- * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
- * Description: This Code will be paste against TTable View Command Extension Type in Code extension - This Code will cancel all selected bookings.
- * */
 
-class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
+/**
+ * @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 28/10/2022
+ * Requirements : 5-2-Button to Cancel unused bookings after vessel cut-offs -- This groovy is used to reduce multiple booking selected from booking entity .
+ * @Inclusion Location	: Incorporated as a code extension of the type TABLE_VIEW_COMMAND.
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSBkgMassReduceTableViewCommand.
+ Code Extension Type:  TABLE_VIEW_COMMAND.
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  Set up override configuration in variformId - ORD001.
+ */
+
+class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand{
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSBkgMassCancelTableViewCommand Starts :: ")
+        LOGGER.setLevel(Level.INFO)
+        LOGGER.info("ITSBkgMassReduceTableViewCommand Starts")
+        if (inGkeys == null && inGkeys.isEmpty()){
+            return;
+        }
         PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){ // todo, what for equal to 1
-                    List<Serializable> bookingGkeysDelete = new ArrayList<Serializable>()
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
+                    Iterator it = inGkeys.iterator()
                     long count =0
                     long errorCount = 0
                     boolean error = false
-                    boolean bkgCancel = false
-                    for(Serializable it: inGkeys){
-                        Booking booking = Booking.hydrate(it)
+                    boolean bkgReduce = false
+                    while(it.hasNext()){
+                        Booking booking =Booking.hydrate(it.next())
+                        if (booking ==null){
+                            return;
+                        }
+                        VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        if (timeZone != null && booking!=null && booking.getEqboNbr()!=null && booking.eqoTallyReceive == 0){
-                            PersistenceTemplate template = new PersistenceTemplate(getUserContext())
-                            template.invoke(new CarinaPersistenceCallback() {
-                                @Override
-                                protected void doInTransaction() {
-                                    final Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
-                                    bookingGkeysDelete.add(booking.getPrimaryKey())
-                                    count = count+1
-                                    bkgCancel = true
+                        if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
+                                vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))){
+                            if (booking.getEqboNbr()!=null){
+                                if (booking.eqoTallyReceive > 0){
+                                    Set bkgItems = booking.getEqboOrderItems()
+                                    if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
+                                        Iterator iterator = bkgItems.iterator()
+                                        while (iterator.hasNext()) {
+                                            EquipmentOrderItem eqoItem = EquipmentOrderItem.resolveEqoiFromEqboi((EqBaseOrderItem) iterator.next())
+                                            Long eqoiQty = eqoItem.getEqoiQty()
+                                            Long eqoiTallyOut = eqoItem.getEqoiTally()
+                                            Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
+                                            if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
+                                                if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
+                                                    eqoItem.setEqoiQty(eqoiTallyIn)
+                                                    count = count+1
+                                                    bkgReduce = true
+                                                }
+                                                if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                                                    eqoItem.setEqoiQty(eqoiTallyOut)
+                                                    count = count+1
+                                                    bkgReduce = true
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                            })
+                            }
                         }
                         else {
                             errorCount = errorCount+1
@@ -53,30 +99,21 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                             }
                         }
                     }
-                    if (bookingGkeysDelete.size()>0){
-                        deleteBookingsByGkeys(bookingGkeysDelete)
-                    }
-                    if (!bkgCancel){
+                    if (!bkgReduce){
                         informationBox(count,Long.valueOf(inGkeys.size()))
                     }
-                    if (bkgCancel){
+                    if (bkgReduce){
                         informationBox(count,errorCount)
                     }
                 }
                 else {
-                    OptionDialog.showError(PropertyKeyFactory.valueOf("Selected bookings are null, or not more than one booking"),PropertyKeyFactory.valueOf("Mass Cancel bookings Error"))
+                    OptionDialog.showInformation(PropertyKeyFactory.valueOf("Selected bookings are null, or not more than one booking"),PropertyKeyFactory.valueOf("Booking Reduction"))
                 }
             }
         })
     }
-    private static final informationBox(long count,long errorCount){
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count}, Cutoff Passed for visits - ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
+    private static final informationBox(long count, long  errorCount){
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count} bookings reduced, Vessel Cutoffs passed - ${errorCount} bookings"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
     }
-    private static final deleteBookingsByGkeys(List<Serializable> inGkeys){
-        for(Serializable it:inGkeys){
-            Booking booking = Booking.hydrate(it)
-            booking.purge()
-        }
-    }
-    private final static Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
+    private final static Logger LOGGER = Logger.getLogger(ITSBkgMassReduceTableViewCommand.class)
 }
