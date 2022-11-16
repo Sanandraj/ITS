@@ -1,8 +1,8 @@
 import com.navis.external.framework.beans.EBean
-import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.presentation.ui.ICarinaWidget
 import com.navis.framework.presentation.ui.event.CarinaFormValueEvent
 import com.navis.framework.presentation.ui.event.listener.AbstractCarinaFormValueListener
+import com.navis.inventory.InventoryField
 import com.navis.inventory.presentation.controller.UnitUpdateStorageFormController
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -26,23 +26,20 @@ class customBeanUnitUpdateStorageFormController extends UnitUpdateStorageFormCon
     @Override
     protected void configure() {
         super.configure()
-       // LOGGER.setLevel(Level.DEBUG)
-        ICarinaWidget flexWidget = getFormWidget(MetafieldIdFactory.valueOf("ufvFlexString01"));
+        //LOGGER.setLevel(Level.DEBUG)
+        ICarinaWidget flexWidget = getFormWidget(InventoryField.UFV_FLEX_STRING01);
         if (flexWidget != null) {
-            flexWidget.setVisible(false);
             flexWidget.setRequired(false);
         }
-        final ICarinaWidget lfdWidget = this.getFormWidget(MetafieldIdFactory.valueOf("ufvLastFreeDay"));
-        if (lfdWidget != null) {
-            lfdWidget.addFormValueListener(new AbstractCarinaFormValueListener() {
+        final ICarinaWidget lineLfdWidget = this.getFormWidget(InventoryField.UFV_LINE_LAST_FREE_DAY);
+        if (lineLfdWidget != null) {
+            lineLfdWidget.addFormValueListener(new AbstractCarinaFormValueListener() {
                 protected void safeValueChanged(CarinaFormValueEvent inEvent) {
 
-                    String lfdValue = lfdWidget.getUiValue();
-                    if (lfdValue != null) {
-                        flexWidget.setVisible(true);
+                    String value = lineLfdWidget?.getUiValue();
+                    if (value != null) {
                         flexWidget.setRequired(true);
                     } else {
-                        flexWidget.setVisible(false);
                         flexWidget.setRequired(false);
                     }
                 }

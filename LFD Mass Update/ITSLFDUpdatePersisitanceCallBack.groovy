@@ -52,32 +52,32 @@ class ITSLFDUpdatePersisitanceCallBack extends AbstractExtensionPersistenceCallb
                         }
 
                         if (fieldChanges != null) {
-                            EFieldChange lfdFc = fieldChanges.findFieldChange(InventoryField.UFV_LAST_FREE_DAY)
+                            EFieldChange lineLfdFc = fieldChanges.findFieldChange(InventoryField.UFV_LINE_LAST_FREE_DAY)
                             EFieldChange notesFc = fieldChanges.findFieldChange(InventoryField.UFV_FLEX_STRING01)
-                            Date guaranteeThruDay = ufv.getUfvGuaranteeThruDay()
+                            Date lineGuaranteeThruDay = ufv.getUfvLineGuaranteeThruDay()
                             try {
-                                if (guaranteeThruDay != null && lfdFc != null) {
-                                    Date lfdNewVal = (Date) lfdFc?.getNewValue()
+                                if (lineGuaranteeThruDay != null && lineLfdFc != null) {
+                                    Date lfdNewVal = (Date) lineLfdFc?.getNewValue()
                                     if (lfdNewVal != null) {
-                                        if (lfdNewVal.before(ufv.getUfvGuaranteeThruDay())) {
-                                            ufv.setUfvLastFreeDay(ufv.getUfvGuaranteeThruDay())
-                                        } else if (lfdNewVal.after(ufv.getUfvGuaranteeThruDay())) {
-                                            ufv.setUfvLastFreeDay(lfdNewVal)
-                                        } else if (DateUtils.isSameDay(lfdNewVal, ufv.getUfvGuaranteeThruDay())) {
-                                            ufv.setUfvLastFreeDay(ufv.getUfvGuaranteeThruDay())
+                                        if (lfdNewVal.before(lineGuaranteeThruDay)) {
+                                            ufv.setUfvLineLastFreeDay(lineGuaranteeThruDay)
+                                        } else if (lfdNewVal.after(lineGuaranteeThruDay)) {
+                                            ufv.setUfvLineLastFreeDay(lfdNewVal)
+                                        } else if (DateUtils.isSameDay(lfdNewVal, lineGuaranteeThruDay)) {
+                                            ufv.setUfvLineLastFreeDay(lineGuaranteeThruDay)
                                         }
                                     } else {
-                                        ufv.setUfvLastFreeDay(null)
+                                        ufv.setUfvLineLastFreeDay(null)
                                     }
 
                                     if (notesFc != null) {
                                         String notes = notesFc.getNewValue()
                                         ufv.setUfvFlexString01(notes)
                                     }
-                                } else if (lfdFc != null || notesFc != null) {
-                                    if (lfdFc != null) {
-                                        Date lfddate = (Date) lfdFc.getNewValue()
-                                        ufv.setUfvLastFreeDay(lfddate)
+                                } else if (lineLfdFc != null || notesFc != null) {
+                                    if (lineLfdFc != null) {
+                                        Date lfddate = (Date) lineLfdFc.getNewValue()
+                                        ufv.setUfvLineLastFreeDay(lfddate)
                                     }
                                     if (notesFc != null) {
                                         String notes = notesFc.getNewValue()
