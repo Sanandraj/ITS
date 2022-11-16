@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.argo.ArgoExtractEntity
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.ContextHelper
@@ -17,7 +22,6 @@ import com.navis.framework.portal.query.PredicateFactory
 import com.navis.orders.OrdersField
 import com.navis.orders.business.serviceorders.ServiceOrder
 import com.navis.util.concurrent.NamedThreadFactory
-import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -27,11 +31,12 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 
 /*
-* Requirements : This groovy is used to service order with last draft nbr or invoice number from CUE.
 *
-* @Inclusion Location : Incorporated as a code extension of the type GROOVY_JOB_CODE_EXTENSION. Copy -->Paste this code(ITSUpdateServiceOrderInJob.groovy)
-*
-* @Set up Groovy Job to execute it, and configure this code- ITSUpdateServiceOrderInJob.
+*  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+*  Date : 17/Oct/2022
+*  Requirements : This groovy is used to service order with last draft nbr or invoice number from CUE.
+*  @Inclusion Location : Incorporated as a code extension of the type GROOVY_JOB_CODE_EXTENSION. Copy -->Paste this code(ITSUpdateServiceOrderInJob.groovy)
+*  @Set up Groovy Job to execute it, and configure this code- ITSUpdateServiceOrderInJob.
 *
 */
 
@@ -44,7 +49,7 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
     @Override
     void execute(Map parameters) throws Exception {
 
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSUpdateServiceOrderInJob - BEGIN :")
         DomainQuery dq = QueryUtils.createDomainQuery("ServiceOrder")
         dq.addDqPredicate(PredicateFactory.eq(OrdersField.SRVO_SUB_TYPE, ServiceOrderTypeEnum.SRVO))
@@ -88,20 +93,20 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                         String lastInvoiceDraftNbr = null
                                         Boolean cueStatus = false
                                         LOGGER1.debug("Current Service Order :: $serviceOrder");
-                                        List<ChargeableUnitEvent> cueList = serviceOrder != null ? findChargeableUnitEventByServiceOrderNbr(serviceOrder.getSrvoNbr()) : null
-                                        LOGGER.debug("ITSUpdateServiceOrderInJob - cueList  :" + cueList)
+                                        List<ChargeableUnitEvent> cueList = serviceOrder != null ? findChargeableUnitEventByServiceOrderNbr(serviceOrder?.getSrvoNbr()) : null
+                                        LOGGER1.debug("ITSUpdateServiceOrderInJob - cueList  :" + cueList)
                                         if (cueList != null && !cueList.isEmpty()) {
                                             for (ChargeableUnitEvent cue : cueList) {
                                                 LOGGER1.debug("cue: " + cue)
                                                 if (cue != null) {
-                                                    LOGGER.debug("ITSUpdateServiceOrderInJob - cue.getBexuLastDraftInvNbr()  :" + cue.getBexuLastDraftInvNbr() + " is updated for Service Order Nbr :" + serviceOrder.getSrvoNbr())
-                                                    LOGGER.debug("CUE status::" + cue.getStatus())
-                                                    if ("INVOICED".equalsIgnoreCase(cue.getStatus()) || "DRAFT".equalsIgnoreCase(cue.getStatus())) {
-                                                        lastInvoiceDraftNbr = cue.getBexuLastDraftInvNbr()
-                                                        LOGGER.debug("Invoice recorded" + lastInvoiceDraftNbr)
-                                                        if ("INVOICED".equalsIgnoreCase(cue.getStatus())) {
+                                                    LOGGER1.debug("ITSUpdateServiceOrderInJob - cue.getBexuLastDraftInvNbr()  :" + cue?.getBexuLastDraftInvNbr() + " is updated for Service Order Nbr :" + serviceOrder.getSrvoNbr())
+                                                    LOGGER1.debug("CUE status::" + cue?.getStatus())
+                                                    if ("INVOICED".equalsIgnoreCase(cue?.getStatus()) || "DRAFT".equalsIgnoreCase(cue?.getStatus())) {
+                                                        lastInvoiceDraftNbr = cue?.getBexuLastDraftInvNbr()
+                                                        LOGGER1.debug("Invoice recorded" + lastInvoiceDraftNbr)
+                                                        if ("INVOICED".equalsIgnoreCase(cue?.getStatus())) {
                                                             cueStatus = true
-                                                            LOGGER.debug("cuestatus::" + cueStatus.toString())
+                                                            LOGGER1.debug("cuestatus::" + cueStatus.toString())
                                                         }
                                                     }
                                                 }
@@ -114,8 +119,11 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                                     serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), false)
                                                 }
 
-                                                HibernateApi.getInstance().save(serviceOrder)
+                                            } else {
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), lastInvoiceDraftNbr)
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), false)
                                             }
+                                            HibernateApi.getInstance().save(serviceOrder)
                                         }
                                     }
                                 })
@@ -128,7 +136,7 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                 HibernateApi.getInstance().flush()
             }
         }
-        LOGGER.debug( "ITSUpdateServiceOrderInJob - END")
+        LOGGER.debug("ITSUpdateServiceOrderInJob - END")
     }
 
 

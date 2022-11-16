@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.business.api.ServicesManager
 import com.navis.argo.business.atoms.BizRoleEnum
@@ -34,10 +38,12 @@ import com.navis.services.business.event.Event
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/**
- * This groovy allow to customize the cancel service order form.
- * In order to cancel the partial or fully completed service.
+/*
  *
+ *  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+ *  Date : 17/Oct/2022
+ *  Requirements : This groovy allow to customize the cancel service order form, In order to cancel the partial or fully completed service.
+ *  @Inclusion Location : Incorporated as a code extension of the type FORM_SUBMISSION_INTERCEPTOR. Copy -->Paste this code(ITSCancelServiceOrder.groovy)
  */
 
 class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
@@ -47,12 +53,12 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
     @Override
     public void submit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys,
                        EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         OptionDialog.showMessage("Do you want to cancel the service order?", "Cancel Serice Order", ButtonTypes.YES_NO, MessageType.QUESTION_MESSAGE, new AbstractCarinaOptionCommand() {
             @Override
             protected void safeExecute(ButtonType inOption) {
                 if (ButtonType.YES.equals(inOption)) {
-                    String cancelNotes = inOutFieldChanges.findFieldChange(FrameworkFlexGuiMetafield.FLEX_FIELD_STRING1).getNewValue();
+                    String cancelNotes = inOutFieldChanges.findFieldChange(FrameworkFlexGuiMetafield.FLEX_FIELD_STRING1)?.getNewValue();
 
                     Serializable inSrvoGkey = null;
                     boolean cancelStatus = false;
@@ -60,7 +66,7 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
                     MessageCollector mc = MessageCollectorFactory.createMessageCollector();
 
                     if (!inGkeys.isEmpty()) {
-                        Iterator<Serializable> gkeyIterator = inGkeys.iterator();
+                        Iterator<Serializable> gkeyIterator = inGkeys?.iterator();
                         while (gkeyIterator.hasNext()) {
                             inSrvoGkey = gkeyIterator.next();
                             cancelServiceOrder(FrameworkPresentationUtils.getUserContext(), inSrvoGkey, cancelNotes, mc)
@@ -89,7 +95,7 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
                     for (Object list : serviceOrderList) {
                         AbstractServiceOrder serviceOrder = (AbstractServiceOrder) list;
                         if ((serviceOrder != null) && (serviceOrder.getSrvoStatus().equals(ServiceOrderStatusEnum.CANCELLED))) {
-                            mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("SERVICE_ORDER_ALREADY_CANCELED"), serviceOrder.getSrvoNbr(), serviceOrder.getSrvoNbr())
+                            mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("SERVICE_ORDER_ALREADY_CANCELED"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
                             return
                         }
 
@@ -103,8 +109,8 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
                             def baseUtil = getLibrary("BaseGroovyUtil")
                             baseUtil.refreshEntity(serviceOrder);
-                            mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_CANCELED_SUCCESSFULLY"), serviceOrder.getSrvoNbr(), serviceOrder.getSrvoNbr())
-                            LOGGER.debug("Values :: Cancelled Service Order Nbr:" + serviceOrder.getSrvoNbr() + " status :" + serviceOrder.getSrvoStatus());
+                            mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_CANCELED_SUCCESSFULLY"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
+                            LOGGER.debug("Values :: Cancelled Service Order Nbr:" + serviceOrder?.getSrvoNbr() + " status :" + serviceOrder?.getSrvoStatus());
                         }
                     }
                 }
@@ -124,15 +130,15 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
             for (ServiceOrderItem serviceOrderItem : serviceOrderItems) {
                 LOGGER.debug(" - ServiceOrderItem gkey : " + serviceOrderItem.getSrvoiGkey());
 
-                Set<ItemServiceType> serviceTypes = serviceOrderItem.getItemServiceTypes();
+                Set<ItemServiceType> serviceTypes = serviceOrderItem?.getItemServiceTypes();
                 for (ItemServiceType serviceType : serviceTypes) {
-                    Iterator iterator = serviceType.getItemServiceTypeUnits()?.iterator()
+                    Iterator iterator = serviceType?.getItemServiceTypeUnits()?.iterator()
                     if (iterator != null) {
                         while (iterator.hasNext()) {
                             ItemServiceTypeUnit itemServiceTypeUnit = (ItemServiceTypeUnit) iterator.next();
-                            Event unitEvent = itemServiceTypeUnit.getItmsrvtypunitEvent();
-                            String unitEventId = unitEvent.getEventTypeId();
-                            Unit unit = itemServiceTypeUnit.getItmsrvtypunitUnit();
+                            Event unitEvent = itemServiceTypeUnit?.getItmsrvtypunitEvent();
+                            String unitEventId = unitEvent?.getEventTypeId();
+                            Unit unit = itemServiceTypeUnit?.getItmsrvtypunitUnit();
                             itemServiceTypeUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.CACNCELLED);
 
                             ServicesManager servicesManager = (ServicesManager) Roastery.getBean("servicesManager");
@@ -140,21 +146,21 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
                             for (Event event : events) {
                                 LOGGER.debug("     --- event - " + event);
-                                if (unitEventId.equals(event.getEventTypeId())) {
-                                    if (event.isEventTypeBillable()) {
+                                if (unitEventId.equals(event?.getEventTypeId())) {
+                                    if (event?.isEventTypeBillable()) {
                                         event.setEventTypeIsBillable(false);
                                     }
                                     event.setEvntNote("Event Cancelled, as service order cancels this unit");
 
                                     List<ChargeableUnitEvent> cueList = findChargeableUnitEventByServiceOrderNbr(srvOrderNbr);
                                     for (cue in cueList) {
-                                        LOGGER.debug("cue: " + cue.getBexuBatchId());
+                                        LOGGER.debug("cue: " + cue?.getBexuBatchId());
                                         //cue.setStatusCancelled();
                                         cue.setBexuStatus("CANCELLED")
                                     }
                                 }
                             }
-                            if (!unit.getUnitLineOperator().equals(serviceOrder.getSrvoBillingParty()) && serviceOrder.getSrvoBillingParty() != null && BizRoleEnum.LINEOP.equals(serviceOrder.getSrvoBillingParty().getBzuRole())) {
+                            if (!unit.getUnitLineOperator().equals(serviceOrder?.getSrvoBillingParty()) && serviceOrder?.getSrvoBillingParty() != null && BizRoleEnum.LINEOP.equals(serviceOrder.getSrvoBillingParty()?.getBzuRole())) {
                                 iterator.remove()
                             }
                         }

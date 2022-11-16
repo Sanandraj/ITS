@@ -1,7 +1,11 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.framework.metafields.MetafieldIdFactory
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-
 import com.navis.argo.ArgoBizMetafield
 import com.navis.argo.business.atoms.ServiceOrderStatusEnum
 import com.navis.argo.business.atoms.ServiceOrderUnitStatusEnum
@@ -35,14 +39,18 @@ import com.navis.orders.business.serviceorders.ServiceOrderItem
 
 
 /*
- * This groovy is used to complete the service order which is in New and Inprogress status.
+ *
+ *  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
+ *  Date : 17/Oct/2022
+ *  Requirements :This groovy is used to complete the service order which is in New and Inprogress status.
+ *  @Inclusion Location : Incorporated as a code extension of the type TABLE_VIEW_COMMAND. Copy -->Paste this code(ITSCompleteServiceOrder.groovy)
  */
 
 class ITSCompleteServiceOrder extends AbstractTableViewCommand {
     private Logger LOGGER = Logger.getLogger(ITSCompleteServiceOrder.class);
 
     void execute(EntityId entityId, List<Serializable> gkeys, Map<String, Object> params) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
 
         if (entityId == null || gkeys == null) {
             return;
@@ -75,7 +83,7 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
                 logMsg("srvOrderNbr to confirm :" + srvOrderNbr + "billParty ::" + billParty)
                 completeServiceOrder(FrameworkPresentationUtils.getUserContext(), srvOrderNbr, mc, entityId, billParty)
             }
-            MessageDialog.showMessageDialog(mc, null, PropertyKeyFactory.valueOf("SO.COMPLETE_TITLE"));
+            MessageDialog.showMessageDialog(mc, null, PropertyKeyFactory.valueOf("COMPLETE_TITLE"));
         }
     }
 
@@ -90,8 +98,8 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
                     LOGGER.debug("Entering");
                     ServiceOrder inSrvOrder = ServiceOrder.findServiceOrderByNbr(srvOrderNbr);
                     if (inSrvOrder != null) {
-                        if ((ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder.getSrvoStatus()))) {
-                            mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("UNABLE_TO_PERFORM_COMPLETE"), null, inSrvOrder.getSrvoNbr(), capitalize(inSrvOrder.getSrvoStatus().getName()))
+                        if ((ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder?.getSrvoStatus()))) {
+                            mc.appendMessage(MessageLevel.WARNING, PropertyKeyFactory.valueOf("UNABLE_TO_PERFORM_COMPLETE"), null, inSrvOrder?.getSrvoNbr(), capitalize(inSrvOrder.getSrvoStatus().getName()))
                             return
                         }
 
@@ -101,21 +109,28 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
 
                         if (!ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || !ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder.getSrvoStatus())) {
                             try {
-                                Set<ServiceOrderItem> serviceOrderItems = inSrvOrder.getSrvoItems();
-                                for (ServiceOrderItem serviceOrderItem : serviceOrderItems) {
+                                Set<ServiceOrderItem> serviceOrderItems = inSrvOrder?.getSrvoItems();
+                                for (Object itemSet : serviceOrderItems) {
+                                    ServiceOrderItem serviceOrderItem = (ServiceOrderItem) itemSet;
                                     if (serviceOrderItem != null) {
-                                        Set<ItemServiceType> itemServiceTypes = serviceOrderItem.getItemServiceTypes();
-                                        for (ItemServiceType itemServiceType : itemServiceTypes) {
-                                            Set<ItemServiceTypeUnit> istUnits = itemServiceType.getItemServiceTypeUnits();
-                                            for (ItemServiceTypeUnit istUnit : istUnits) {
+                                        Set<ItemServiceType> itemServiceTypes = serviceOrderItem?.getItemServiceTypes();
+                                        for (Object serviceTypeSet : itemServiceTypes) {
+                                            ItemServiceType itemServiceType = (ItemServiceType) serviceTypeSet;
+                                            Set<ItemServiceTypeUnit> istUnits = itemServiceType?.getItemServiceTypeUnits();
+
+
+                                            for (Object istUnitSet : istUnits) {
+                                                ItemServiceTypeUnit istUnit = (ItemServiceTypeUnit) istUnitSet;
                                                 String istuEventId = null;
+
                                                 Double quantity = 0;
                                                 quantity = (Double) istUnit.getFieldValue(MetafieldIdFactory.valueOf("customFlexFields.itmsrvtypunitCustomDFFQuantity"))
-                                                if (null != istUnit.getItmsrvtypunitEvent()) {
+                                                if (null != istUnit?.getItmsrvtypunitEvent()) {
                                                     LOGGER.debug("istUnit EvnttypeId" + istUnit.getItmsrvtypunitEvent().getEventTypeId());
                                                     istuEventId = istUnit.getItmsrvtypunitEvent().getEventTypeId();
+
                                                 }
-                                                if (null != itemServiceType.getItmsrvtypEventType()) {
+                                                if (null != itemServiceType?.getItmsrvtypEventType()) {
                                                     LOGGER.debug("serviceTypeSet EvnttypeId" + itemServiceType.getItmsrvtypEventType().getEvnttypeId());
                                                     if (!itemServiceType.getItmsrvtypEventType().getEvnttypeId().equalsIgnoreCase(istuEventId)) {
                                                         baseUtil.recordEventOnCompleteServiceOrder(itemServiceType.getItmsrvtypEventType().getEvnttypeId(), istUnit.getItmsrvtypunitUnit(), inSrvOrder, billParty, quantity);
@@ -124,6 +139,7 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
                                                 }
                                             }
                                         }
+
                                     }
                                 }
                                 inSrvOrder.setSrvoStatus(ServiceOrderStatusEnum.COMPLETED);
