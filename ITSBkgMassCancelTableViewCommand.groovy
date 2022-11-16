@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.ContextHelper
 import com.navis.external.framework.ui.AbstractTableViewCommand
 import com.navis.framework.metafields.entity.EntityId
@@ -12,20 +18,35 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
- * Description: This Code will be paste against TTable View Command Extension Type in Code extension - This Code will cancel all selected bookings.
- * */
+ * @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 28/10/2022
+ * Requirements : 5-2-Button to Cancel unused bookings after vessel cut-offs -- This groovy is used to cancel multiple booking selected from booking entity .
+ * @Inclusion Location	: Incorporated as a code extension of the type TABLE_VIEW_COMMAND.
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSBkgMassCancelTableViewCommand.
+ Code Extension Type:  TABLE_VIEW_COMMAND.
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  Set up override configuration in variformId - ORD001.
+ */
+
 
 class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSBkgMassCancelTableViewCommand Starts :: ")
+        LOGGER.setLevel(Level.INFO)
+        LOGGER.info("ITSBkgMassCancelTableViewCommand Starts")
+        if (inGkeys == null && inGkeys.isEmpty()){
+            return;
+        }
         PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){ // todo, what for equal to 1
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()>1){
                     List<Serializable> bookingGkeysDelete = new ArrayList<Serializable>()
                     long count =0
                     long errorCount = 0
@@ -33,23 +54,25 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
                     boolean bkgCancel = false
                     for(Serializable it: inGkeys){
                         Booking booking = Booking.hydrate(it)
+                        if (booking == null){
+                            return;
+                        }
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        if (timeZone != null && booking!=null && booking.getEqboNbr()!=null && booking.eqoTallyReceive == 0){
+                        if (timeZone != null && booking.getEqboNbr()!=null && booking.eqoTallyReceive == 0){
                             PersistenceTemplate template = new PersistenceTemplate(getUserContext())
                             template.invoke(new CarinaPersistenceCallback() {
                                 @Override
                                 protected void doInTransaction() {
-                                    final Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
                                     bookingGkeysDelete.add(booking.getPrimaryKey())
-                                    count = count+1
-                                    bkgCancel = true
+                                    count = count+1;
+                                    bkgCancel = true;
                                 }
                             })
                         }
                         else {
-                            errorCount = errorCount+1
+                            errorCount = errorCount+1;
                             if (count == 0){
-                                error = true
+                                error = true;
                             }
                         }
                     }

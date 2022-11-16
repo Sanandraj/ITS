@@ -11,12 +11,14 @@ import com.navis.argo.business.model.LocPosition
 import com.navis.cargo.business.model.BillOfLading
 import com.navis.cargo.business.model.GoodsBl
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
+import com.navis.framework.business.Roastery
 import com.navis.framework.portal.FieldChanges
 import com.navis.framework.util.DateUtil
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.units.GoodsBase
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
+import com.navis.services.business.api.EventManager
 import com.navis.services.business.event.Event
 import com.navis.services.business.event.GroovyEvent
 import com.navis.services.business.rules.EventType
@@ -28,8 +30,9 @@ import org.apache.log4j.Logger
  * Set Deliverable (unitFlexString03) to 'Y' or 'N' based on the General reference set-up
  * Set First Available Day (UnitFlexDate01)
  *
- * Billing 7-4 Container sorting.docx
- * Weserve - 08/22 Record a event Billable UNIT_DELIVERABLE_MOVE when the Unit is moved after 4 deliverable days.
+ * uaarthi@weservetech.com Billing 7-4 Container sorting Fee
+ * Weserve - 08/22 Record a event Billable UNIT_DELIVERABLE_MOVE when the Unit is moved after Last free day.
+ * Weserve - Record an event UNIT_DELIVERABLE_DISCHARGE when the unit was first placed in deliverable block
  * Configured against all Discharge Event triggers. UNIT_YARD_MOVE/ UNIT_POSITION_CORRECTION
  *
  * 3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
@@ -49,12 +52,6 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                 LocPosition lastKnownPosition = ufv.getUfvLastKnownPosition()
                 Date firstAvailableDay = ufv.getUfvFlexDate01()
 
-                if (firstAvailableDay != null && DateUtil.differenceInDays(firstAvailableDay, ArgoUtils.timeNow(), ContextHelper.getThreadUserTimezone()) >= 4) {
-                    EventType deliverableMove = EventType.findEventType("UNIT_DELIVERABLE_MOVE")
-                    FieldChanges fc = new FieldChanges()
-                    fc.setFieldChange(UnitField.POS_SLOT, currPosition != null ? currPosition : null, lastKnownPosition.getPosSlot())
-                    unit.recordEvent(deliverableMove, fc, "Deliverable unit re-handled.", ArgoUtils.timeNow())
-                }
 
                 LocPosition position = null
                 String blockName = null
@@ -73,17 +70,37 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                 if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
 
                 if (position != null && blockName != null && isBlockDeliverable(blockName) && isHoldReleased) {
-                    if (ufv.getUfvFlexDate01() == null) {
-                        EventType deliverableMoveFirst = EventType.findEventType("UNIT_DELIVERABLE_DISCHARGE")
-                        unit.recordEvent(deliverableMoveFirst, null, "Deliverable unit.", ArgoUtils.timeNow())
+                    EventType deliverableMoveFirst = EventType.findEventType("UNIT_DELIVERABLE_DISCHARGE")
+                    if (deliverableMoveFirst != null) {
+                        EventManager eventManager = (EventManager) Roastery.getBean(EventManager.BEAN_ID)
+                        Event deliverableMoveEvent = eventManager.getMostRecentEventByType(deliverableMoveFirst, unit);
+                        if (deliverableMoveEvent == null) {
+                            unit.recordEvent(deliverableMoveFirst, null, "Deliverable unit.", ArgoUtils.timeNow())
+                        }
 
                     }
                     unit.setUnitFlexString03("Y")
-                    ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                    unit.setUnitFlexString06("N")
+                    // to understand that fdd is set for deliverable block move and not for hold release
+                    if (ufv.getUfvFlexDate01() == null) { // DO not clear the FDD - [Container sorting Fee]
+                        ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                    }
                     //First available day - storage rule start time
                 } else {
                     unit.setUnitFlexString03("N")
+                    unit.setUnitFlexString06("N")
                     ufv.setUfvFlexDate01(null)
+                }
+
+
+                // Billing 7-4 Container sorting Fee
+                //  if (firstAvailableDay != null && DateUtil.differenceInDays(firstAvailableDay, ArgoUtils.timeNow(), ContextHelper.getThreadUserTimezone()) >= 4) {
+                if ("Y".equalsIgnoreCase(unit.getUnitFlexString03()) && ufv.getUfvCalculatedLineStorageLastFreeDay() != null && ArgoUtils.timeNow() > DateUtil.parseStringToDate(ufv.getUfvCalculatedLineStorageLastFreeDay(),getUserContext())) {
+                    // TODO confirm with Gopal
+                    EventType deliverableMove = EventType.findEventType("UNIT_DELIVERABLE_MOVE")
+                    FieldChanges fc = new FieldChanges()
+                    fc.setFieldChange(UnitField.POS_SLOT, currPosition != null ? currPosition : null, lastKnownPosition.getPosSlot())
+                    unit.recordEvent(deliverableMove, fc, "Deliverable unit re-handled.", ArgoUtils.timeNow())
                 }
             }
         }
@@ -92,20 +109,18 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
     boolean isDeliverableHoldsReleased(goodsBase) {
         def holdMap = ['1H', '7H', '2H', '71', '72', '73']
         GoodsBl goodsBl = GoodsBl.resolveGoodsBlFromGoodsBase(goodsBase)
-        Set<BillOfLading> blSet = goodsBl.getGdsblBillsOfLading()
+        Set<BillOfLading> blSet = goodsBl?.getGdsblBillsOfLading()
 
+        boolean flagReleased = Boolean.TRUE
         blSet.each {
             bl ->
-
                 holdMap.each {
                     if (isFlagActive(bl, it)) {
-                        LOG.warn("Active flag " + it)
-
-                        return false
+                        flagReleased = Boolean.FALSE
                     }
                 }
         }
-        return true
+        return flagReleased
     }
 
     private boolean isFlagActive(LogicalEntity logicalEntity, String holdId) {
@@ -120,7 +135,15 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
         GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", blkId)
 
         if (genRef != null && genRef.getRefValue1().equalsIgnoreCase("Y")) {
-            LOG.warn("Block deliverable " + blkId)
+            return true
+        }
+        return false
+    }
+
+    boolean isBayDeliverable(String blkId, String bayId) {
+        GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BAY", blkId, bayId)
+
+        if (genRef != null && genRef.getRefValue1().equalsIgnoreCase("Y")) {
             return true
         }
         return false

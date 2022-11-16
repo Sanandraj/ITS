@@ -43,7 +43,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                             UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(ufvGkey)
                             EventType rampEvent = EventType.findEventType("UNIT_RAMP")
                             EventType deRampEvent = EventType.findEventType("UNIT_DERAMP")
-                            if (rampEvent != null || deRampEvent != null) {
+                            if (rampEvent != null && deRampEvent != null) {
                                 String action = inParams.get("action").toString()
                                 if (action != null) {
                                     if (action.equals("Ramp")) {
@@ -58,21 +58,23 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
 
                                         if (moveEvent != null) {
                                             MoveInfoBean infoFromMoveEvent = MoveInfoBean.extractMoveInfoFromMoveEvent(moveEvent);
-                                            LocPosition toPosition = moveEvent.getMveToPosition();
-                                            LocPosition fromPosition = moveEvent.getMveFromPosition();
+                                            LocPosition toPosition = moveEvent?.getMveToPosition();
+                                            LocPosition fromPosition = moveEvent?.getMveFromPosition();
                                             Date currentTime = null;
                                             if (moveEvent != MoveEvent.getLastMoveEvent(ufv)) {
                                                 throw new Exception(
                                                         "[FAILED] " + ufv.getUfvUnit().getUnitId() + " Last move doesn't match the UNDO move")
                                             }
-                                            CarrierVisitPhaseEnum ibVisitPhase = ufv.getUfvActualIbCv().getCvVisitPhase()
-                                            UfvTransitStateEnum transitState;
-                                            UnitVisitStateEnum visitState;
+                                            CarrierVisitPhaseEnum ibVisitPhase = ufv?.getUfvActualIbCv()?.getCvVisitPhase()
+                                            UfvTransitStateEnum transitState = null;
+                                            UnitVisitStateEnum visitState = null;
                                             if (infoFromMoveEvent.getMoveKind() != null && infoFromMoveEvent.getMoveKind() != WiMoveKindEnum.Other) {
                                                 String moveKind = infoFromMoveEvent.getMoveKind().getKey() + "_UNDONE";
                                                 if (LocTypeEnum.YARD.equals(toPosition.getPosLocType()) && !LocTypeEnum.YARD.equals(fromPosition.getPosLocType())) {
-                                                    if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
-                                                        throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
+                                                    if (ibVisitPhase != null) {
+                                                        if ([CarrierVisitPhaseEnum.ARCHIVED, CarrierVisitPhaseEnum.CLOSED, CarrierVisitPhaseEnum.DEPARTED].contains(ibVisitPhase)) {
+                                                            throw new Exception("[FAILED] " + moveKind + ": " + ufv.getUfvUnit().getUnitId() + " Carrier already departed")
+                                                        }
                                                     }
                                                 }
                                                 if (toPosition.getPosLocType() == LocTypeEnum.YARD && fromPosition.getPosLocType() !=
@@ -81,10 +83,12 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                                         visitState = UnitVisitStateEnum.ADVISED
                                                         transitState = UfvTransitStateEnum.S10_ADVISED
                                                     }
+                                                    if (ibVisitPhase !=null){
                                                     if (ibVisitPhase == CarrierVisitPhaseEnum.INBOUND ||
                                                             [CarrierVisitPhaseEnum.ARRIVED, CarrierVisitPhaseEnum.WORKING].contains(ibVisitPhase)) {
                                                         visitState = UnitVisitStateEnum.ACTIVE
                                                         transitState = UfvTransitStateEnum.S20_INBOUND
+                                                    }
                                                     }
 
                                                     ufv.setUfvVisitState(visitState)

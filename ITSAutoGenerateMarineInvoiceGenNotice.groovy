@@ -56,6 +56,9 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
         LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice started")
         VesselVisitDetails vvDetail = inGroovyEvent != null ? (VesselVisitDetails) inGroovyEvent.getEntity() : null;
         Event inEvent = inGroovyEvent != null ? inGroovyEvent.getEvent() : null;
+        if(vvDetail == null || inEvent == null){
+            return;
+        }
         if (vvDetail != null && inEvent != null) {
             ScopedBizUnit vvOperator = vvDetail.getCvdCv() != null ? vvDetail.getCvdCv().getCvOperator() : null;
             String lineId = vvOperator != null ? vvOperator.getBzuId() : null;
@@ -64,8 +67,8 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
             LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice marineInvoiceXML :" + marineInvoiceXML)
             ScopeCoordinateIdsWsType scopeCoordinates = getScopeCoordinatesForWebService()
             ArgoServicePort servicePort = getWebServiceStub()
-            if (servicePort != null) {
-                GenericInvokeResponseWsType webServiceResponse = servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML);
+            if (servicePort != null && marineInvoiceXML != null) {
+                GenericInvokeResponseWsType webServiceResponse = scopeCoordinates != null ?  servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML) : null;
                 ResponseType ptResponse = webServiceResponse != null ? webServiceResponse.getCommonResponse() : null;
                 if (ptResponse == null) {
                     LOGGER.error("Something went wrong in N4 Billing.Billing invoice request failed")
@@ -127,11 +130,14 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
      */
     private ArgoServicePort getWebServiceStub() throws ServiceException {
         ArgoServiceLocator serviceLocator = new ArgoServiceLocator();
-        ArgoServicePort servicePort =
-                serviceLocator.getArgoServicePort(ConfigurationProperties.getBillingServiceURL());
+        ArgoServicePort servicePort =serviceLocator != null ?
+                serviceLocator.getArgoServicePort(ConfigurationProperties.getBillingServiceURL()) : null;
         Stub stub = (Stub) servicePort;
-        stub._setProperty(Stub.USERNAME_PROPERTY, ConfigurationProperties.getBillingWebServiceUserId());
-        stub._setProperty(Stub.PASSWORD_PROPERTY, ConfigurationProperties.getBillingWebServicePassWord());
+        if(stub != null){
+            stub._setProperty(Stub.USERNAME_PROPERTY, ConfigurationProperties.getBillingWebServiceUserId());
+            stub._setProperty(Stub.PASSWORD_PROPERTY, ConfigurationProperties.getBillingWebServicePassWord());
+        }
+
         return servicePort;
     }
 

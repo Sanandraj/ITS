@@ -81,10 +81,6 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
         })
 
         // Dual Flag implementation
-        FieldChange gateApptStateFc = inOriginalFieldChanges.hasFieldChange(RoadApptsField.GAPPT_UFV_FLEX_STRING01) ? (FieldChange) inOriginalFieldChanges.findFieldChange(RoadApptsField.GAPPT_UFV_FLEX_STRING01) : null;
-        if (gateApptStateFc != null) {
-            gateAppointment.setPinNumber(gateApptStateFc.getNewValue());
-        }
 
         TruckVisitAppointment tva = null
 

@@ -77,7 +77,12 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
             }
         }
     }
-
+/**
+ *
+ * @param inEvent
+ * @param inMetafieldId
+ * @return
+ */
     private static EventFieldChange getFieldChange(Event inEvent, String inMetafieldId) {
         Set<EventFieldChange> fcs = inEvent != null ? inEvent.getFieldChanges() : null
         if (fcs != null && inMetafieldId != null) {
@@ -90,7 +95,10 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
         return null
     }
 
-
+/**
+ * Get the Genereal Reference value
+ * @return
+ */
     private static List<String> getEventsToRecord() {
         GeneralReference inEvntFromGenRef = GeneralReference.findUniqueEntryById("ITS", "VESSEL_READY_TO_BILL", "BILLABLE_EVENT", null)
         List<String> inEvntList = new ArrayList<String>()

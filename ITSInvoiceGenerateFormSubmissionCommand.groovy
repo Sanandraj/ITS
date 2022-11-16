@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.argo.business.model.GeneralReference
 import com.navis.billing.business.model.Customer
 import com.navis.billing.business.model.InvoiceType
@@ -12,10 +17,20 @@ import com.navis.framework.presentation.FrameworkPresentationUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/** Date: 10-11-2022
- *  @Author <a href="mailto:skishore@weservetech.com">Kishore Kumar S</a>
- * Requirements:- Updating Account number against the customer while generating an Invoice.
- * @Inclusion Location	: Incorporated as a code extension of the type FORM_SUBMISSION_COMMAND --> Paste this code (ITSInvoiceGenerateFormSubmissionCommand.groovy)
+/**
+ * @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 10/10/2022
+ * Requirements : B-2-3 General reference to maintain customer code -- This groovy is used to update customer debit code on customer data .
+ * @Inclusion Location	: Incorporated as a code extension of the type FORM_SUBMISSION_INTERCEPTOR.
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSInvoiceGenerateFormSubmissionCommand.
+ Code Extension Type:  FORM_SUBMISSION_INTERCEPTOR.
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  Set up override configuration in variformId - BIL006.
  */
 
 class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionCommand{
@@ -27,6 +42,9 @@ class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionComm
         LOGGER1.setLevel(Level.DEBUG)
         LOGGER1.debug("customBeanITSGenerateInvoiceFormController Starts :: ")
         FieldChanges fieldChanges = (FieldChanges) inOutFieldChanges
+        if (fieldChanges == null){
+            return;
+        }
         String invTypeNewValueGKEY = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType"))?.getNewValue()
         String payeeCustomer = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf("invoicePayeeCustomer"))?.getNewValue()
         if (fieldChanges?.hasFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType")) && invTypeNewValueGKEY != null) {
