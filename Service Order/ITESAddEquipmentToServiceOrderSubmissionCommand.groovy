@@ -38,8 +38,13 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
     void submit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
         LOGGER.setLevel(Level.DEBUG)
 
-        String lineServiceItemKey = inOutFieldChanges.findFieldChange(ServiceOrderField.ITMSRVTYPUNIT_ITEM_SERVICE_TYPE).getNewValue();
-        String unitEquipment = inOutFieldChanges.findFieldChange(MetafieldIdFactory.valueOf("unitEquipment.eqIdFull")).getNewValue();
+        String lineServiceItemKey = inOutFieldChanges.findFieldChange(ServiceOrderField.ITMSRVTYPUNIT_ITEM_SERVICE_TYPE)?.getNewValue();
+        String unitEquipment = inOutFieldChanges.findFieldChange(MetafieldIdFactory.valueOf("unitEquipment.eqIdFull"))?.getNewValue();
+
+        if(lineServiceItemKey == null || unitEquipment == null){
+            return
+        }
+
         Double quantity = 0.0;
         if(inOutFieldChanges.hasFieldChange(CUSTOM_DFF_QUANTITY)){
             quantity = (Double) inOutFieldChanges.findFieldChange(CUSTOM_DFF_QUANTITY).getNewValue();
@@ -49,7 +54,7 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
         MessageCollector appMessage = MessageCollectorFactory.createMessageCollector();
 
         reqMessage = createUnitForServiceOrder(unitEquipment, lineServiceItemKey)
-        Iterator itr = reqMessage.getMessages().iterator();
+        Iterator itr = reqMessage?.getMessages()?.iterator();
         while (itr.hasNext()) {
             UserMessage um = (UserMessage) itr.next();
             appMessage.appendMessage(um.getSeverity(), um.getMessageKey(), null, um.getParms());
@@ -72,7 +77,6 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
                 }
             })
         }
-
     }
 
     private MessageCollector createUnitForServiceOrder(String equipId, String lineServiceItemKey) {
