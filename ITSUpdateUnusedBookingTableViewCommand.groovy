@@ -111,7 +111,7 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                             })
                         }
                         else {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off no set."),PropertyKeyFactory.valueOf("Unable to perform"))
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off not set."),PropertyKeyFactory.valueOf("Unable to perform"))
                         }
                         if (event!=null){
                             vvd.recordEvent(event,null,ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
