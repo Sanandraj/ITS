@@ -34,7 +34,6 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
 
     private static Logger LOGGER = Logger.getLogger(ITSCalculateVesselMoveGeneralNotice.class);
     public void execute(GroovyEvent inGroovyEvent) {
-        logMsg("ITSCalculateVesselMoveGeneralNotice execution begins ");
         try {
             if (inGroovyEvent == null) {
                 return;
@@ -42,11 +41,9 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
             VesselVisitDetails vesselVisitDetails = (VesselVisitDetails) inGroovyEvent.getEntity();
             if (vesselVisitDetails != null) {
                 CarrierVisit cv = vesselVisitDetails.getCvdCv()
-                logMsg("cv" + cv.getCvId());
 
                 if (cv != null && isVslComplete(cv.getCvId())) {
                     int moveCount = calculateMoveCount(cv.getCvId())
-                    logMsg("moveCount-- " + moveCount);
 
                     if(moveCount){
 
@@ -54,7 +51,6 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
                         UnitFacilityVisit ufv = null;
                         Unit unit = null;
                         if (ufvList != null && !ufvList.isEmpty()) {
-                            logMsg("ufvSize" + ufvList.size());
                             for (Serializable gKey : ufvList) {
                                 ufv = UnitFacilityVisit.hydrate(gKey);
                                 unit = ufv != null ? ufv.getUfvUnit() : null;
@@ -73,8 +69,6 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
                         }
 
                         vesselVisitDetails.setVvFlexString02(moveCount.toString())
-                        logMsg("vesselVisitDetails Flex 02 -- " + vesselVisitDetails.getVvFlexString02());
-
                         HibernateApi.getInstance().save(vesselVisitDetails)
                     }
 
@@ -107,7 +101,6 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         dq.addDqPredicate(disjunction)
 
         int count = HibernateApi.getInstance().findCountByDomainQuery(dq)
-        logMsg("Move count- " + count)
         return count
     }
 
@@ -132,7 +125,6 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         dq.addDqPredicate(disjunction)
 
         int count = HibernateApi.getInstance().findCountByDomainQuery(dq)
-        logMsg("Pending count- " + count)
         return count == 0
     }
 
