@@ -27,16 +27,30 @@ import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Logger
 
 /**
- * Set Deliverable (unitFlexString03) to 'Y' or 'N' based on the General reference set-up
- * Set First Available Day (UnitFlexDate01)
+ * @Author: uaarthi@weservetech.com, Aarthi U; Date: 20-07-2022
  *
- * uaarthi@weservetech.com Billing 7-4 Container sorting Fee
- * Weserve - 08/22 Record a event Billable UNIT_DELIVERABLE_MOVE when the Unit is moved after Last free day.
- * Weserve - Record an event UNIT_DELIVERABLE_DISCHARGE when the unit was first placed in deliverable block
- * Configured against all Discharge Event triggers. UNIT_YARD_MOVE/ UNIT_POSITION_CORRECTION
+ *  Requirements: Set Deliverable (unitFlexString03) to 'Y' or 'N' based on the General reference set-up
+ *  Set First Available Day (UnitFlexDate01)
+ *  3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
  *
- * 3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
+ * @Inclusion Location: Incorporated as a code extension of the type GENERAL_NOTICES_CODE_EXTENSION
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSSetDeliverableUnitGeneralNotice
+ *     Code Extension Type: GENERAL_NOTICES_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *  1.      24-08-2022      Aarthi          IP-301    Record a event Billable UNIT_DELIVERABLE_MOVE when the Unit is moved after Last free day.
+ *  2.      19-10-2022      Annalakshmi               Record an event UNIT_DELIVERABLE_DISCHARGE when the unit was first placed in deliverable block .
+ *                                                    Configured against all Discharge Event triggers. UNIT_YARD_MOVE/ UNIT_POSITION_CORRECTION
+ *
  */
+
 class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtension {
     @Override
     void execute(GroovyEvent inGroovyEvent) {
