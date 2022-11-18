@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.external.framework.util.EFieldChange
@@ -13,10 +18,23 @@ import org.jetbrains.annotations.Nullable
 
 /*
 *
-*  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
-*  Date: 20/Oct/2022
-*  Requirement: To bulk update Last free Day for Units with reason.
-*  @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION.Copy --> Paste this code (ITSLFDUpdatePersisitanceCallBack.groovy)
+*  @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 20/10/2022
+*
+*  Requirements: To bulk update Last free Day for Units with reason.
+*
+*  @Inclusion Location: Incorporated as a code extension of the type
+*
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: ITSLFDUpdatePersisitanceCallBack
+*     Code Extension Type: TRANSACTED_BUSINESS_FUNCTION
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
+*
+*  S.No    Modified Date   Modified By     Jira      Description
+*
 *
 */
 
@@ -105,3 +123,4 @@ class ITSLFDUpdatePersisitanceCallBack extends AbstractExtensionPersistenceCallb
         inOutResults.put("ERROR", isError)
     }
 }
+
