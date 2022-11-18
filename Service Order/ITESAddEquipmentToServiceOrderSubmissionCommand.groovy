@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 import com.navis.external.framework.ui.AbstractFormSubmissionCommand
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.framework.metafields.MetafieldId
@@ -25,11 +30,26 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /*
- * Version #: #BuildNumber#
- * Author: Manimaran - WeServe
- * Work B 7-6 Service Orders
- * Date: 26-OCT-22
- * Description: To add the quantity value when adding the Equipment in ItemServiceTypeUnit.
+ * @Author: mailto:kmanimaran@weservetech.com, Manimaran; Date: 26/10/2022
+ *
+ * Requirements: To add the quantity, while adding the Equipment in ItemServiceTypeUnit.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITESAddEquipmentToServiceOrderSubmissionCommand
+ *     Code Extension Type: FORM_SUBMISSION_INTERCEPTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Set up in the database backed variform --> ORD062_OVERRIDE --> adding formSubmissionCodeExtension name="ITESAddEquipmentToServiceOrderSubmissionCommand.
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
  */
 
 class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmissionCommand {
@@ -37,19 +57,18 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
     @Override
     void submit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
         LOGGER.setLevel(Level.DEBUG)
-
-        String lineServiceItemKey = inOutFieldChanges.findFieldChange(ServiceOrderField.ITMSRVTYPUNIT_ITEM_SERVICE_TYPE)?.getNewValue();
-        String unitEquipment = inOutFieldChanges.findFieldChange(MetafieldIdFactory.valueOf("unitEquipment.eqIdFull"))?.getNewValue();
+        String lineServiceItemKey = inOutFieldChanges.findFieldChange(ServiceOrderField.ITMSRVTYPUNIT_ITEM_SERVICE_TYPE).getNewValue();
+        String unitEquipment = inOutFieldChanges.findFieldChange(MetafieldIdFactory.valueOf("unitEquipment.eqIdFull")).getNewValue();
+        String itemServiceTypeGkey = inOutFieldChanges.findFieldChange(MetafieldIdFactory.valueOf("itmsrvtypunitItemServiceType")).getNewValue();
 
         if(lineServiceItemKey == null || unitEquipment == null){
             return
         }
 
         Double quantity = 0.0;
-        if(inOutFieldChanges.hasFieldChange(CUSTOM_DFF_QUANTITY)){
+        if (inOutFieldChanges.hasFieldChange(CUSTOM_DFF_QUANTITY)) {
             quantity = (Double) inOutFieldChanges.findFieldChange(CUSTOM_DFF_QUANTITY).getNewValue();
         }
-
         MessageCollector reqMessage = MessageCollectorFactory.createMessageCollector();
         MessageCollector appMessage = MessageCollectorFactory.createMessageCollector();
 
@@ -69,7 +88,8 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
             pt.invoke(new CarinaPersistenceCallback() {
                 protected void doInTransaction() {
                     DomainQuery dq = QueryUtils.createDomainQuery("ItemServiceTypeUnit")
-                            .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("itmsrvtypunitUnit.unitId"), unitEquipment));
+                            .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("itmsrvtypunitUnit.unitId"), unitEquipment))
+                            .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf(" itmsrvtypunitItemServiceType.itmsrvtypGkey"), itemServiceTypeGkey))
                     ItemServiceTypeUnit itemServiceTypeUnit = (ItemServiceTypeUnit) HibernateApi.getInstance().getUniqueEntityByDomainQuery(dq);
                     if (itemServiceTypeUnit != null) {
                         itemServiceTypeUnit.setFieldValue(CUSTOM_DFF_QUANTITY, quantity)
@@ -80,14 +100,15 @@ class ITESAddEquipmentToServiceOrderSubmissionCommand extends AbstractFormSubmis
     }
 
     private MessageCollector createUnitForServiceOrder(String equipId, String lineServiceItemKey) {
-        BizResponse response = null;
+        BizResponse response = null
         BizRequest req = new BizRequest(FrameworkPresentationUtils.getUserContext());
         req.setParameter(UnitField.UNIT_PRIMARY_EQ_ID_FULL.toString(), (Serializable) equipId);
         req.setParameter(ServiceOrderField.ITMSRVTYP_GKEY.toString(), (Serializable) lineServiceItemKey)
         response = CrudDelegate.executeBizRequest(req, "ordCreateServiceTypeUnit");
-        return response.getMessageCollector();
+        return response.getMessageCollector()
     }
 
     private static final MetafieldId CUSTOM_DFF_QUANTITY = MetafieldIdFactory.valueOf("customFlexFields.itmsrvtypunitCustomDFFQuantity");
-    private static Logger LOGGER = Logger.getLogger(this.class);
+    private static Logger LOGGER = Logger.getLogger(ITESAddEquipmentToServiceOrderSubmissionCommand.class);
 }
+
