@@ -64,4 +64,3 @@ class ITSDeliverWithHoldsTaskInterceptor extends AbstractGateTaskInterceptor {
         }
     }
 }
-
