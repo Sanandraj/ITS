@@ -15,15 +15,6 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * Date: 31-10-2022
- * UNIT_RESERVE - Naresh Kumar
- * UNIT_CANCEL_RESERVE - Kishore Kumar S
- * Requirements:-  Updating Bill of Ladding FlexString-01 Value based on number of units associated to BL.
- * Trigger: UNIT_RESERVE and UNIT_CANCEL_RESERVE
- * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION --> Paste this code (ITSUpdateUnitsCountToBLGenaralNotice.groovy)
- *
- *
- *
  * @Author: mailto:skishore@weservetech.com & mailto:mnaresh@weservetech.com, Kishore Kumar S & Naresh Kumar; Date: 31-10-2022
  *
  *  Requirements: Updating Bill of Ladding FlexString-01 Value based on number of units associated to BL.
