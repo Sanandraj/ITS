@@ -47,7 +47,7 @@ import org.apache.log4j.Logger
     * @Set up groovy code in Extension Trigger against "GateAppointment" Entity then execute this code extension (ITSGateAppointmentEntityLifeCycleInterceptor).
     *
     *  S.No    Modified Date   Modified By     Jira      Description
-    *
+    *   1       25/10/2022      Gopinath K     IP-327    Pin number issue for DI-Setting the FlexString01 with the Pin Number.
  */
 
 
