@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.external.framework.entity.AbstractEntityLifecycleInterceptor
 import com.navis.external.framework.entity.EEntityView
@@ -19,14 +25,31 @@ import com.navis.road.RoadApptsField
 import com.navis.road.business.appointment.model.GateAppointment
 import com.navis.road.business.appointment.model.TruckVisitAppointment
 import com.navis.road.business.atoms.TruckerFriendlyTranSubTypeEnum
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/**
- *
- * uaarthi@weservetech.com 10/19 -- TT-31 Dual Flag Appears in Appointment List
- * ELI on Appointment to set Dual Flag for Truck Visit Appointments associated to multiple Appointments
+/*
+     *
+     *  @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date:19/10/2022
+     *
+     * Requirements : TT-31 Dual Flag Appears in Appointment List,ELI on Appointment to set Dual Flag for Truck Visit Appointments associated to multiple Appointments.
+     *
+     * @Inclusion Location	: Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION.
+     *
+     *  Load Code Extension to N4:
+            1. Go to Administration --> System -->  Code Extension
+            2. Click Add (+)
+            3. Enter the values as below:
+                Code Extension Name:  ITSGateAppointmentEntityLifeCycleInterceptor
+                Code Extension Type:  ENTITY_LIFECYCLE_INTERCEPTION
+               Groovy Code: Copy and paste the contents of groovy code.
+            4. Click Save button
+
+    * @Set up groovy code in Extension Trigger against "GateAppointment" Entity then execute this code extension (ITSGateAppointmentEntityLifeCycleInterceptor).
+    *
+    *  S.No    Modified Date   Modified By     Jira      Description
+    *
  */
+
 
 class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecycleInterceptor {
     private static Logger LOGGER = Logger.getLogger(this.class)
@@ -43,11 +66,10 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
 
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug(" onCreateOrUpdate ")
         GateAppointment gateAppointment = inEntity._entity;
-        LOGGER.debug(" onCreateOrUpdate inOriginalFieldChanges :: " + inOriginalFieldChanges)
-        LOGGER.debug(" onCreateOrUpdate inMoreFieldChanges :: " + inMoreFieldChanges)
+        if (gateAppointment == null) {
+            return;
+        }
 
         PersistenceTemplate pt = new PersistenceTemplate(UserContextUtils.getSystemUserContext());
         pt.invoke(new CarinaPersistenceCallback() {
@@ -85,7 +107,6 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
         TruckVisitAppointment tva = null
 
         FieldChange tvaFc = inOriginalFieldChanges.hasFieldChange(RoadApptsField.GAPPT_TRUCK_VISIT_APPOINTMENT) ? (FieldChange) inOriginalFieldChanges.findFieldChange(RoadApptsField.GAPPT_TRUCK_VISIT_APPOINTMENT) : null;
-        LOGGER.warn(" tvaFc :: " + tvaFc)
 
         if (tvaFc != null) {
             if (tvaFc.getNewValue()) {
@@ -101,20 +122,15 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
     }
 
     void reloadDualFlag(TruckVisitAppointment tva, GateAppointment gappt, EFieldChanges inMoreFieldChanges) {
-        LOGGER.warn(" tva :: " + tva)
 
         if (tva != null) {
             Set<GateAppointment> apptSet = tva.getAppointments(GateAppointment.AppointmentStateGroupEnum.ACTIVE)
-            LOGGER.warn("apptSet " + apptSet)
             String isDual = (apptSet != null && apptSet.size() >= 2) ? 'Y' : 'N'
-            LOGGER.warn(" isDual " + isDual)
             apptSet.each {
                 it.setGapptUnitFlexString02(isDual)
             }
-            //gappt.setGapptUnitFlexString02(isDual)
             inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02, isDual)
         } else {
-            //gappt.setGapptUnitFlexString02('N')
             inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02, 'N')
 
         }
