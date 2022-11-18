@@ -1,31 +1,21 @@
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
- */
+*/
 
-import com.navis.framework.metafields.MetafieldIdFactory
-import org.apache.log4j.Level
-import org.apache.log4j.Logger
-import com.navis.argo.ArgoBizMetafield
 import com.navis.argo.business.atoms.ServiceOrderStatusEnum
 import com.navis.argo.business.atoms.ServiceOrderUnitStatusEnum
 import com.navis.argo.business.reference.ScopedBizUnit
 import com.navis.external.framework.ui.AbstractTableViewCommand
+import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
 import com.navis.framework.persistence.hibernate.PersistenceTemplate
-import com.navis.framework.portal.BizRequest
-import com.navis.framework.portal.BizResponse
-import com.navis.framework.portal.CrudDelegate
 import com.navis.framework.portal.UserContext
 import com.navis.framework.presentation.FrameworkPresentationUtils
 import com.navis.framework.presentation.ui.event.listener.AbstractCarinaOptionCommand
-import com.navis.framework.presentation.ui.message.ButtonType
-import com.navis.framework.presentation.ui.message.ButtonTypes
-import com.navis.framework.presentation.ui.message.MessageDialog
-import com.navis.framework.presentation.ui.message.MessageType
-import com.navis.framework.presentation.ui.message.OptionDialog
+import com.navis.framework.presentation.ui.message.*
 import com.navis.framework.ulc.server.application.view.ViewHelper
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.message.MessageCollector
@@ -36,21 +26,36 @@ import com.navis.orders.business.serviceorders.ItemServiceType
 import com.navis.orders.business.serviceorders.ItemServiceTypeUnit
 import com.navis.orders.business.serviceorders.ServiceOrder
 import com.navis.orders.business.serviceorders.ServiceOrderItem
-
+import org.apache.log4j.Logger
 
 /*
  *
- *  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
- *  Date : 17/Oct/2022
- *  Requirements :This groovy is used to complete the service order which is in New and Inprogress status.
- *  @Inclusion Location : Incorporated as a code extension of the type TABLE_VIEW_COMMAND. Copy -->Paste this code(ITSCompleteServiceOrder.groovy)
+ *  @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 17/10/2022
+ *
+ *  Requirements: This groovy is used to complete the service order which is in New and Inprogress status.
+ *
+ *  @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSCompleteServiceOrder
+ *     Code Extension Type: TABLE_VIEW_COMMAND
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Set up in the database backed variform - CUSTOM_ORD55 - adding Menu Item to complete Service order.
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 class ITSCompleteServiceOrder extends AbstractTableViewCommand {
     private Logger LOGGER = Logger.getLogger(ITSCompleteServiceOrder.class);
 
     void execute(EntityId entityId, List<Serializable> gkeys, Map<String, Object> params) {
-        //LOGGER.setLevel(Level.DEBUG)
+
 
         if (entityId == null || gkeys == null) {
             return;
@@ -90,7 +95,7 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
 
     private void completeServiceOrder(UserContext userContext, String srvOrderNbr, MessageCollector mc, EntityId entityId, Serializable billParty) {
         if (srvOrderNbr != null) {
-            def baseUtil = getLibrary("BaseGroovyUtil")
+            Object baseUtil = getLibrary("BaseGroovyUtil")
 
             PersistenceTemplate pt = new PersistenceTemplate(userContext);
             pt.invoke(new CarinaPersistenceCallback() {
@@ -110,16 +115,16 @@ class ITSCompleteServiceOrder extends AbstractTableViewCommand {
                         if (!ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || !ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder.getSrvoStatus())) {
                             try {
                                 Set<ServiceOrderItem> serviceOrderItems = inSrvOrder?.getSrvoItems();
-                                if (serviceOrderItems != null && !serviceOrderItems.isEmpty()){
+                                if (serviceOrderItems != null && !serviceOrderItems.isEmpty()) {
                                     for (Object itemSet : serviceOrderItems) {
                                         ServiceOrderItem serviceOrderItem = (ServiceOrderItem) itemSet;
                                         if (serviceOrderItem != null) {
                                             Set<ItemServiceType> itemServiceTypes = serviceOrderItem?.getItemServiceTypes();
-                                            if (itemServiceTypes != null && !itemServiceTypes.isEmpty()){
+                                            if (itemServiceTypes != null && !itemServiceTypes.isEmpty()) {
                                                 for (Object serviceTypeSet : itemServiceTypes) {
                                                     ItemServiceType itemServiceType = (ItemServiceType) serviceTypeSet;
                                                     Set<ItemServiceTypeUnit> istUnits = itemServiceType?.getItemServiceTypeUnits();
-                                                    if (istUnits != null && !istUnits.isEmpty()){
+                                                    if (istUnits != null && !istUnits.isEmpty()) {
                                                         for (Object istUnitSet : istUnits) {
                                                             ItemServiceTypeUnit istUnit = (ItemServiceTypeUnit) istUnitSet;
                                                             String istuEventId = null;
