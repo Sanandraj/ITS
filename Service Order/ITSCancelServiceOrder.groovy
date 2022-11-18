@@ -1,9 +1,10 @@
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
- */
+*/
+
+
 import com.navis.argo.ArgoExtractField
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.ServicesManager
 import com.navis.argo.business.atoms.BizRoleEnum
 import com.navis.argo.business.atoms.ServiceOrderStatusEnum
@@ -22,11 +23,7 @@ import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.presentation.FrameworkPresentationUtils
 import com.navis.framework.presentation.ui.event.listener.AbstractCarinaOptionCommand
-import com.navis.framework.presentation.ui.message.ButtonType
-import com.navis.framework.presentation.ui.message.ButtonTypes
-import com.navis.framework.presentation.ui.message.MessageDialog
-import com.navis.framework.presentation.ui.message.MessageType
-import com.navis.framework.presentation.ui.message.OptionDialog
+import com.navis.framework.presentation.ui.message.*
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.message.MessageCollector
 import com.navis.framework.util.message.MessageCollectorFactory
@@ -39,12 +36,28 @@ import com.navis.services.business.event.Event
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/*
+/**
  *
- *  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
- *  Date : 17/Oct/2022
- *  Requirements : This groovy allow to customize the cancel service order form, In order to cancel the partial or fully completed service.
- *  @Inclusion Location : Incorporated as a code extension of the type FORM_SUBMISSION_INTERCEPTOR. Copy -->Paste this code(ITSCancelServiceOrder.groovy)
+ * @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 17/10/2022
+ *
+ *  Requirements: This groovy allow to customize the cancel service order form, In order to cancel the partial or fully completed service.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSCancelServiceOrder
+ *     Code Extension Type: FORM_SUBMISSION_INTERCEPTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Setup in the database backed variform --> OVERRIDE_ORD66 --> adding formSubmissionCodeExtension name="ITSCancelServiceOrder.
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
  */
 
 class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
@@ -109,7 +122,7 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
                                 updateUnitHistory(serviceOrder);
 
-                                def baseUtil = getLibrary("BaseGroovyUtil")
+                                Object baseUtil = getLibrary("BaseGroovyUtil")
                                 baseUtil.refreshEntity(serviceOrder);
                                 mc.appendMessage(MessageLevel.INFO, PropertyKeyFactory.valueOf("SERVICE_CANCELED_SUCCESSFULLY"), serviceOrder?.getSrvoNbr(), serviceOrder?.getSrvoNbr())
                                 LOGGER.debug("Values :: Cancelled Service Order Nbr:" + serviceOrder?.getSrvoNbr() + " status :" + serviceOrder?.getSrvoStatus());
@@ -147,7 +160,6 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
                                     if (events != null) {
                                         for (Event event : events) {
-                                            LOGGER.debug("     --- event - " + event);
                                             if (unitEventId.equals(event?.getEventTypeId())) {
                                                 if (event?.isEventTypeBillable()) {
                                                     event.setEventTypeIsBillable(false);
@@ -156,7 +168,6 @@ class ITSCancelServiceOrder extends AbstractFormSubmissionCommand {
 
                                                 List<ChargeableUnitEvent> cueList = findChargeableUnitEventByServiceOrderNbr(srvOrderNbr);
                                                 for (cue in cueList) {
-                                                    LOGGER.debug("cue: " + cue?.getBexuBatchId());
                                                     cue.setBexuStatus("CANCELLED")
                                                 }
                                             }
