@@ -30,7 +30,7 @@ import org.apache.log4j.Logger
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- * @Setup override configuration in variformId - ORD001
+ * @Setup override configuration in variformId - REV_ORD001
  *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
