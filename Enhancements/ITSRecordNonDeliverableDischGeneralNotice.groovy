@@ -31,7 +31,7 @@ import org.apache.log4j.Logger
  Groovy Code: Copy and paste the contents of groovy code.
  *   4. Click Save button
  *
- * @Set up General Notice for event type "UNIT_NON_DELIVERABLE_DISCH" on Unit Entity then execute this code extension (ITSRecordNonDeliverableDischGeneralNotice).
+ * @Set up General Notice for event type "UNIT_DISCH/ UNIT_DERAMP" on Unit Entity then execute this code extension (ITSRecordNonDeliverableDischGeneralNotice).
  *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
