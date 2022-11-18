@@ -111,17 +111,17 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
         if (tvaFc != null) {
             if (tvaFc.getNewValue()) {
                 tva = (TruckVisitAppointment) tvaFc.getNewValue()
-                reloadDualFlag(tva, gateAppointment, inMoreFieldChanges)
+                reloadDualFlag(tva, gateAppointment, inMoreFieldChanges, tvaFc.getNewValue())
 
             }
             if (tvaFc.getPriorValue()) {
                 tva = (TruckVisitAppointment) tvaFc.getPriorValue()
-                reloadDualFlag(tva, gateAppointment, inMoreFieldChanges)
+                reloadDualFlag(tva, gateAppointment, inMoreFieldChanges, tvaFc.getNewValue())
             }
         }
     }
 
-    void reloadDualFlag(TruckVisitAppointment tva, GateAppointment gappt, EFieldChanges inMoreFieldChanges) {
+    void reloadDualFlag(TruckVisitAppointment tva, GateAppointment gappt, EFieldChanges inMoreFieldChanges, Object newValue) {
 
         if (tva != null) {
             Set<GateAppointment> apptSet = tva.getAppointments(GateAppointment.AppointmentStateGroupEnum.ACTIVE)
@@ -133,6 +133,10 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
         } else {
             inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02, 'N')
 
+        }
+
+        if(newValue == null){
+            inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02, 'N')
         }
     }
 }
