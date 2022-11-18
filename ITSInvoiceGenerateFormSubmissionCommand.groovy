@@ -3,8 +3,8 @@
  *
  */
 
+
 import com.navis.argo.business.model.GeneralReference
-import com.navis.billing.business.model.Customer
 import com.navis.billing.business.model.InvoiceType
 import com.navis.external.framework.ui.AbstractFormSubmissionCommand
 import com.navis.external.framework.util.EFieldChanges
@@ -33,32 +33,28 @@ import org.apache.log4j.Logger
  *  Set up override configuration in variformId - BIL006.
  */
 
-class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionCommand{
+class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionCommand {
     private static Logger LOGGER = Logger.getLogger(ITSInvoiceGenerateFormSubmissionCommand.class)
 
     @Override
-    void doBeforeSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
+    void doBeforeSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
         Logger LOGGER1 = Logger.getLogger(this.class)
         LOGGER1.setLevel(Level.DEBUG)
         LOGGER1.debug("customBeanITSGenerateInvoiceFormController Starts :: ")
-        FieldChanges fieldChanges = (FieldChanges) inOutFieldChanges
-        if (fieldChanges == null){
+        FieldChanges fieldChange = (FieldChanges) inFieldChanges
+        if (fieldChange == null) {
             return;
         }
-        String invTypeNewValueGKEY = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType"))?.getNewValue()
-        String payeeCustomer = fieldChanges?.getFieldChange(MetafieldIdFactory.valueOf("invoicePayeeCustomer"))?.getNewValue()
-        if (fieldChanges?.hasFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType")) && invTypeNewValueGKEY != null) {
+        String invTypeNewValueGKEY = fieldChange?.getFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType"))?.getNewValue()
+        if (fieldChange?.hasFieldChange(MetafieldIdFactory.valueOf("invoiceInvoiceType")) && invTypeNewValueGKEY != null) {
             PersistenceTemplate persistenceTemplate = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
             persistenceTemplate.invoke(new CarinaPersistenceCallback() {
                 @Override
                 protected void doInTransaction() {
                     InvoiceType invType = InvoiceType.hydrate(invTypeNewValueGKEY as Serializable)
-                    GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_CUSTOMER_SERVICE",invType?.getInvtypeId()?.toString())
-                    if (gn!=null && payeeCustomer != null){
-                        Customer customer= Customer.hydrate(payeeCustomer as Serializable)
-                        if (customer.getCustDebitCode()==null || customer.getCustDebitCode().isEmpty() || !customer.getCustDebitCode().equals(gn?.getRefValue1())){
-                            customer?.setFieldValue(MetafieldIdFactory.valueOf("custDebitCode"),gn?.getRefValue1())
-                        }
+                    GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_CUSTOMER_SERVICE", invType?.getInvtypeId()?.toString())
+                    if (gn != null && gn.getRefValue1() != null) {
+                        fieldChange?.setFieldChange(MetafieldIdFactory.valueOf("invoiceFlexString06"), gn?.getRefValue1())
                     }
                 }
             })
