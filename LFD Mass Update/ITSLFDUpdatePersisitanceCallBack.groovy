@@ -33,8 +33,7 @@ import org.jetbrains.annotations.Nullable
 *     Groovy Code: Copy and paste the contents of groovy code.
 *  4. Click Save button
 *
-* @Setup Create a custom Variform CUSTOM_INV075
-* 
+*
 *  S.No    Modified Date   Modified By     Jira      Description
 *
 */
