@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 import com.navis.extension.portal.ExtensionBeanUtils
 import com.navis.extension.portal.IExtensionTransactionHandler
 import com.navis.external.framework.beans.EBean
@@ -18,10 +22,24 @@ import com.navis.framework.util.message.MessageCollector
 import org.apache.log4j.Logger
 
 /*
+* @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 20/10/2022
 *
-*  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
-*  Date: 20/Oct/2022
-*  @Inclusion Location	: Incorporated as a code extension of the type BEAN_PROTOTYPE.Copy --> Paste this code (customBeanLFDMassUpdateFormController.groovy)
+*  Requirements: To bulk update Line Last free Day for Units with reason
+*
+* @Inclusion Location: Incorporated as a code extension of the type
+*
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: customBeanLFDMassUpdateFormController
+*     Code Extension Type: BEAN_PROTOTYPE
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
+*
+* @Setup Create a custom Variform CUSTOM_INV075
+*
+*  S.No    Modified Date   Modified By     Jira      Description
 *
 */
 
