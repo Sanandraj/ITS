@@ -1,4 +1,5 @@
 import com.navis.external.framework.beans.EBean
+import com.navis.framework.presentation.command.DestinationEnum
 import com.navis.framework.presentation.command.VariformUiCommand
 import com.navis.framework.presentation.ui.CarinaButton
 import com.navis.framework.presentation.ui.FormController
@@ -63,6 +64,7 @@ class customBeanITSContainerAvailabilityFormController extends FormController im
         command.setAttribute("keys", getPrimaryKeys());
         command.setAttribute("unitIds",unitIds)
         command.setSource(selectedKeys);
+        command.setDestination(DestinationEnum.DIALOG);
 
         Map args = new HashMap();
         args.put("entityname", "UnitFacilityVisit");
