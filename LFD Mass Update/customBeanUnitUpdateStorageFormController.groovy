@@ -1,18 +1,37 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 import com.navis.external.framework.beans.EBean
 import com.navis.framework.presentation.ui.ICarinaWidget
 import com.navis.framework.presentation.ui.event.CarinaFormValueEvent
 import com.navis.framework.presentation.ui.event.listener.AbstractCarinaFormValueListener
 import com.navis.inventory.InventoryField
 import com.navis.inventory.presentation.controller.UnitUpdateStorageFormController
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /*
 *
-*  @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
-*  Date: 20/Oct/2022
-*  Requirement: To make the LFD Reason Notes(flexField) visible and required only when LFD field not empty
-*  @Inclusion Location	: Incorporated as a code extension of the type BEAN_PROTOTYPE.Copy --> Paste this code (customBeanUnitUpdateStorageFormController.groovy)
+*
+*  @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 20/10/2022
+*
+*  Requirements: To make the LFD Reason Notes(flexField) visible and required only when LFD field not empty
+*
+*  @Inclusion Location: Incorporated as a code extension of the type
+*
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: customBeanUnitUpdateStorageFormController
+*     Code Extension Type: BEAN_PROTOTYPE
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
+*
+* @Setup Override Variform OVERRIDE_INV075
+*
+*  S.No    Modified Date   Modified By     Jira      Description
+*
 *
 */
 
@@ -43,7 +62,7 @@ class customBeanUnitUpdateStorageFormController extends UnitUpdateStorageFormCon
                         flexWidget.setRequired(false);
                     }
                 }
-            });
+            })
         }
 
     }
@@ -51,3 +70,4 @@ class customBeanUnitUpdateStorageFormController extends UnitUpdateStorageFormCon
     private static final Logger LOGGER = Logger.getLogger(customBeanUnitUpdateStorageFormController.class);
 
 }
+
