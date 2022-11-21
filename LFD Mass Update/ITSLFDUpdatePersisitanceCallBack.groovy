@@ -20,7 +20,7 @@ import org.jetbrains.annotations.Nullable
 *
 *  @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 20/10/2022
 *
-*  Requirements: To bulk update Last free Day for Units with reason.
+*  Requirements: To bulk update Line Last free Day for Units with reason.
 *
 *  @Inclusion Location: Incorporated as a code extension of the type
 *
@@ -33,8 +33,9 @@ import org.jetbrains.annotations.Nullable
 *     Groovy Code: Copy and paste the contents of groovy code.
 *  4. Click Save button
 *
+* @Setup Create a custom Variform CUSTOM_INV075
+* 
 *  S.No    Modified Date   Modified By     Jira      Description
-*
 *
 */
 
