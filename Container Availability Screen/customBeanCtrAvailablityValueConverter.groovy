@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 import com.navis.argo.*
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.IImpediment
@@ -42,31 +46,40 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
-/*
- * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
- * Date: 03/11/2022
- * Requirements:- To update the container availability details based on the impediments fees/storage charges owing.
- *  @Inclusion Location	: Incorporated as a code extension of the type BEAN_PROTOTYPE --> Paste this code (customBeanCtrAvailablityValueConverter.groovy)
- * *
+
+/**
+ * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>, 03/11/2022
+ *
+ *  Requirements: To update the container availability details based on the impediments fees/storage charges owing for the units.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: customBeanCtrAvailablityValueConverter
+ *     Code Extension Type: BEAN_PROTOTYPE
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @SetUp Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
+
 
 class customBeanCtrAvailablityValueConverter extends DefaultValueConverter implements EBean {
     @Override
     Object convert(Object inValue, MetafieldId inColumn) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("Inside the convert method no Value Holder :: ");
         return super.convert(inValue, inColumn)
     }
 
     @Override
     Object convert(Object inValue, MetafieldId inColumn, @Nullable ValueHolder inValueHolder) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("Inside the convert method with Value Holder :: " + inValue + " :: Column :: " + inColumn + " :: Value Holder :: $inValueHolder");
-        LOGGER.debug("incolumn" + inColumn)
+        //LOGGER.setLevel(Level.DEBUG)
 
         if (inColumn.getFieldId().endsWith("Synthetic")) {
-            LOGGER.debug("Unit ID :: " + inValueHolder.getFieldValue(UnitField.UFV_UNIT_ID))
-            LOGGER.debug("infields" + inValueHolder.getFields())
             Object valueToReturn = null;
             Map invoiceParms = new HashMap<>()
             Map cueNotesParms = new HashMap<>()
@@ -78,7 +91,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
                 @Override
                 protected void doInTransaction() {
                     String unitId = inValueHolder.getFieldValue(UnitField.UFV_UNIT_ID)
-                    LOGGER.debug("unitId" + unitId)
                     DomainQuery dq = QueryUtils.createDomainQuery(InvEntity.UNIT_FACILITY_VISIT)
                             .addDqField(UnitField.UFV_UNIT_ID)
                             .addDqField(InvField.UFV_GKEY)
@@ -88,16 +100,11 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
                             .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_ID, unitId))
                     UnitFacilityVisit ufv = (UnitFacilityVisit) HibernateApi.getInstance().getUniqueEntityByDomainQuery(dq)
 
+
                     if (ufv != null) {
                         Unit unit = ufv?.getUfvUnit()
                         VesselVisitDetails vesselVisitDetails = ufv.getUfvActualIbCv() != null ? VesselVisitDetails.resolveVvdFromCv(ufv.getUfvActualIbCv()) : null
-                        LOGGER.warn("vesselVisitDetails" + vesselVisitDetails)
-                        LOGGER.warn("vesselVisitDetails voy" + vesselVisitDetails?.getCarrierIbVoyNbrOrTrainId())
-                        LOGGER.warn("vesselVisitDetails vv name" + vesselVisitDetails?.getCarrierVehicleName())
-                        LOGGER.warn("vesselVisitDetails phase" + vesselVisitDetails?.getVvdVisitPhase()?.getKey())
-                        LOGGER.warn("vesselVisitDetails ETA" + vesselVisitDetails?.getCvdETA())
 
-                        LOGGER.debug("Inside the persistence template :: UFV :: $ufv")
                         switch (inColumn.getFieldId()) {
                             case "ufvVesselNameSynthetic":
                                 valueToReturn = vesselVisitDetails?.getCarrierVehicleName()
@@ -163,41 +170,13 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
 
                                     EventType unitDischEvnt = EventType.findEventType(EventEnum.UNIT_DISCH.getKey());
                                     if (unitDischEvnt != null) {
-                                        LOGGER.warn("unitDischEvnt" + unitDischEvnt)
                                         Event event = eventManager.getMostRecentEventByType(unitDischEvnt, ufv.getUfvUnit());
-                                        LOGGER.warn("event" + event)
                                         if (event != null) {
                                             valueToReturn = event?.getEvntAppliedDate()
                                         }
                                     }
                                 }
                                 break;
-
-                            case "ufvDeliveredDateSynthetic":
-                                if (ufv.isTransitStateBeyond(UfvTransitStateEnum.S50_ECOUT)) {
-                                    EventType unitDeliveredEvnt = EventType.findEventType(EventEnum.UNIT_DELIVER.getKey());
-                                    LOGGER.warn("unitDeliveredEvnt" + unitDeliveredEvnt)
-                                    if (unitDeliveredEvnt != null) {
-                                        Event event = eventManager.getMostRecentEventByType(unitDeliveredEvnt, ufv.getUfvUnit());
-                                        LOGGER.warn("event" + event)
-                                        if (event != null) {
-                                            valueToReturn = event?.getEvntAppliedDate()
-                                        }
-                                    }
-                                }
-
-                                break;
-                            case "ufvIsDeliverableSynthetic":
-                                String yardBlock = ufv?.getUfvLastKnownPosition()?.getBlockName()
-                                if (!StringUtils.isEmpty(yardBlock)) {
-                                    GeneralReference generalReference = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", yardBlock)
-                                    if (generalReference != null && generalReference.getRefValue1() != null && generalReference.getRefValue1().equalsIgnoreCase("Y")) {
-                                        valueToReturn = true
-                                    } else {
-                                        valueToReturn = false
-                                    }
-                                }
-                                break; ;
                             case "ufvSpotSynthetic":
                                 spotParms = deriveContainerSpot(ufv)
                                 valueToReturn = spotParms?.get("CTR_SPOT")
@@ -273,7 +252,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
                                 valueToReturn = YES
                                 break;
                         }
-                        LOGGER.debug("Inside the persistence template :: Value to return  :: $valueToReturn")
                     }
                 }
             })
@@ -359,7 +337,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
             EdiInvoice ediInvoice
             try {
                 ediInvoice = storageManager.getInvoiceForUnit(ufv, ArgoUtils.timeNow(), IMPORT_PRE_PAY, (String) null, ufv.getUfvUnit().getUnitLineOperator(), (ScopedBizUnit) null, (String) null, ArgoUtils.timeNow(), "INQUIRE");
-                LOGGER.warn("ediInvoice" + ediInvoice)
 
             } catch (BizViolation | BizFailure bv) {
                 LOGGER.debug("BizViolation" + bv)
@@ -368,7 +345,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
 
             if (ediInvoice != null) {
                 List<InvoiceCharge> chargeList = ediInvoice.getInvoiceChargeList();
-                LOGGER.warn("chargeList" + chargeList)
                 chargeList.each {
                     charge ->
                         if (ChargeableUnitEventTypeEnum.LINE_STORAGE.getKey().equals(charge.getChargeEventTypeId())) {
@@ -382,7 +358,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
                                 dwellAmount = dwellAmount + charge.getTotalCharged()
                             }
                         }
-                        LOGGER.warn("charge" + charge)
                 }
             }
 
@@ -394,10 +369,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
             responseMap.put("demmurrageCharge", demmurrageCharge)
             responseMap.put("examAmount", examAmount)
             responseMap.put("dwellAmount", dwellAmount)
-
-            LOGGER.warn("demmurrageCharge" + demmurrageCharge)
-            LOGGER.warn("examAmount" + examAmount)
-            LOGGER.warn("dwellAmount" + dwellAmount)
         }
         return responseMap
     }
@@ -432,7 +403,6 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
     private String getImpedimentForUnit(Unit unit, String flagView) {
         ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
         Collection<IImpediment> impedimentsCollection = (Collection<IImpediment>) servicesManager.getImpedimentsForEntity(unit)
-        LOGGER.debug("impedimentsCollection   " + impedimentsCollection.toString())
         String flagType = null
         String flagActive = null
         String[] flags = null

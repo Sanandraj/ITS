@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 import com.navis.external.framework.beans.EBean
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.*
@@ -7,9 +11,27 @@ import com.navis.inventory.business.api.UnitField
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:uaarthi@weservetech.com">Aarthi U</a>
- * Container Availability Query Table
+ * @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date: 09/08/2022
+ *
+ *  Requirements: To display the Units selected in Container Availability Query Table.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: customBeanCtrAvailabilityUiTableManager
+ *     Code Extension Type: BEAN_PROTOTYPE
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @SetUp UI Table manager configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
+
 class customBeanCtrAvailabilityUiTableManager extends DefaultSharedUiTableManager implements EBean {
     private static final Logger logger = Logger.getLogger(this.class)
 
