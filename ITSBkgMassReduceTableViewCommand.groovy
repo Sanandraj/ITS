@@ -65,6 +65,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand{
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
                                 vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))){
+                            Long totalItemQuantity = 0
                             if (booking.getEqboNbr()!=null){
                                 if (booking.eqoTallyReceive > 0){
                                     Set bkgItems = booking.getEqboOrderItems()
@@ -87,10 +88,15 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand{
                                                     bkgReduce = true
                                                 }
                                             }
+                                            totalItemQuantity += eqoItem.getEqoiQty()
                                         }
                                     }
                                 }
+
                             }
+
+                            booking.setEqoQuantity(totalItemQuantity)
+
                         }
                         else {
                             errorCount = errorCount+1
@@ -113,7 +119,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand{
         })
     }
     private static final informationBox(long count, long  errorCount){
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count} bookings reduced, Vessel Cutoffs passed - ${errorCount} bookings"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
     }
     private final static Logger LOGGER = Logger.getLogger(ITSBkgMassReduceTableViewCommand.class)
 }
