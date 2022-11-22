@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.external.road.AbstractGateTaskInterceptor
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
@@ -15,9 +20,19 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
- * @CodeExtension : GATE_TASK_INTERCEPTOR
- * This Groovy class is to perform Booking Adjustment during Gate_In an Unit based on Booking Order Item.
+ * @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 28/10/2022
+ * Requirements : Gate 4-22 Automatic booking item adjustment for40-foot containers --> Adjustment booking against Gate_In unit.
+ * @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR.
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSBookingAdjustmentGateTaskInterceptor.
+ Code Extension Type:  GATE_TASK_INTERCEPTOR.
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  Set up configuration against RejectOrdItemReceiveMismatch - IN_GATE Transaction.
  */
 
 class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskInterceptor {
@@ -28,9 +43,7 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
         LOGGER.setLevel(Level.INFO)
         LOGGER.info("ITSBookingAdjustmentGateTaskInterceptor starts :: ")
         TruckTransaction truckTransaction = inWfCtx.getTran()
-        if (truckTransaction?.getTranEq() != null){
-                String tranEquip = truckTransaction?.getTranEq()?.getEqEquipType();
-            boolean stopProcess = false;
+        if (truckTransaction != null){
             Booking bookingOrdr = Booking.findBookingWithoutLine(truckTransaction?.getTranEqo()?.getEqboNbr(), truckTransaction?.getCarrierVisit())
             Set bookingItems = bookingOrdr.getEqboOrderItems()
             if (bookingItems != null){
