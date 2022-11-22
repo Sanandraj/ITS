@@ -93,7 +93,7 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand{
         })
     }
     private static final informationBox(long count,long errorCount){
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-Offs Performance - ${count}, Cutoff Passed for visits - ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${errorCount}"),PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK,null)
     }
     private static final deleteBookingsByGkeys(List<Serializable> inGkeys){
         for(Serializable it:inGkeys){
