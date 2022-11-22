@@ -36,6 +36,7 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
         if (booking ==null){
             return;
         }
+        Long totalItemQuantity = 0;
         if (booking.eqoTallyReceive > 0){
             Set bkgItems = booking!= null ?  booking.getEqboOrderItems() : null;
             if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
@@ -53,8 +54,10 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
                             eqoItem.setEqoiQty(eqoiTallyOut)
                         }
                     }
+                    totalItemQuantity += eqoItem.getEqoiQty()
                 }
             }
+            booking.setEqoQuantity(totalItemQuantity)
         }
         else if (booking.eqoTallyReceive == 0){
             booking.purge()
