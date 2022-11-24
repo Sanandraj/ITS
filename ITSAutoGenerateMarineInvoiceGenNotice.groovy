@@ -5,23 +5,18 @@
 
 
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.extract.billing.ConfigurationProperties
 import com.navis.argo.business.reference.ScopedBizUnit
+import com.navis.argo.webservice.types.v1_0.GenericInvokeResponseWsType
+import com.navis.argo.webservice.types.v1_0.ResponseType
+import com.navis.argo.webservice.types.v1_0.ScopeCoordinateIdsWsType
+import com.navis.external.framework.util.ExtensionUtils
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.services.business.event.Event
 import com.navis.services.business.event.GroovyEvent
 import com.navis.vessel.business.schedule.VesselVisitDetails
+import com.navis.www.services.argoservice.ArgoServicePort
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
-import javax.xml.rpc.ServiceException
-import javax.xml.rpc.Stub
-import com.navis.argo.webservice.types.v1_0.GenericInvokeResponseWsType
-import com.navis.argo.webservice.types.v1_0.ResponseType
-import com.navis.argo.webservice.types.v1_0.ScopeCoordinateIdsWsType
-import com.navis.www.services.argoservice.ArgoServiceLocator
-import groovy.xml.MarkupBuilder
-import com.navis.www.services.argoservice.ArgoServicePort
-
 
 /*
      *
@@ -54,22 +49,23 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
     void execute(GroovyEvent inGroovyEvent) {
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice started")
-        VesselVisitDetails vvDetail = inGroovyEvent != null ? (VesselVisitDetails) inGroovyEvent.getEntity() : null;
-        Event inEvent = inGroovyEvent != null ? inGroovyEvent.getEvent() : null;
-        if(vvDetail == null || inEvent == null){
-            return;
+        VesselVisitDetails vvDetail = inGroovyEvent != null ? (VesselVisitDetails) inGroovyEvent.getEntity() : null
+        Event inEvent = inGroovyEvent != null ? inGroovyEvent.getEvent() : null
+        if (vvDetail == null || inEvent == null) {
+            return
         }
+        Object library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSAutoBillMarineUtility")
+        ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSAutoBillMarineUtility")
         if (vvDetail != null && inEvent != null) {
-            ScopedBizUnit vvOperator = vvDetail.getCvdCv() != null ? vvDetail.getCvdCv().getCvOperator() : null;
-            String lineId = vvOperator != null ? vvOperator.getBzuId() : null;
-            String inVisitId = vvDetail.getCvdCv() != null ? vvDetail.getCvdCv().getCvId() : null;
-            String marineInvoiceXML = inVisitId != null ? generateInvoiceRequest(inEvent.getEventTypeId(), lineId, inVisitId) : null;
-            LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice marineInvoiceXML :" + marineInvoiceXML)
-            ScopeCoordinateIdsWsType scopeCoordinates = getScopeCoordinatesForWebService()
-            ArgoServicePort servicePort = getWebServiceStub()
+            ScopedBizUnit vvOperator = vvDetail.getCvdCv() != null ? vvDetail.getCvdCv().getCvOperator() : null
+            String lineId = vvOperator != null ? vvOperator.getBzuId() : null
+            String inVisitId = vvDetail.getCvdCv() != null ? vvDetail.getCvdCv().getCvId() : null
+            String marineInvoiceXML = inVisitId != null ? library.generateInvoiceRequest(inEvent.getEventTypeId(), lineId, inVisitId) : null
+            ScopeCoordinateIdsWsType scopeCoordinates = library.getScopeCoordinatesForWebService()
+            ArgoServicePort servicePort = library.getWebServiceStub()
             if (servicePort != null && marineInvoiceXML != null) {
-                GenericInvokeResponseWsType webServiceResponse = scopeCoordinates != null ?  servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML) : null;
-                ResponseType ptResponse = webServiceResponse != null ? webServiceResponse.getCommonResponse() : null;
+                GenericInvokeResponseWsType webServiceResponse = scopeCoordinates != null ? servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML) : null
+                ResponseType ptResponse = webServiceResponse != null ? webServiceResponse.getCommonResponse() : null
                 if (ptResponse == null) {
                     LOGGER.error("Something went wrong in N4 Billing.Billing invoice request failed")
                 } else {
@@ -80,68 +76,4 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
         }
     }
 
-    /**
-     * generateInvoiceRequest - Construct the request XML
-     * @param eventId
-     * @param lineId
-     * @param visitId
-     * @return
-     */
-    private String generateInvoiceRequest(String eventId, String lineId, String visitId) {
-        StringWriter writer = new StringWriter();
-        MarkupBuilder markupBuilder = new MarkupBuilder(writer);
-        markupBuilder.setDoubleQuotes(true);
-        markupBuilder.'billing' {
-            'generate-invoice-request' {
-                'action'(DRAFT)
-                'invoiceTypeId'("${eventId}")
-                'payeeCustomerId'("${lineId}")
-                'payeeCustomerBizRole'(LINEOP)
-                'currencyId'("USD")
-                markupBuilder.'invoiceParameters' {
-                    markupBuilder.'invoiceParameter' {
-                        'VesselVisitId'("${visitId}")
-
-                    }
-                }
-            }
-        }
-        return writer.toString()
-    }
-
-/**
- * Get the ScopeCoordinates.
- * @return scopeCoordinates
- */
-    private ScopeCoordinateIdsWsType getScopeCoordinatesForWebService() {
-        ScopeCoordinateIdsWsType scopeCoordinates = new ScopeCoordinateIdsWsType();
-        scopeCoordinates.setOperatorId(ContextHelper.getThreadOperator() != null ? ContextHelper.getThreadOperator().getId() : null);
-        scopeCoordinates.setComplexId(ContextHelper.getThreadComplex() != null ? ContextHelper.getThreadComplex().getCpxId() : null);
-        scopeCoordinates.setFacilityId(ContextHelper.getThreadFacility() != null ? ContextHelper.getThreadFacility().getFcyId() : null);
-        scopeCoordinates.setYardId(ContextHelper.getThreadYard() != null ? ContextHelper.getThreadYard().getYrdId() : null);
-        return scopeCoordinates;
-    }
-
-
-    /**
-     * Fetch the details from N4 Settings - Biling URL, User ID and Password
-     * @return ArgoServicePort
-     * @throws ServiceException
-     */
-    private ArgoServicePort getWebServiceStub() throws ServiceException {
-        ArgoServiceLocator serviceLocator = new ArgoServiceLocator();
-        ArgoServicePort servicePort =serviceLocator != null ?
-                serviceLocator.getArgoServicePort(ConfigurationProperties.getBillingServiceURL()) : null;
-        Stub stub = (Stub) servicePort;
-        if(stub != null){
-            stub._setProperty(Stub.USERNAME_PROPERTY, ConfigurationProperties.getBillingWebServiceUserId());
-            stub._setProperty(Stub.PASSWORD_PROPERTY, ConfigurationProperties.getBillingWebServicePassWord());
-        }
-
-        return servicePort;
-    }
-
-
-    private static final String DRAFT = "DRAFT";
-    private static final String LINEOP = "LINEOP";
 }
