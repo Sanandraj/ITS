@@ -52,8 +52,6 @@ class ITSExceptionApptSubmitFormCommand extends AbstractFormSubmissionCommand {
                     String gapptInputDate = fieldChange?.getFieldChange(RoadApptsField.GAPPT_REQUESTED_DATE)?.getNewValue()
                     TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                     String currentDate = (ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
-                    LOGGER.debug("Gappt date :: " + gapptInputDate.substring(0, 10))
-                    LOGGER.debug("Current date :: " + currentDate.substring(0, 10))
                     if (null != gapptInputDate) {
                         if (currentDate.substring(0, 10).equals(gapptInputDate.substring(0, 10))) {
                             fieldChange.setFieldChange(RoadApptsField.GAPPT_UFV_FLEX_STRING01, "true")
