@@ -64,14 +64,18 @@ class ITSAutoGenerateMarineInvoiceGenNotice extends AbstractGeneralNoticeCodeExt
             ScopeCoordinateIdsWsType scopeCoordinates = library.getScopeCoordinatesForWebService()
             ArgoServicePort servicePort = library.getWebServiceStub()
             if (servicePort != null && marineInvoiceXML != null) {
-                GenericInvokeResponseWsType webServiceResponse = scopeCoordinates != null ? servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML) : null
-                ResponseType ptResponse = webServiceResponse != null ? webServiceResponse.getCommonResponse() : null
-                if (ptResponse == null) {
-                    LOGGER.error("Something went wrong in N4 Billing.Billing invoice request failed")
-                } else {
-                    LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice ptResponse :" + ptResponse)
+                try {
+                    GenericInvokeResponseWsType webServiceResponse = scopeCoordinates != null ? servicePort.genericInvoke(scopeCoordinates, marineInvoiceXML) : null
+                    ResponseType ptResponse = webServiceResponse != null ? webServiceResponse.getCommonResponse() : null
+                    if (ptResponse == null) {
+                        LOGGER.error("Something went wrong in N4 Billing.Billing invoice request failed")
+                    } else {
+                        LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice ptResponse :" + ptResponse)
+                    }
+                } catch(Exception ex){
+                    LOGGER.error("Exception while calling billing service"+ex)
                 }
-            }
+             }
 
         }
     }
