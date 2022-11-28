@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="REFRESH">REFRESH</action>
+    <action id="FILTER_CRITERIA">FILTER_CRITERIA</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+  </actions>
+  <form id="VESSEL_VISIT_DETAIL">
+    <title>Visit</title>
+    <entity>
+      <name>VesselVisitDetails</name>
+      <primaryKey>cvdGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="view" mode="viewOnly" />
+    </actionsAllowed>
+    <controller ref="vvdVisitFormController" />
+    <item fieldId="cvdCv.cvId">
+      <attributes>
+        <attribute key="appearAsALinkInInspectorView" value="true" />
+      </attributes>
+    </item>
+    <!--item fieldId="cvdCv.cvNextCv.cvId" /-->
+    <item fieldId="cvdService.srvcId" />
+    <item fieldId="vvdBizu.bzuId" />
+    <item fieldId="vvdIbVygNbr" />
+    <item fieldId="vvdObVygNbr" />
+    <item fieldId="vvdExportMnftDate" />
+    <item fieldId="vvdImportMnftDate" />
+    <item fieldId="vvdExportMnftNbr" />
+    <item fieldId="vvdImportMnftNbr" />
+<!-- 2022Apr26 Inserted these fields to save users clicks to view info -->
+                      <item fieldId="vvdTimeBeginReceive" />
+                       <item fieldId="vvdTimeCargoCutoff" />
+                      <item fieldId="vvdTimeReeferCutoff" />
+                      <item fieldId="vvdTimeHazCutoff" />
+    <item fieldId="vvFlexDate01" />
+ <item fieldId="vvFlexDate02" />
+
+<!-- ********************************************************************* -->
+    <!-- item fieldId="vvFlexString01" /-->
+    <item fieldId="vvFlexString02" />
+    <item fieldId="vvFlexString03" />
+    <item fieldId="vvFlexString04" />
+    <item fieldId="vvFlexString05" />
+    <item fieldId="vvFlexString06" />
+    <item fieldId="vvFlexString07" />
+    <item fieldId="vvFlexString08" />
+
+    <!--Hide EDI cut-off field
+    <item fieldId="vvFlexDate02" /-->
+    <item fieldId="vvFlexDate03" />
+    <item fieldId="vvFlexDate04" />
+    <item fieldId="vvFlexDate05" />
+    <item fieldId="vvFlexDate06" />
+    <item fieldId="vvFlexDate07" />
+    <item fieldId="vvFlexDate08" />
+  </form>
+</variforms>
+
