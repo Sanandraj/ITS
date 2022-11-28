@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.reference.Container
 import com.navis.external.road.AbstractGateTaskInterceptor
@@ -27,11 +33,13 @@ import org.apache.log4j.Logger
  4. Click Save button
 
  @Set up groovy code in Gate Configuration for RM Transaction type at Ingate
+  *  S.No    Modified Date   Modified By     Jira      Description
+  *
  */
 
 class ITSShutoutEmptyTaskInterceptor extends AbstractGateTaskInterceptor implements EGateTaskInterceptor {
     private PropertyKey MTY_REFUSED = PropertyKeyFactory.valueOf("MTY_REFUSED")
-    private static final Logger LOGGER = Logger.getLogger(this.class);
+    private static Logger LOGGER = Logger.getLogger(this.class);
 
     void execute(TransactionAndVisitHolder inWfCtx) {
         executeInternal(inWfCtx);
@@ -58,14 +66,13 @@ class ITSShutoutEmptyTaskInterceptor extends AbstractGateTaskInterceptor impleme
 
         if (iso != null && lineOp != null) {
             GeneralReference generalReference = GeneralReference.findUniqueEntryById("MTY_QUOTA", "RCV_EMPTIES", lineOp, iso)
-            LOGGER.warn("generalReference " + generalReference)
 
             boolean throwError = false;
 
-            if(generalReference == null){
+            if (generalReference == null) {
                 throwError = true
             }
-            if(generalReference != null && "NO".equalsIgnoreCase(generalReference.getRefValue1())){
+            if (generalReference != null && "NO".equalsIgnoreCase(generalReference.getRefValue1())) {
                 throwError = true
             }
 
