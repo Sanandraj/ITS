@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.argo.business.model.CarrierVisit
@@ -11,11 +16,28 @@ import com.navis.inventory.external.inventory.AbstractStorageRule
 import org.apache.log4j.Logger
 
 /**
- * Authors: bgopal@weservetech.com
- * Date: 08/11/2022
- * * This code extension calculates the start date for Export Reefer charge calculation and end date for Import reefer.
+ * @Author: mailto: bgopal@weservetech.com, Gopal B; Date: 08/11/2022
+ *
+ *  Requirements: This code extension calculates the start date for Export Reefer charge calculation and end date for Import reefer.
  * For Exports, the start time will be the Train visit's Actual Time of Arrival.
- *  for Imports, the end time till be Actual Time of Departure of Train.
+ * for Imports, the end time till be Actual Time of Departure of Train.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSCustomReeferChargeRule
+ *     Code Extension Type: STORAGE_RULE
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Setup: Create a Rule Id 1. REEFER POWER IMPORT RULE and 2. REEFER RULE SET in STORAGE RULE TYPES tab with Custom End Day Extension as ITSCustomReeferChargeRule
+ *
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 
@@ -39,7 +61,6 @@ public class ITSCustomReeferChargeRule extends AbstractStorageRule {
 
         FieldChanges fieldChanges = (FieldChanges) inChanges;
         Unit unit = null;
-        //Date customStartDay = null;
         Date calculationTime = null;
         if (fieldChanges != null) {
             unit = (Unit) fieldChanges.getFieldChange(InventoryField.UFV_UNIT).getNewValue();
@@ -86,4 +107,5 @@ public class ITSCustomReeferChargeRule extends AbstractStorageRule {
     }
     private String facilityId = "PIERG";
 }
+
 
