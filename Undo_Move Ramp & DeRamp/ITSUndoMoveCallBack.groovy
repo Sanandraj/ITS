@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.CarrierVisitPhaseEnum
 import com.navis.argo.business.atoms.EventEnum
@@ -8,7 +14,6 @@ import com.navis.argo.business.reference.Chassis
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.framework.business.Roastery
 import com.navis.framework.persistence.HibernateApi
-import com.navis.inventory.business.api.RectifyParms
 import com.navis.inventory.business.api.UnitFinder
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
@@ -20,14 +25,28 @@ import com.navis.services.business.api.EventManager
 import com.navis.services.business.event.Event
 import com.navis.services.business.rules.EventType
 import org.apache.commons.lang.StringUtils
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>,
- * Date : 16/Sep/2022
- * Descreption: This code extension is used to undo a move like Rail Ramp/DeRamp
+ *
+ * @Author: mailto:mharikumar@weservetech.com,Harikumar M; Date:16/09/2022
+ *
+ * Requirements : 6-11,This code extension is used to undo a move like Rail Ramp/DeRamp
  also stores the previous deleted move in a new UNDO event after successfully deleted of last move.
+ *
+ * @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION
+ *
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSUndoMoveCallBack
+ Code Extension Type:  TRANSACTED_BUSINESS_FUNCTION
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 
@@ -36,8 +55,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
 
     @Override
     public void execute(Map inParams, Map inOutResults) {
-        //LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("inParams" + inParams)
         int successCount = 0;
         String errorMessage = "";
         MoveEvent moveEvent = null
@@ -54,7 +71,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                             EventType deRampEvent = EventType.findEventType("UNIT_DERAMP")
                             if (rampEvent != null && deRampEvent != null) {
                                 String action = inParams.get("action").toString()
-                                if (action != null) {
+                                if (ufv != null && action != null) {
                                     if (action.equals("Ramp")) {
                                         moveEvent = MoveEvent.getLastMoveEvent(ufv, rampEvent)
                                     } else if (action.equals("DeRamp")) {
@@ -142,7 +159,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                                                         if (chassisUfv != null && UfvTransitStateEnum.S40_YARD.equals(chassisUfv.getUfvTransitState())) {
                                                                             try {
                                                                                 ufv?.getUfvUnit()?.attachCarriage(unit?.getUnitEquipment())
-                                                                                //event.purge();
                                                                             } catch (Exception e) {
                                                                                 LOGGER.debug("error while attaching chassis to unit" + e)
                                                                             }
