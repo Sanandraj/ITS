@@ -48,22 +48,23 @@ import org.apache.log4j.Logger
     *
     *  S.No    Modified Date   Modified By     Jira      Description
     *   1       25/10/2022      Gopinath K     IP-327    Pin number issue for DI-Setting the FlexString01 with the Pin Number.
+    *   2       29/11/2022      Kishore S      IP-311    Fixed creation of duplicate appointments even error occured while generating appointment.
  */
 
 
 class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecycleInterceptor {
     private static Logger LOGGER = Logger.getLogger(this.class)
 
-    @Override
+   /* @Override
     void onCreate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges)
-    }
+    }*/
 
-    @Override
+    /*@Override
     void onUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges)
     }
-
+*/
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         GateAppointment gateAppointment = inEntity._entity;
