@@ -2,6 +2,7 @@
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
 */
+
 import com.navis.argo.*
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.IImpediment
@@ -42,13 +43,11 @@ import com.navis.services.business.rules.EventType
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang.StringUtils
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
-
 /**
- * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>, 03/11/2022
+ * @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 03/11/2022
  *
  *  Requirements: To update the container availability details based on the impediments fees/storage charges owing for the units.
  *
@@ -63,7 +62,8 @@ import org.jetbrains.annotations.Nullable
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- * @SetUp Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ * @Setup Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
  */
