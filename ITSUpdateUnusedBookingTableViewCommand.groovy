@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
- */
+*/
 
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
@@ -34,19 +34,28 @@ import org.apache.log4j.Logger
 
 
 /**
- * @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 28/10/2022
- * Requirements : 5-2-Button to Cancel unused bookings after vessel cut-offs -- This groovy is used to cancel multiple booking selected from vessel visit entity .
- * @Inclusion Location	: Incorporated as a code extension of the type TABLE_VIEW_COMMAND.
- *  Load Code Extension to N4:
- 1. Go to Administration --> System -->  Code Extension
- 2. Click Add (+)
- 3. Enter the values as below:
- Code Extension Name:  ITSUpdateUnusedBookingTableViewCommand.
- Code Extension Type:  TABLE_VIEW_COMMAND.
- Groovy Code: Copy and paste the contents of groovy code.
- 4. Click Save button
+ * @Author: mailto: skishore@weservetech.com, Kishore Kumar S; Date: 28/10/2022
  *
- *  Set up override configuration in variformId - VSL005.
+ *  Requirements: 5-2-Button to Cancel unused bookings after vessel cut-offs -- This groovy is used to cancel multiple booking selected from vessel visit entity.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSUpdateUnusedBookingTableViewCommand
+ *     Code Extension Type: TABLE_VIEW_COMMAND
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Setup override configuration in variformId - REV_VSL005.
+ *
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
+ *
  */
 
 class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
@@ -54,37 +63,37 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
         LOGGER.setLevel(Level.INFO)
         LOGGER.info("ITSUpdateUnusedBookingTableViewCommand Starts : ")
-        if (inGkeys == null && inGkeys.isEmpty()){
+        if (inGkeys == null && inGkeys.isEmpty()) {
             return;
         }
         PersistenceTemplate persistenceTemplate = new PersistenceTemplate(getUserContext())
         persistenceTemplate.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size()==1){
-                    for (Serializable vvKeys : inGkeys){
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size() == 1) {
+                    for (Serializable vvKeys : inGkeys) {
                         VesselVisitDetails vvd = VesselVisitDetails.hydrate(vvKeys)
-                        if (vvd==null){
+                        if (vvd == null) {
                             return;
                         }
                         List<Booking> bookingList = getBookingDetails(vvd.getCvdCv().getCvId())
-                        if (bookingList == null){
+                        if (bookingList == null) {
                             return;
                         }
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         EventType event = EventType.findEventTypeProxy("TO_BE_DETERMINED")
 
                         if (vvd.getVvdTimeCargoCutoff().equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
-                                vvd.getVvdTimeCargoCutoff().after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                            OptionDialog.showQuestion(PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff - Cancel or Reduce Booking ","Cancel and Reduce Booking"), PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff","Cancel and Reduce Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand() {
+                                vvd.getVvdTimeCargoCutoff().after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))) {
+                            OptionDialog.showQuestion(PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff - Cancel or Reduce Booking ", "Cancel and Reduce Booking"), PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff", "Cancel and Reduce Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand() {
                                 @Override
                                 protected void safeExecute(ButtonType buttonTypes) {
                                     if (ButtonType.YES == buttonTypes) {
-                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs","Perform Cut-Offs"),PropertyKeyFactory.keyWithFormat("Vessel Cut-Off","Cancelling Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand(){
+                                        OptionDialog.showInformation(PropertyKeyFactory.keyWithFormat("Perform Cut-Offs", "Perform Cut-Offs"), PropertyKeyFactory.keyWithFormat("Vessel Cut-Off", "Cancelling Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand() {
                                             @Override
                                             protected void safeExecute(ButtonType buttonType) {
                                                 if (ButtonType.YES == buttonType) {
-                                                    vesselValidation(bookingList,vvd)
+                                                    vesselValidation(bookingList, vvd)
 
                                                 }
                                             }
@@ -92,27 +101,29 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                     }
                                 }
                             })
+                        } else {
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off not set."), PropertyKeyFactory.valueOf("Unable to perform"))
                         }
-                        else {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off not set."),PropertyKeyFactory.valueOf("Unable to perform"))
-                        }
-                        if (event!=null){
-                            vvd.recordEvent(event,null,ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+                        if (event != null) {
+                            vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
                         }
                     }
                 }
             }
         })
     }
-    private static List<Booking> getBookingDetails(String cvId){
+
+    private static List<Booking> getBookingDetails(String cvId) {
         DomainQuery dq = QueryUtils.createDomainQuery("Booking")
-                .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("eqoVesselVisit.cvId"),cvId))
+                .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("eqoVesselVisit.cvId"), cvId))
         return (HibernateApi.getInstance().findEntitiesByDomainQuery(dq))
     }
-    private static final informationBox(long count, long add){
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${add}"),PropertyKeyFactory.valueOf("Complete"), MessageType.INFORMATION_MESSAGE,ButtonTypes.OK,null)
+
+    private static final informationBox(long count, long add) {
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${add}"), PropertyKeyFactory.valueOf("Complete"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK, null)
     }
-    private static final vesselValidation(List<Booking> bookingList, VesselVisitDetails vvd){
+
+    private static final vesselValidation(List<Booking> bookingList, VesselVisitDetails vvd) {
         long count = 0
         long add = 0
         boolean bkgReduce = false
@@ -121,23 +132,22 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
         UserContext userContext = requestContext.getUserContext();
         IExtensionTransactionHandler handler = ExtensionBeanUtils.getExtensionTransactionHandler()
         Iterator it = bookingList.iterator()
-        while(it.hasNext()){
+        while (it.hasNext()) {
             Booking booking = Booking.resolveEqoFromEqbo(it.next())
-            if (booking==null){
-                return ;
+            if (booking == null) {
+                return;
             }
-            if (booking!=null && booking.getEqboNbr()!=null ){
+            if (booking != null && booking.getEqboNbr() != null) {
                 Map input = new HashMap()
                 Map results = new HashMap()
                 input.put("entityGkey", booking?.getPrimaryKey())
-                if (booking.eqoTallyReceive == 0){
+                if (booking.eqoTallyReceive == 0) {
 
 
                     bkgCancel = true
                     handler?.executeInTransaction(userContext, FrameworkExtensionTypes.TRANSACTED_BUSINESS_FUNCTION, "ITSBkgValidationPersistenceCallback", input, results)
                     count = count + 1
-                }
-                else if (booking.eqoTallyReceive > 0){
+                } else if (booking.eqoTallyReceive > 0) {
 
                     bkgReduce = true
                     handler?.executeInTransaction(userContext, FrameworkExtensionTypes.TRANSACTED_BUSINESS_FUNCTION, "ITSBkgValidationPersistenceCallback", input, results)
@@ -145,11 +155,10 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                 }
             }
         }
-        if (bkgCancel || bkgReduce){
-            informationBox(count,add)
-        }
-        else if (!bkgCancel || !bkgReduce){
-            informationBox(count,add)
+        if (bkgCancel || bkgReduce) {
+            informationBox(count, add)
+        } else if (!bkgCancel || !bkgReduce) {
+            informationBox(count, add)
         }
     }
     private final static Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
