@@ -14,6 +14,7 @@ import com.navis.inventory.business.api.UnitField
 import org.apache.log4j.Logger
 
 /**
+ *
  * @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date: 09/08/2022
  *
  *  Requirements: To process the Units selected and displays it in Container availability table.
@@ -29,7 +30,8 @@ import org.apache.log4j.Logger
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- * @SetUp Form controller configured in CUSTOM_ITS_CONTAINER_AVAILABILITY
+ * @Setup Form controller configured in CUSTOM_ITS_CONTAINER_AVAILABILITY
+ *
  *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
@@ -71,7 +73,6 @@ class customBeanITSContainerAvailabilityFormController extends FormController im
             }
         });
     }
-
 
 
     private void displaySelectedUnits() {
