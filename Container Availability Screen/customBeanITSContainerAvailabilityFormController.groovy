@@ -41,7 +41,7 @@ import org.apache.log4j.Logger
 class customBeanITSContainerAvailabilityFormController extends FormController implements EBean {
     private static final Logger LOGGER = Logger.getLogger(this.class)
     private List selectedKeys;
-    private def unitIds = new ArrayList<String>();
+    private List<String> unitIds = new ArrayList<String>();
 
 
     String getDetailedDiagnostics() {
