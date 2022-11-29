@@ -11,11 +11,12 @@ import com.navis.inventory.business.api.UnitField
 import org.apache.log4j.Logger
 
 /**
- * @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date: 09/08/2022
+ *
+ *  @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date: 09/08/2022
  *
  *  Requirements: To display the Units selected in Container Availability Query Table.
  *
- * @Inclusion Location: Incorporated as a code extension of the type
+ *  @Inclusion Location: Incorporated as a code extension of the type
  *
  *  Load Code Extension to N4:
  *  1. Go to Administration --> System --> Code Extensions
@@ -26,7 +27,7 @@ import org.apache.log4j.Logger
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- * @SetUp UI Table manager configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ *	@Setup UI Table manager configured in CUSTOM_TABLE_VIEW_AVAILABILITY
  *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
@@ -42,12 +43,9 @@ class customBeanCtrAvailabilityUiTableManager extends DefaultSharedUiTableManage
 
     @Override
     DataQuery createQuery() {
-        Object returnValue = null;
-        logger.warn("get attribute " + getAttribute("unitIds"))
 
 
         List<String> unitIds = (List) getAttribute("unitIds");
-        logger.warn("unitIds " + unitIds)
         if (unitIds != null && !unitIds.isEmpty()) {
 
 
