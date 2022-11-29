@@ -25,13 +25,16 @@ import org.apache.log4j.Logger
  1. Go to Administration --> System -->  Code Extension
  2. Click Add (+)
  3. Enter the values as below:
- Code Extension Name:  ITSInvoiceGenerateFormSubmissionCommand.
+ Code Extension Name:  .
  Code Extension Type:  FORM_SUBMISSION_INTERCEPTOR.
  Groovy Code: Copy and paste the contents of groovy code.
  4. Click Save button
  *
- *  Set up override configuration in variformId - BIL006.
- */
+ *  Set up override configuration in variformId - CUSTOM BIL006 OVERRIDE
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+  */
 
 class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionCommand {
     private static Logger LOGGER = Logger.getLogger(ITSInvoiceGenerateFormSubmissionCommand.class)
@@ -39,8 +42,6 @@ class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionComm
     @Override
     void doBeforeSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
         Logger LOGGER1 = Logger.getLogger(this.class)
-        LOGGER1.setLevel(Level.DEBUG)
-        LOGGER1.debug("customBeanITSGenerateInvoiceFormController Starts :: ")
         FieldChanges fieldChange = (FieldChanges) inFieldChanges
         if (fieldChange == null) {
             return;
