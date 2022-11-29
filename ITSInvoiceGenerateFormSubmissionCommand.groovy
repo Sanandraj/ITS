@@ -14,7 +14,6 @@ import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
 import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.portal.FieldChanges
 import com.navis.framework.presentation.FrameworkPresentationUtils
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
@@ -34,7 +33,7 @@ import org.apache.log4j.Logger
  *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
-  */
+ */
 
 class ITSInvoiceGenerateFormSubmissionCommand extends AbstractFormSubmissionCommand {
     private static Logger LOGGER = Logger.getLogger(ITSInvoiceGenerateFormSubmissionCommand.class)
