@@ -16,6 +16,7 @@ import com.navis.orders.business.eqorders.Booking
 import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.road.business.model.TruckTransaction
 import com.navis.road.business.workflow.TransactionAndVisitHolder
+import com.navis.xpscache.business.atoms.EquipBasicLengthEnum
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -47,36 +48,38 @@ class ITSBookingAdjustmentGateTaskInterceptor extends AbstractGateTaskIntercepto
             Booking bookingOrdr = Booking.findBookingWithoutLine(truckTransaction?.getTranEqo()?.getEqboNbr(), truckTransaction?.getCarrierVisit())
             Set bookingItems = bookingOrdr.getEqboOrderItems()
             if (bookingItems != null){
-                for (EquipmentOrderItem eqoItem : (bookingItems as List<EquipmentOrderItem>)) {
-                    if (truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype().equals(eqoItem?.getEqoiSampleEquipType()?.getEqtypArchetype())){
-                        if (truckTransaction.getEquipment().getEqEquipType().getEqtypIsoGroup().equals(eqoItem?.getEqoiSampleEquipType()?.getEqtypIsoGroup())) {
-                            if (!eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalHeight()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalHeight())) {
-                                Long seqNumber = eqoItem?.getEqoiSeqNbr();
-                                if (seqNumber == null) {
-                                    seqNumber = getBkgItemMaxSeqNbr(bookingItems);
-                                    EquipmentOrderItem orderItem = EquipmentOrderItem.createOrderItem(truckTransaction?.getTranEqo(), 1, truckTransaction?.getEquipment()?.getEqEquipType(), ++seqNumber);
-                                    if (bookingOrdr.isHazardous()) {
-                                        orderItem?.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"), eqoItem?.getEqoiHazards())
+                if (truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypBasicLength()?.equals(EquipBasicLengthEnum.BASIC40)){
+                    for (EquipmentOrderItem eqoItem : (bookingItems as List<EquipmentOrderItem>)) {
+                        if (truckTransaction.getEquipment().getEqEquipType().getEqtypArchetype().equals(eqoItem?.getEqoiSampleEquipType()?.getEqtypArchetype())){
+                            if (truckTransaction.getEquipment().getEqEquipType().getEqtypIsoGroup().equals(eqoItem?.getEqoiSampleEquipType()?.getEqtypIsoGroup())) {
+                                if (!eqoItem?.getEqoiSampleEquipType()?.getEqtypNominalHeight()?.equals(truckTransaction?.getEquipment()?.getEqEquipType()?.getEqtypNominalHeight())) {
+                                    Long seqNumber = eqoItem?.getEqoiSeqNbr();
+                                    if (seqNumber == null) {
+                                        seqNumber = getBkgItemMaxSeqNbr(bookingItems);
+                                        EquipmentOrderItem orderItem = EquipmentOrderItem.createOrderItem(truckTransaction?.getTranEqo(), 1, truckTransaction?.getEquipment()?.getEqEquipType(), ++seqNumber);
+                                        if (bookingOrdr.isHazardous()) {
+                                            orderItem?.setFieldValue(MetafieldIdFactory.valueOf("eqoiHazards"), eqoItem?.getEqoiHazards())
+                                        }
+                                        if (eqoItem?.eqoiIsOog) {
+                                            orderItem.setEqoiIsOog(true)
+                                        }
+                                        if (eqoItem.hasReeferRequirements()){
+                                            orderItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiTempRequired"),eqoItem.getReeferRqmnts().getRfreqTempRequiredC())
+                                        }
                                     }
-                                    if (eqoItem?.eqoiIsOog) {
-                                        orderItem.setEqoiIsOog(true)
+                                    if (eqoItem.getEqoiTally() == 0) {
+                                        eqoItem?.purge();
+                                        break;
+                                    } else if (eqoItem.getEqoiTally() > 0) {
+                                        eqoItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiQty"),eqoItem.getEqoiQty() - 1)
+                                        break;
                                     }
-                                    if (eqoItem.hasReeferRequirements()){
-                                        orderItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiTempRequired"),eqoItem.getReeferRqmnts().getRfreqTempRequiredC())
-                                    }
-                                }
-                                if (eqoItem.getEqoiTally() == 0) {
-                                    eqoItem?.purge();
-                                    break;
-                                } else if (eqoItem.getEqoiTally() > 0) {
-                                    eqoItem.setFieldValue(MetafieldIdFactory.valueOf("eqoiQty"),eqoItem.getEqoiQty() - 1)
-                                    break;
                                 }
                             }
                         }
-                    }
-                    else {
-                        executeInternal(inWfCtx);
+                        else {
+                            executeInternal(inWfCtx);
+                        }
                     }
                 }
             }
