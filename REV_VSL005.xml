@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="REFRESH">REFRESH</action>
+    <action id="FILTER_CRITERIA">FILTER_CRITERIA</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+  </actions>
+  <table id="VSL005" defaultSearchfieldId="cvdCv.cvId">
+    <title>Vessel Visits</title>
+    <entity>
+      <name>VesselVisitDetails</name>
+      <primaryKey>vvdGkey</primaryKey>
+    </entity>
+    <tableActions>
+      <tableActionMode action="create" mode="allow" />
+      <tableActionMode action="update" mode="disabled" />
+      <tableActionMode action="view" mode="disabled" />
+      <tableActionMode action="delete" mode="allow" />
+    </tableActions>
+    <!-- 2012-11-20 ramupr v2.5.H ARGO-41915 Commenting out due to dependency upon ARGO-43065 -->
+    <crudCommand variformId="VSL014" />
+    <doubleClickCommand userActionId="VSL_INSPECT_VESSEL_VISIT" variformId="INSPECTOR_VESSEL_VISIT" destination="dialog" modal="false" />
+    <clipboardField fieldId="cvdCv.cvId" />
+    <menu category="actions">
+      <menuItem userActionId="VSL_DIVERT" label="VESSEL_DIVERT" variformId="FORM_VESSEL_DIVERT" enable="oneSource" />
+      <menuItem userActionId="VSL_ADVANCE_VESSEL_VISIT" label="ADVANCE_VESSEL_VISIT" variformId="FORM_VSL_ADVANCE_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_EDIT_PORT_ROTATION" label="EDIT_PORT_ROTATION" variformId="VSL025" enable="oneSource" />
+      <menuItem userActionId="VSL_EDIT_VESSEL_VISIT" label="EDIT_VESSEL_VISIT" variformId="FORM_EDIT_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_APPLY_SERVICE_TO_VESSEL_VISIT" label="RECORD_SERVICE_EVENT" variformId="FORM_RECORD_VESSEL_EVENT" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_ADD_FLAG_TO_VESSEL_VISIT" label="APPLY_HOLD_AND_PERMISSION" variformId="ADD_FLAG_FOR_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_GENERATE_VESSEL_STATS" label="GENERATE_STATS" commandRefId="vesselGenerateStatsCommand" enable="oneSource" />
+      <menuItem userActionId="VSL_EVENT_EXTRACT" label="VVD_EXTRACT_EVENTS" commandRefId="vesselExtractEventsCommand" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_DELETE_STOWPLAN" label="DELETE_STOWPLAN" variformId="VSL033" enable="oneSource" />
+      <menuItem userActionId="VSL_CREATE_SERVICE_ORDER" label="VSL_LABEL_CREATE_SERVICE_ORDER" variformId="VSL047" modal="true" enable="oneSource" />
+      <menuItem userActionId="VSL_UNARCHIVE_VESSEL_VISIT" label="VESSEL_UNARCHIVE_VESSEL_VISIT" variformId="VSL024" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_BI_LAUNCH_DASHBOARD" label="LAUNCH_BI_VESSEL_DETAILS_DASHBOARD" commandRefId="showSSOUrlCommand" enable="oneSource" />
+      <subMenu userActionId="VSL_DIVERT_SHIFT" label="VESSEL_SHIFT">
+        <menuItem userActionId="VSL_ADD_BEFORE" label="VESSEL_ADD_BEFORE" variformId="FORM_ADD_VISIT_BEFORE" enable="oneSource" />
+        <menuItem userActionId="VSL_ADD_AFTER" label="VESSEL_ADD_AFTER" variformId="FORM_ADD_VISIT_AFTER" enable="oneSource" />
+        <menuItem userActionId="VSL_DELETE" label="VESSEL_DELETE" variformId="FORM_VESSEL_VISIT_DELETE" enable="oneSource" />
+        <menuItem userActionId="VSL_SHIFT_EARLIER" label="VESSEL_SHIFT_EARLIER" variformId="FORM_SHIFT_VISIT_EARLIER" enable="oneSource" />
+        <menuItem userActionId="VSL_SHIFT_LATER" label="VESSEL_SHIFT_LATER" variformId="FORM_SHIFT_VISIT_LATER" enable="oneSource" />
+      </subMenu>
+      <menuItem userActionId="CUSTOM_PERFORM_VESSEL_CUTOFFS" label="Perform Vessel Cutoff" codeExtensionId="ITSUpdateUnusedBookingTableViewCommand" enable="oneSource" />
+    </menu>
+    <menu category="context">
+      <menuItem userActionId="VSL_DIVERT" label="VESSEL_DIVERT" variformId="FORM_VESSEL_DIVERT" enable="oneSource" />
+      <menuItem userActionId="VSL_INSPECT_VESSEL_VISIT" variformId="INSPECTOR_VESSEL_VISIT" label="INSPECT_VESSEL_VISIT" bold="true" modal="false" enable="oneSource" destination="dialog" />
+      <menuItem userActionId="VSL_ADVANCE_VESSEL_VISIT" label="ADVANCE_VESSEL_VISIT" variformId="FORM_VSL_ADVANCE_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_EDIT_PORT_ROTATION" label="EDIT_PORT_ROTATION" variformId="VSL025" enable="oneSource" />
+      <menuItem userActionId="VSL_EDIT_VESSEL_VISIT" label="EDIT_VESSEL_VISIT" variformId="FORM_EDIT_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_APPLY_SERVICE_TO_VESSEL_VISIT" label="RECORD_SERVICE_EVENT" variformId="FORM_RECORD_VESSEL_EVENT" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_ADD_FLAG_TO_VESSEL_VISIT" label="APPLY_HOLD_AND_PERMISSION" variformId="ADD_FLAG_FOR_VESSEL_VISIT" enable="oneSource" />
+      <menuItem userActionId="VSL_GENERATE_VESSEL_STATS" label="GENERATE_STATS" commandRefId="vesselGenerateStatsCommand" enable="oneSource" />
+      <menuItem userActionId="VSL_EVENT_EXTRACT" label="VVD_EXTRACT_EVENTS" commandRefId="vesselExtractEventsCommand" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_DELETE_STOWPLAN" label="DELETE_STOWPLAN" variformId="VSL033" enable="oneSource" />
+      <menuItem userActionId="VSL_CREATE_SERVICE_ORDER" label="VSL_LABEL_CREATE_SERVICE_ORDER" variformId="VSL047" modal="true" enable="oneSource" />
+      <menuItem userActionId="VSL_UNARCHIVE_VESSEL_VISIT" label="VESSEL_UNARCHIVE_VESSEL_VISIT" variformId="VSL024" enable="oneOrMoreSources" />
+      <menuItem userActionId="VSL_BI_LAUNCH_DASHBOARD" label="LAUNCH_BI_VESSEL_DETAILS_DASHBOARD" commandRefId="showSSOUrlCommand" enable="oneSource" />
+      <subMenu userActionId="VSL_DIVERT_SHIFT" label="VESSEL_SHIFT">
+        <menuItem userActionId="VSL_ADD_BEFORE" label="VESSEL_ADD_BEFORE" variformId="FORM_ADD_VISIT_BEFORE" enable="oneSource" />
+        <menuItem userActionId="VSL_ADD_AFTER" label="VESSEL_ADD_AFTER" variformId="FORM_ADD_VISIT_AFTER" enable="oneSource" />
+        <menuItem userActionId="VSL_DELETE" label="VESSEL_DELETE" variformId="FORM_VESSEL_VISIT_DELETE" enable="oneSource" />
+        <menuItem userActionId="VSL_SHIFT_EARLIER" label="VESSEL_SHIFT_EARLIER" variformId="FORM_SHIFT_VISIT_EARLIER" enable="oneSource" />
+        <menuItem userActionId="VSL_SHIFT_LATER" label="VESSEL_SHIFT_LATER" variformId="FORM_SHIFT_VISIT_LATER" enable="oneSource" />
+      </subMenu>
+      <menuItem userActionId="CUSTOM_PERFORM_VESSEL_CUTOFFS" label="Perform Vessel Cutoff" codeExtensionId="ITSUpdateUnusedBookingTableViewCommand" enable="oneSource" />
+    </menu>
+    <column fieldId="cvdCv.cvId" />
+    <column fieldId="cvdCv.cvCustomsId" display="viewable" />
+    <!-- provide this field for complex query to allow entry of any facility id, also non-operational ones (instead of lov)-->
+    <column fieldId="cvdCv.cvFacility.fcyId" display="viewable" />
+    <!-- 2008-10-30 1.8.B lbarman ARGO-14483: allow vessel visits for non-op facilities; show if non-operational or not-->
+    <column fieldId="cvdCv.cvFacility.fcyIsNonOperational" display="viewable" />
+    <column fieldId="cvdCv.cvNextFacility" complexQuery="include" simpleQuery="omit" display="none" />
+    <column fieldId="cvdCv.cvNextFacility.fcyId" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <column fieldId="cvdCv.cvNextCv" complexQuery="include" simpleQuery="omit" display="none" />
+    <column fieldId="cvdCv.cvNextCv.cvId" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <column fieldId="vvdBizu.bzuId" complexQuery="omit" simpleQuery="include" />
+    <column fieldId="vvdBizu" complexQuery="include" simpleQuery="omit" display="none" />
+    <column fieldId="vvdVessel.vesName" />
+    <column fieldId="vvdVessel.vesVesselClass.vesclassId" />
+    <column fieldId="cvdService.srvcName" display="visible" />
+    <column fieldId="vvdIbVygNbr" />
+    <column fieldId="vvdObVygNbr" />
+    <!-- 2021Oct26 alew Update default view so Mnft number and date do not appear -->
+    <column fieldId="vvdExportMnftNbr" display="viewable" />
+    <column fieldId="vvdImportMnftNbr" display="viewable" />
+    <column fieldId="vvdImportMnftDate" display="viewable" />
+    <column fieldId="vvdExportMnftDate" display="viewable" />
+    <column fieldId="cvdCv.cvVisitPhase" />
+    <column fieldId="cvdETA" display="visible" />
+    <column fieldId="cvdETD" display="visible" />
+    <!-- 2021Oct26 alew Added to default view -->
+    <column fieldId="vvdTimeBeginReceive" display="visible" />
+    <column fieldId="vvdTimeCargoCutoff" display="visible" />
+    <column fieldId="vvdTimeReeferCutoff" display="visible" />
+    <column fieldId="vvdTimeHazCutoff" display="visible" />
+    <column fieldId="cvdCv.cvATA" display="visible" />
+    <column fieldId="cvdCv.cvATD" display="visible" />
+    <!-- 2012-06-18 manise ARGO-38042 disable the BizMetafields in the VesselVisit Filter options. -->
+    <column fieldId="vvdLineIbVoyNbrs" display="viewable" complexQuery="omit" simpleQuery="omit" />
+    <column fieldId="vvdLineObVoyNbrs" display="viewable" complexQuery="omit" simpleQuery="omit" />
+    <column fieldId="vvdVessel.vesId" display="viewable" />
+    <column fieldId="cvdService.srvcId" display="visible" />
+    <!--        <column fieldId="cvdCallNumber" display="viewable"/>-->
+    <column fieldId="vvdPublishedEta" display="viewable" />
+    <column fieldId="vvdPublishedEtd" display="viewable" />
+    <column fieldId="vvdNotes" display="viewable" />
+    <column fieldId="vvdTimeEmptyPickup" display="viewable" />
+    <!-- 2022 Mar vvFlexDate01 and vvFlexDate02 are Late Recevial Cutoff and EDI Cutoff respectively -->
+    <column fieldId="vvFlexDate01" display="visible" />
+    <column fieldId="vvFlexDate02" display="visible" />
+    <column fieldId="vvdTimeLaborOnBoard" display="viewable" />
+    <column fieldId="vvdTimeLaborOffBoard" display="viewable" />
+    <column fieldId="vvdTimeOffPortArrive" display="viewable" />
+    <column fieldId="vvdTimeOffPortDepart" display="viewable" />
+    <column fieldId="vvdTimePilotOnBoard" display="viewable" />
+    <column fieldId="vvdTimePilotOffBoard" display="viewable" />
+    <column fieldId="vvdTimeStartWork" display="viewable" />
+    <column fieldId="vvdTimeEndWork" display="viewable" />
+    <column fieldId="vvdInVesselCaptain" display="viewable" />
+    <column fieldId="vvdOutVesselCaptain" display="viewable" />
+    <!-- 2008-04-28 jwang ARGO-9886 Include the vessel class 'Vessel Type' attribute
+        within the vessel visit entity when a new vessel visit is created and
+        include it in the unit activity extract -->
+    <column fieldId="vvdClassification" display="viewable" />
+    <column fieldId="cvdCv.cvReadyToInvoice" display="viewable" />
+    <!-- smandadi 20/10/2008 ARGO-13310: Create Vessel Visit Flex Fields -->
+    <column fieldId="vvFlexString01" display="viewable" />
+    <column fieldId="vvFlexString02" display="viewable" />
+    <column fieldId="vvFlexString03" display="viewable" />
+    <column fieldId="vvFlexString04" display="viewable" />
+    <column fieldId="vvFlexString05" display="viewable" />
+    <column fieldId="vvFlexString06" display="viewable" />
+    <column fieldId="vvFlexString07" display="viewable" />
+    <column fieldId="vvFlexString08" display="viewable" />
+    <column fieldId="vvFlexDate03" display="viewable" />
+    <column fieldId="vvFlexDate04" display="viewable" />
+    <column fieldId="vvFlexDate05" display="viewable" />
+    <column fieldId="vvFlexDate06" display="viewable" />
+    <column fieldId="vvFlexDate07" display="viewable" />
+    <column fieldId="vvFlexDate08" display="viewable" />
+    <!--2011.09.19 v2.3.B spabbala ARGO-33237 transit-time field to calculate time taken between two port calls-->
+    <column fieldId="transitStatus" display="viewable" complexQuery="omit" simpleQuery="omit" />
+    <column fieldId="vvdCreateTime" display="viewable" />
+  </table>
+</variforms>
+
