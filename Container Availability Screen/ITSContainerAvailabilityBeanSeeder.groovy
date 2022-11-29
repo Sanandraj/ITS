@@ -35,3 +35,4 @@ class ITSContainerAvailabilityBeanSeeder extends  AbstractCustomUiBeanSeeder{
         return ["customBeanITSContainerAvailabilityFormController","customBeanCtrAvailabilityUiTableManager","customBeanCtrAvailablityValueConverter"]
     }
 }
+ 
