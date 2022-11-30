@@ -5,6 +5,7 @@
 
 
 import com.navis.argo.*
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.VesselVisitFinder
 import com.navis.argo.business.atoms.*
 import com.navis.argo.business.model.CarrierVisit
@@ -23,6 +24,7 @@ import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.BizViolation
+import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.message.MessageLevel
 import com.navis.inventory.InventoryEntity
 import com.navis.inventory.business.api.UnitField
@@ -44,13 +46,12 @@ import org.jetbrains.annotations.Nullable
  *
  * Requirements :
  * #1: To check whether the Visit phase of EDI Vessel Visit is closed.
- * #2: To validate the EDI Booking Cut-Off and Line EDI Booking Cut-Off against requested Vessel Visit
- * #3: To update the order as EDO if the requested vessel does not call the facility
- * #4: To validate the container availability in yard against requested booking and restrict booking cancellation
- * #5: To validate the doNotOverrideByEDI flag and removes hazmat/commodity details if valid
- * #6: To validate order item and quantity
- * #7: To validate the reefer requirements
- * #8: To validate the equipment type against AWK booking
+ * #2: To update the order as EDO if the requested vessel does not call the facility
+ * #3: To validate the container availability in yard against requested booking and restrict booking cancellation
+ * #4: To validate the doNotOverrideByEDI flag and removes hazmat/commodity details if valid
+ * #5: To validate order item and quantity
+ * #6: To validate the reefer requirements
+ * #7: To validate the equipment type against AWK booking
  *
  * @Inclusion Location	: Incorporated as a code extension of the type EDI_POST_INTERCEPTOR.
  *  Load Code Extension to N4:
@@ -69,7 +70,8 @@ import org.jetbrains.annotations.Nullable
         4. Select the extension in "Post Code Extension" tab
         5. Click on save
  *
- *  *  S.No    Modified Date   Modified By     Jira      Description
+ *  *  S.No    Modified Date                       Modified By                             Jira      Description
+ *      1      21/11/2022   <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>  IP-324    To validate the EDI Booking Cut-Off and Line EDI Booking Cut-Off against requested Vessel Visit
  */
 
 class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
@@ -113,18 +115,26 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
                 return
             }
             if (vvd != null && bkgLineOp != null) {
-                Date currentDate = new Date()
-                VesselVisitLine vvLine = VesselVisitLine.findVesselVisitLine(vvd, bkgLineOp)
-                Date ediLineCutoffDate = vvLine != null ? vvLine.getVvlineTimeActivateYard() : null
-                if (ediLineCutoffDate != null && currentDate.after(ediLineCutoffDate)) {
-                    registerError("Vessel Visit " + vvd.getCvdCv().getCvId() + " past Line EDI Booking Cut-off (" + bkgLineOp.getBzuId() + "): " + ediLineCutoffDate + ", cannot process EDI.")
-                    return
-                } else {
-                    Date ediCutoffDate = vvd.getVvFlexDate02()
-                    if (ediCutoffDate != null && currentDate.after(ediCutoffDate)) {
-                        registerError("Vessel Visit " + vvd.getCvdCv().getCvId() + " past EDI Booking Cut-off: " + ediCutoffDate + ", cannot process EDI.")
-                        return
+                Date cutOffDate = vvd.getVvFlexDate02();
+                if (vvd != null) {
+                    VesselVisitLine vvl = VesselVisitLine.findVesselVisitLine(vvd, bkgLineOp)
+                    if (vvl != null && vvl.getVvlineTimeActivateYard() !=null) {
+                        cutOffDate = vvl.getVvlineTimeActivateYard()
                     }
+
+                    TimeZone timeZone = ContextHelper.getThreadUserTimezone()
+                    Date currentDate = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)
+                    if(cutOffDate!=null){
+                        cutOffDate=ArgoUtils.convertDateToLocalDateTime(cutOffDate, timeZone)
+                    }
+
+                    //validating Vessel visit Edi cut off date and Line Cut off date
+                    if(cutOffDate != null && currentDate!=null){
+                        if(currentDate.after(cutOffDate)){
+                            getMessageCollector().registerExceptions(BizViolation.create(PropertyKeyFactory.valueOf("Vessel Visit " + vvd.getCvdCv().getCvId() + " past EDI Booking Cut-off Line/Vessel: " +cutOffDate+ ", cannot process EDI."), (BizViolation) null))
+                        }
+                    }
+
                 }
 
                 if (NON_VISIT.equalsIgnoreCase(vvd.getVvFlexString01())) {
@@ -177,6 +187,12 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
             List<BookingTransactionDocument.BookingTransaction.EdiBookingItem> bookingItemList = bkgTransaction.getEdiBookingItemList()
             if (bookingItemList.size() == 0) {
                 registerError("Booking " + bookingNbr + " received without order item, cannot process EDI.")
+                return
+            }
+            //If MSG_FUNCTION_DELETE/REMOVE exist we are skipping the post
+
+            if(MSG_FUNCTION_DELETE.equals(bkgTransaction.getMsgFunction()) || MSG_FUNCTION_REMOVE.equals(bkgTransaction.getMsgFunction())){
+                logMsg("Skipping the post msg function for DELETE/REMOVE")
                 return
             }
             for (BookingTransactionDocument.BookingTransaction.EdiBookingItem bookingItem : bookingItemList) {
