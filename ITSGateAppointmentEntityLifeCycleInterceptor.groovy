@@ -48,23 +48,22 @@ import org.apache.log4j.Logger
     *
     *  S.No    Modified Date   Modified By     Jira      Description
     *   1       25/10/2022      Gopinath K     IP-327    Pin number issue for DI-Setting the FlexString01 with the Pin Number.
-    *   2       29/11/2022      Kishore S      IP-311    Fixed creation of duplicate appointments even error occured while generating appointment.
+    *   2       29/11/2022      Kishore S      IP-311    Removed Persistence - Fixed creation of duplicate appointments even error occured while generating appointment.
  */
 
 
 class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecycleInterceptor {
     private static Logger LOGGER = Logger.getLogger(this.class)
 
-   /* @Override
+    @Override
     void onCreate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges)
-    }*/
+    }
 
-    /*@Override
+    @Override
     void onUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         this.onCreateOrUpdate(inEntity, inOriginalFieldChanges, inMoreFieldChanges)
     }
-*/
 
     private void onCreateOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         GateAppointment gateAppointment = inEntity._entity;
@@ -72,36 +71,24 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
             return;
         }
 
-        PersistenceTemplate pt = new PersistenceTemplate(UserContextUtils.getSystemUserContext());
-        pt.invoke(new CarinaPersistenceCallback() {
-            protected void doInTransaction() {
-
-                if (TruckerFriendlyTranSubTypeEnum.PUI.equals(gateAppointment.getGapptTranType())) {
-                    Unit inGapptUnit = gateAppointment.getGapptUnit();
-                    if (inGapptUnit == null) {
-
-
-                        if (gateAppointment.getGapptCtrId() != null) {
-                            DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT)
-                                    .addDqPredicate(PredicateFactory.in(UnitField.UNIT_VISIT_STATE, [UnitVisitStateEnum.ACTIVE, UnitVisitStateEnum.ADVISED]))
-                                    .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_ID, gateAppointment.getGapptCtrId()))
-                                    .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.IMPORT));
-                            Unit[] unitList = Roastery.getHibernateApi().findEntitiesByDomainQuery(dq);
-                            if (unitList != null && unitList.size() > 0) {
-                                inGapptUnit = (Unit) unitList[0];
-                            }
-
-                        }
-
-
-                    }
-
-                    if (inGapptUnit != null) {
-                        gateAppointment.setGapptUnitFlexString01(inGapptUnit.getUnitRouting() != null ? inGapptUnit.getUnitRouting().getRtgPinNbr() : null);
+        if (TruckerFriendlyTranSubTypeEnum.PUI.equals(gateAppointment.getGapptTranType())) {
+            Unit inGapptUnit = gateAppointment.getGapptUnit();
+            if (inGapptUnit == null) {
+                if (gateAppointment.getGapptCtrId() != null) {
+                    DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT)
+                            .addDqPredicate(PredicateFactory.in(UnitField.UNIT_VISIT_STATE, [UnitVisitStateEnum.ACTIVE, UnitVisitStateEnum.ADVISED]))
+                            .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_ID, gateAppointment.getGapptCtrId()))
+                            .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.IMPORT));
+                    Unit[] unitList = Roastery.getHibernateApi().findEntitiesByDomainQuery(dq);
+                    if (unitList != null && unitList.size() > 0) {
+                        inGapptUnit = (Unit) unitList[0];
                     }
                 }
             }
-        })
+            if (inGapptUnit != null) {
+                inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING01, inGapptUnit.getUnitRouting().getRtgPinNbr() )
+            }
+        }
 
         // Dual Flag implementation
 
