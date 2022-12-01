@@ -10,11 +10,8 @@ import com.navis.external.framework.entity.EEntityView
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.external.framework.util.EFieldChangesView
 import com.navis.framework.business.Roastery
-import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
-import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.portal.FieldChange
 import com.navis.framework.portal.QueryUtils
-import com.navis.framework.portal.context.UserContextUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.inventory.InventoryEntity
@@ -86,7 +83,7 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
                 }
             }
             if (inGapptUnit != null) {
-                inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING01, inGapptUnit.getUnitRouting().getRtgPinNbr() )
+                inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING01, inGapptUnit.getUnitRouting().getRtgPinNbr())
             }
         }
 
@@ -123,7 +120,7 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
 
         }
 
-        if(newValue == null){
+        if (newValue == null) {
             inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02, 'N')
         }
     }
