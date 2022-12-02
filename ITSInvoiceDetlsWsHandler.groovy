@@ -1,15 +1,16 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.argo.business.api.ArgoUtils
-import com.navis.billing.business.model.Invoice
-import com.navis.billing.business.model.InvoiceItem
-import com.navis.billing.business.model.InvoiceParmValue
-import com.navis.billing.business.model.InvoiceType
-import com.navis.billing.business.model.InvoiceTypeSavedField
-import com.navis.billing.business.model.Tariff
+import com.navis.billing.BillingField
+import com.navis.billing.business.atoms.InvoiceStatusEnum
+import com.navis.billing.business.model.*
 import com.navis.external.argo.AbstractArgoCustomWSHandler
 import com.navis.framework.metafields.MetafieldId
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
-import com.navis.framework.portal.Ordering
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.UserContext
 import com.navis.framework.portal.query.DomainQuery
@@ -18,26 +19,31 @@ import com.navis.framework.util.message.MessageCollector
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jdom.Element
-import org.jdom.Namespace
+
 import java.text.ParsePosition
 import java.text.SimpleDateFormat
 
-
-/*
- * @Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S</a>
- * Date: 04/03/2022
- * Requirements:-  Request should have the input date and read all the Invoices beyond that date
- * @Inclusion Location	: Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER --> Paste this code (ITSInvoiceDetlsWsHandler.groovy)
-
-<custom class= "ITSInvoiceDetlsWsHandler" type="extension">
-<Invoices>
-<InputDate>?</InputDate>
-</Invoices>
-</custom>
-
+/** @Author: Kishore Kumar S <a href= skishore@weservetech.com / >, 05/11/2022
+ * Requirements : IP-277, ITS Job for JMS Queue Services (Microsoft GP)
+ * @Inclusion Location	: Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER.
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSInvoiceDetlsWsHandler.
+ Code Extension Type:  WS_ARGO_CUSTOM_HANDLER.
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  Request:
+    <custom class= "ITSInvoiceDetlsWsHandler" type="extension">
+    <Invoices>
+    <InputDate>?</InputDate>
+    </Invoices>
+    </custom>
 */
 
-class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
+class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
     @Override
     void execute(final UserContext userContext,
                  final MessageCollector messageCollector,
@@ -46,11 +52,8 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
         Element rootElement = inECustom.getChild("Invoices")
         Element inputDate = rootElement.getChild("InputDate")
         inputDate.getNamespace()
-        Namespace sNS = Namespace.getNamespace("argo", "http://www.navis.com/sn4")
-        Element responseRoot = new Element("InvoiceDetails", sNS)
+        Element responseRoot = new Element("invoice-status")
         inOutEResponse.addContent(responseRoot)
-        Element invoiceDetails = new Element("InvoiceDetails", sNS)
-        responseRoot.addContent(invoiceDetails)
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd")
         ParsePosition pp = new ParsePosition(0)
@@ -62,51 +65,38 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
             MetafieldId metaFieldIdInvCreatedDate = MetafieldIdFactory.valueOf("invoiceCreated")
             DomainQuery domainQuery = QueryUtils.createDomainQuery("Invoice")
                     .addDqPredicate(PredicateFactory.gt(metaFieldIdInvCreatedDate, invoiceCreatedDate))
+                    .addDqPredicate(PredicateFactory.eq(BillingField.INVOICE_STATUS, InvoiceStatusEnum.FINAL))
+                    .addDqPredicate(PredicateFactory.eq(BillingField.INVOICE_FLEX_STRING05, null))
             List<Invoice> OutputList = HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery)
             if (OutputList != null && !OutputList.isEmpty()) {
                 for (Invoice invoice : (OutputList as List<Invoice>)) {
-                    fetchInvoiceDetails(invoice)
+                    responseRoot.addContent(fetchInvoiceDetails(invoice))
+                    invoice.setFieldValue(MetafieldIdFactory.valueOf("invoiceFlexString05"), "TRUE")
                 }
-            }
-            else {
+            } else {
                 Element messages = new Element("messages")
-                invoiceDetails.addContent(messages)
+                responseRoot.addContent(messages)
                 Element message = new Element("message")
                 messages.addContent(message)
-                invoiceDetails.setText("No Data found after the Given Input Date : ${inputDate.getValue()}")
+                responseRoot.setText("No Data found for the Given Input Date : ${inputDate.getValue()}")
                 responseRoot.setAttribute(STATUS, NOT_OK_STATUS_NO)
                 responseRoot.setAttribute(STATUS_ID, NOT_OK_STATUS)
             }
         }
     }
+
     private static fetchInvoiceDetails(Invoice invoice) {
-        final Element responseRoot = new Element("Invoice")
-        responseRoot.setAttribute("Update_Time", ArgoUtils.timeNow().toString())
+        final Element responseRoot = new Element("invoice")
+        responseRoot.setAttribute("update_time", ArgoUtils.timeNow().toString())
         // type is always "TB" hence hard-coded
-        responseRoot.setAttribute("Type", "TB")
+        responseRoot.setAttribute("type", "TB")
 
-
-        MetafieldId metafieldId_Inv_Batch_Id = MetafieldIdFactory.valueOf("invoiceFlexString03")
-        LOGGER.debug("metafieldId_Inv_Batch_Id ::" + metafieldId_Inv_Batch_Id)
-        DomainQuery dq = QueryUtils.createDomainQuery("Invoice")
-                .addDqPredicate(PredicateFactory.isNotNull(metafieldId_Inv_Batch_Id))
-                .addDqOrdering(Ordering.desc(metafieldId_Inv_Batch_Id))
-        List<Invoice> jobBatchList = (List<Invoice>) HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
-        Invoice batchMax = jobBatchList.get(0)
-        String flexStringValue = batchMax.getInvoiceFlexString03()
-        long parseLong = Long.parseLong(flexStringValue) + 1
-        invoice.setFieldValue(metafieldId_Inv_Batch_Id, parseLong.toString())
-
-        Element company = new Element("Company")
+        Element company = new Element("company")
         responseRoot.addContent(company)
         Element companyNbr = new Element("companyNbr")
         company.addContent(companyNbr)
         // the company Nbr is standard hence hardcoded
         companyNbr.addContent("1")
-
-        Element batchNbr = new Element("batchNbr")
-        company.addContent(batchNbr)
-        batchNbr.addContent(parseLong.toString())
 
         Element batchDate = new Element("batchDate")
         company.addContent(batchDate)
@@ -145,8 +135,8 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
         Element invoiceComplexId = new Element("invoiceComplexId")
         invoices.addContent(invoiceComplexId)
         Element invoiceFinalNumber = new Element("invoiceFinalNumber")
-        Element invoiceDate=new Element("invoiceFinalDate")
-        if (invoice?.getInvoiceFinalizedDate()?.toString() != null && invoice?.getInvoiceFinalNbr()?.toString() != null){
+        Element invoiceDate = new Element("invoiceFinalDate")
+        if (invoice?.getInvoiceFinalizedDate()?.toString() != null && invoice?.getInvoiceFinalNbr()?.toString() != null) {
             invoices.addContent(invoiceFinalNumber)
             invoices.addContent(invoiceDate)
         }
@@ -165,15 +155,15 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
         Element invoiceTotalOwed = new Element("invoiceTotalOwed")
         invoices.addContent(invoiceTotalOwed)
         Element invoicePaidThroughDate = new Element("invoicePaidThroughDate")
-        if (invoice?.getInvoicePaidThruDay()?.toString() != null){
+        if (invoice?.getInvoicePaidThruDay()?.toString() != null) {
             invoices.addContent(invoicePaidThroughDate)
         }
         Element invoiceDueDate = new Element("invoiceDueDate")
-        if (invoice?.getInvoiceDueDate()?.toString()!=null){
+        if (invoice?.getInvoiceDueDate()?.toString() != null) {
             invoices.addContent(invoiceDueDate)
         }
         Element invoiceEffectiveDate = new Element("invoiceEffectiveDate")
-        if (invoice?.getInvoiceEffectiveDate()?.toString()!=null){
+        if (invoice?.getInvoiceEffectiveDate()?.toString() != null) {
             invoices.addContent(invoiceEffectiveDate)
         }
         Element invoiceIbId = new Element("invoiceIbId")
@@ -216,8 +206,8 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
             invoiceDate?.addContent(invoice?.getInvoiceFinalizedDate()?.toString())
             invoiceFinalNumber?.addContent(invoice?.getInvoiceFinalNbr()?.toString())
         }
-        if (parmList != null && parmList.size() > 0) {
-            invoiceVesselCode?.addContent(parmList.get(1).replaceAll("[^A-Z]", ""))
+        if (parmList != null && parmList.size() > 0 && parmList?.get(0) != null) {
+            invoiceVesselCode?.addContent(parmList?.get(0)?.replaceAll("[^A-Z]", ""))
         }
         invoiceTotalCharge?.addContent(invoice.getInvoiceTotalCharges().toString())
         invoiceTotalTaxes?.addContent(invoice?.getInvoiceTotalTaxes()?.toString())
@@ -278,8 +268,8 @@ class ITSInvoiceDetlsWsHandler extends  AbstractArgoCustomWSHandler {
     private static Logger LOGGER = Logger.getLogger(this.class)
     private static final String STATUS = "status"
     private static final String STATUS_ID = "status-id"
-    private static final String OK_STATUS = "OK"
-    private static final String OK_STATUS_NO = "1"
-    private static final String NOT_OK_STATUS = "NOK"
-    private static final String NOT_OK_STATUS_NO = "3"
+    private static final String OK_STATUS = "ok"
+    private static final String OK_STATUS_NO = "ok"
+    private static final String NOT_OK_STATUS = "no_invoices_found"
+    private static final String NOT_OK_STATUS_NO = "error"
 }
