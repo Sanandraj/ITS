@@ -1,3 +1,4 @@
+import com.navis.argo.business.atoms.EventEnum
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
@@ -19,18 +20,22 @@ class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtens
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSReeferEventRecordGeneralNotice Starts :: ")
         Unit unit = (Unit) inGroovyEvent.getEntity()
-        LOGGER.debug("Unit ::"+unit)
         UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
-        LOGGER.debug("ufv ::"+ufv)
         boolean unitIsReefer= unit.getUnitIsReefer()
         if (unitIsReefer){
-            ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
-            LOGGER.debug("1111")
-            UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
-            LOGGER.debug("2222")
-            unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
-            LOGGER.debug("3333")
-            HibernateApi.getInstance().flush()
+            if (ufv.ufvIsPowerConnected){
+                ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
+                UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
+                UnitEventExtractManager.updateReeferEvent(unit,inGroovyEvent.getEvent())
+                unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
+                HibernateApi.getInstance().flush()
+            }
+            else {
+                if (EventEnum.UNIT_OUT_GATE.equals(inGroovyEvent.getEvent())){
+                    ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
+                    HibernateApi.getInstance().flush()
+                }
+            }
         }
     }
     private static final Logger LOGGER = Logger.getLogger(ITSReeferEventRecordGeneralNotice.class)
