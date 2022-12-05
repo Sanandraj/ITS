@@ -26,7 +26,6 @@ class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtens
             if (ufv.ufvIsPowerConnected){
                 ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
                 UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
-                UnitEventExtractManager.updateReeferEvent(unit,inGroovyEvent.getEvent())
                 unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
                 HibernateApi.getInstance().flush()
             }
