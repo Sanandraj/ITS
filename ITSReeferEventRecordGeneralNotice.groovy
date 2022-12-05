@@ -1,4 +1,8 @@
-import com.navis.argo.business.atoms.EventEnum
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
@@ -11,7 +15,25 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:skishore@weservetech.com">Kishore.S.K.</a>
+ *  @Author: mailto:skishore@weservetech.com, Kishore S; Date: 31/10/2022
+ *
+ *  Requirements: B 4-1 Insert REEFER event in CUE for containers when they enter the terminal (gate/vessel/rail)
+ *
+ *  @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSReeferEventRecordGeneralNotice
+ *     Code Extension Type: GENERAL_NOTICES_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *	@Setup Create the code extension with Extension type GENERAL_NOTICES_CODE_EXTENSION
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtension {
