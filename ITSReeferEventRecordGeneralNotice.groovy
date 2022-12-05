@@ -30,12 +30,6 @@ class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtens
                 unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
                 HibernateApi.getInstance().flush()
             }
-            else {
-                if (EventEnum.UNIT_OUT_GATE.equals(inGroovyEvent.getEvent())){
-                    ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
-                    HibernateApi.getInstance().flush()
-                }
-            }
         }
     }
     private static final Logger LOGGER = Logger.getLogger(ITSReeferEventRecordGeneralNotice.class)
