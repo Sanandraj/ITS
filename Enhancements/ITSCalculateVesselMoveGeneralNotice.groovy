@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
 import com.navis.argo.ArgoExtractEntity
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.business.atoms.EventEnum
@@ -24,15 +29,34 @@ import org.apache.log4j.Logger
 
 
 /**
- * Billing 6-1 - Volume Discount
- * Author: uaarthi@weservetech.com - 08/29 - Calculate total moves for the vessel,
- * write it to the vessel and all load/discharge events for the units loaded to/discharged from the vessel
+ * @Author: uaarthi@weservetech.com, Aarthi U; Date: 29-08-2022
  *
- * Configure against PHASE_VV when the phase is updated to Departed
+ *  Requirements: IP-295 - Billing 6-1 - Volume Discount. Calculate total moves for the vessel,
+ *                write it to the vessel and all load/discharge events for the units loaded
+ *                to/discharged from the vessel.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSCalculateVesselMoveGeneralNotice
+ *     Code Extension Type: GENERAL_NOTICE_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *  Set up General Notice for event type "PHASE_VV" on VesselVisit Entity then execute this code extension (ITSCalculateVesselMoveGeneralNotice).
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
  */
+
 class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExtension {
 
     private static Logger LOGGER = Logger.getLogger(ITSCalculateVesselMoveGeneralNotice.class);
+
     public void execute(GroovyEvent inGroovyEvent) {
         try {
             if (inGroovyEvent == null) {
@@ -45,7 +69,7 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
                 if (cv != null && isVslComplete(cv.getCvId())) {
                     int moveCount = calculateMoveCount(cv.getCvId())
 
-                    if(moveCount){
+                    if (moveCount) {
 
                         List<Serializable> ufvList = fetchUnits(cv.getCvId());
                         UnitFacilityVisit ufv = null;
@@ -57,12 +81,12 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
                                 if (unit != null) {
                                     DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT).
                                             addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UFV_GKEY, ufv.getUfvGkey()))
-                                            .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EVENT_TYPE, EventEnum.UNIT_LOAD.getKey(),EventEnum.UNIT_DISCH.getKey()))
-                                    try{
+                                            .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EVENT_TYPE, EventEnum.UNIT_LOAD.getKey(), EventEnum.UNIT_DISCH.getKey()))
+                                    try {
                                         ChargeableUnitEvent cue = (ChargeableUnitEvent) HibernateApi.getInstance().getUniqueEntityByDomainQuery(domainQuery)
                                         cue.setBexuFlexString02(moveCount.toString())
-                                    } catch (Exception e){
-                                        logMsg("Error occured while updating ${unit.getUnitId()} - "+e)
+                                    } catch (Exception e) {
+                                        logMsg("Error occured while updating ${unit.getUnitId()} - " + e)
                                     }
                                 }
                             }
@@ -79,7 +103,7 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         }
     }
 
-    int calculateMoveCount(String cvId){
+    int calculateMoveCount(String cvId) {
 
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT_FACILITY_VISIT)
                 .addDqPredicate(PredicateFactory.ne(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.THROUGH))
@@ -128,7 +152,7 @@ class ITSCalculateVesselMoveGeneralNotice extends AbstractGeneralNoticeCodeExten
         return count == 0
     }
 
-    List<Serializable> fetchUnits(String cvId){
+    List<Serializable> fetchUnits(String cvId) {
         DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT_FACILITY_VISIT)
                 .addDqPredicate(PredicateFactory.ne(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.THROUGH))
 
