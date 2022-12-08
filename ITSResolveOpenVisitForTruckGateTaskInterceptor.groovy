@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
+
+
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.model.LocPosition
@@ -24,8 +30,8 @@ import com.navis.road.business.model.TruckVisitDetails
 import com.navis.road.business.reference.CancelReason
 import com.navis.road.business.workflow.TransactionAndVisitHolder
 import org.apache.commons.lang.StringUtils
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
+
 import java.util.concurrent.TimeUnit
 
 /**
@@ -44,12 +50,14 @@ import java.util.concurrent.TimeUnit
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
  */
 
 class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInterceptor {
     @Override
     void execute(TransactionAndVisitHolder inWfCtx) {
-        LOGGER.setLevel(Level.DEBUG)
         TruckVisitDetails truckVisitDetails = inWfCtx.getTv()
         if (truckVisitDetails != null) {
             DomainQuery domainQuery = QueryUtils.createDomainQuery(RoadEntity.TRUCK_VISIT_DETAILS)
@@ -68,19 +76,16 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
                             Set<TruckTransaction> transactions = tvd.getActiveTransactions()
                             for (TruckTransaction tran : transactions) {
                                 if (tran != null) {
-                                    LOGGER.debug("tran nbr " + tran.getTranNbr())
                                     boolean isReceival = tran.isReceival();
                                     boolean isDelivery = tran.isDelivery();
                                     if (tran.getTranStatus() == TranStatusEnum.OK) {
                                         tran.setTranStatus(TranStatusEnum.CLOSED)
-                                        LOGGER.debug(" Gate Transaction Closed")
                                     } else if (tran.getTranStatus() == TranStatusEnum.TROUBLE) {
                                         UnitFacilityVisit ufv = null
                                         if (tran.getTranUfv() != null) {
                                             ufv = tran.getTranUfv();
                                         } else {
                                             String ctrNbr = tran.getTranCtrNbr() != null ? tran.getTranCtrNbr() : tran.getTranCtrNbrAssigned()
-                                            LOGGER.warn("ctrNbr::" + ctrNbr)
                                             if (ctrNbr != null) {
                                                 Equipment equipment = Equipment.findEquipment(ctrNbr)
                                                 if (equipment != null) {
@@ -91,7 +96,6 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
                                                         Unit departedUnit = unitFinder.findDepartedUnit(ContextHelper.getThreadComplex(), equipment)
                                                         if (departedUnit != null) {
                                                             ufv = departedUnit.getUfvForFacilityCompletedOnly(ContextHelper.getThreadFacility());
-                                                            LOGGER.warn("UfvDepartedUnit::" + ufv)
                                                         }
                                                     }
                                                 }
@@ -104,7 +108,6 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
                                             LocPosition ufvPosition = ufv.getUfvLastKnownPosition();
                                             if (isReceival) {
                                                 if (UfvTransitStateEnum.S30_ECIN.equals(ufv.getUfvTransitState()) || UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState())) {
-                                                    LOGGER.warn("ufv FinalPlannedPosition.." + ufv.getFinalPlannedPosition())
                                                     if (ufv.getFinalPlannedPosition() != null) {
                                                         ufv.move(ufv.getFinalPlannedPosition(), null);
                                                         ufv.setFieldValue(InvField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S20_INBOUND)
@@ -129,8 +132,6 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
                                             }
                                         }
 
-                                      //  tran.setTranStatus(TranStatusEnum.CANCEL)
-                                        LOGGER.debug(" Gate Transaction Cancelled")
                                     }
                                     HibernateApi.getInstance().save(tran)
                                 }
