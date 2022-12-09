@@ -13,18 +13,18 @@ import org.apache.log4j.Logger
  * @Author <a href="mailto:skishore@weservetech.com">Kishore.S.K.</a>
  */
 
-class ITSReeferEventRecordGeneralNotice extends  AbstractGeneralNoticeCodeExtension {
+class ITSReeferEventRecordGeneralNotice extends AbstractGeneralNoticeCodeExtension {
     @Override
     void execute(GroovyEvent inGroovyEvent) {
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSReeferEventRecordGeneralNotice Starts :: ")
         Unit unit = (Unit) inGroovyEvent.getEntity()
         UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
-        boolean unitIsReefer= unit.getUnitIsReefer()
-        if (unitIsReefer){
-            ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"),true)
-            UnitEventExtractManager.createReeferEvent(unit,inGroovyEvent.getEvent())
-            unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"),null,null,null)
+        boolean unitIsReefer = unit.getUnitIsReefer()
+        if (unitIsReefer) {
+            ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"), true)
+            UnitEventExtractManager.createReeferEvent(unit, inGroovyEvent.getEvent())
+            unit.recordEvent(EventType.findEventType("UNIT_POWER_CONNECT"), null, null, null)
             HibernateApi.getInstance().flush()
         }
     }
