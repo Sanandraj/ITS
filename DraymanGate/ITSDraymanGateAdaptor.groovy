@@ -239,9 +239,9 @@ class ITSDraymanGateAdaptor {
 
         String containerNbr = tran.getTranCtrNbr() ? tran.getTranCtrNbr() : (tran.getTranUnit() ? tran.getTranUnit().getUnitId() : T_EMPTY);
 
-        String eqLength = "20";
+        String eqLength = T_20;
         if (EquipBasicLengthEnum.BASIC40 == tran.getTranEqLength(EquipBasicLengthEnum.BASIC40)) {
-            eqLength = "40";
+            eqLength = T_40;
         }
 
         String eqWeight = tran.getTranCtrGrossWeight() ? tran.getTranCtrGrossWeight().toString() : T_EMPTY;
@@ -257,9 +257,9 @@ class ITSDraymanGateAdaptor {
 
         Map posValues = new HashMap();
         if (locPos == null) {
-            posValues = getValueFromPosition(getCtrPosition(tran));
+            posValues = getValueFromPosition(getCtrPosition(tran),eqLength);
         } else {
-            posValues = getValueFromPosition(locPos);
+            posValues = getValueFromPosition(locPos, eqLength);
         }
 
         String loadStatus = T__L;
@@ -494,9 +494,9 @@ class ITSDraymanGateAdaptor {
     }*/
 
 
-    private Map getValueFromPosition(LocPosition locPosition) {
+    private Map getValueFromPosition(LocPosition locPosition, String eqLength) {
         Map posValues = new HashMap();
-        //logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
+        logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
 
         //loc PosSlot: E130032, PosLocId: PIERG, BlockName: null, posBin: null, posName: Y-PIERG-E130032
         //AbstractYardBlock
@@ -525,13 +525,14 @@ class ITSDraymanGateAdaptor {
         posValues.put(T__SLOT, T_PERCENTILE);
 
         if (locPosition != null) {
-            boolean hasValuesAssigned = retrievePosition(locPosition, posValues);
+            boolean hasValuesAssigned = retrievePosition(locPosition, posValues, eqLength);
 
             //Y-PIERG-E4.01.05.5
             if (!hasValuesAssigned && T_EMPTY == (String) posValues.get(T__ROW) && T_EMPTY == (String) posValues.get(T__BAY) && locPosition && !locPosition.toString().isEmpty()) {
                 String[] locArray = locPosition.toString().split(T_HYPHEN);
                 if (locArray.size() > 2) {
                     String[] slotArray = locArray[2].split(T_DOT);
+                    logMsg("slotArray: "+slotArray)
 
                     if (slotArray.size() > 0)
                         posValues.put(T__ROW, slotArray[0]);
@@ -552,7 +553,8 @@ class ITSDraymanGateAdaptor {
     }
 
 
-    private boolean retrievePosition(LocPosition position, Map posValues) {
+    //posValues: [tier:1, row:B6, bay:65, slot:%, cell:20]
+    private boolean retrievePosition(LocPosition position, Map posValues, String eqLength) {
         String rowVal = null;
         String slotVal = null;
         String blockVal = null;
@@ -583,7 +585,14 @@ class ITSDraymanGateAdaptor {
                 } else {
                     //logMsg("non-wheeled pos")
                     posValues.put(T__ROW, blockVal);
-                    posValues.put(T__BAY, rowVal);
+                    //If cntr is 40 ft, then bay should be even. If its 20ft, bay should be odd.
+                    //posValues.put(T__BAY, rowVal);
+                    if (rowVal) {
+                        if (T_40 == eqLength && Integer.parseInt(rowVal)%2 != 0) //If 40' is odd, then change to even bay
+                            posValues.put(T__BAY, String.valueOf(Integer.parseInt(rowVal) + 1));
+                        else
+                            posValues.put(T__BAY, rowVal);
+                    }
                     posValues.put(T__CELL, slotVal);
                 }
                 return true;
@@ -785,6 +794,8 @@ class ITSDraymanGateAdaptor {
     private static final String ABM_STACK = "ABM_STACK";
     private static final String ABM_SECTION = "ABM_SECTION";
     private static final String ABM_BLOCK = "ABM_BLOCK";
+    private static final String T_20 = "20";
+    private static final String T_40 = "40";
 
     private static final String T__TIP = "TIP";
     private static final String T__DRAYMAN = "Drayman";
