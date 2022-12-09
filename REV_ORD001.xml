@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+  </actions>
+  <table id="ORD001" defaultSearchfieldId="eqboNbr">
+    <title>Bookings</title>
+    <entity>
+      <name>Booking</name>
+      <primaryKey>eqboGkey</primaryKey>
+    </entity>
+    <crudCommand variformId="ORD002" />
+    <doubleClickCommand userActionId="ORD_INSPECT_EXPORT_BOOKING" variformId="BOOKING_INSPECTOR" modal="false" destination="dialog" />
+    <valueConverter ref="ordersTableValueConverter" />
+    <clipboardField fieldId="eqboNbr" />
+    <menu category="actions">
+      <menuItem userActionId="ORD_APPLY_SERVICE_FOR_EXPORT_BOOKING" label="RECORD_SERVICE_EVENT" variformId="FORM_BOOKING_EVENT_HISTORY" enable="oneOrMoreSources" />
+      <menuItem userActionId="ORD_ADD_FLAG_FOR_EXPORT_BOOKING" label="APPLY_HOLD_AND_PERMISSION" variformId="ADD_FLAG_FOR_BOOKING" enable="oneOrMoreSources" />
+      <menuItem userActionId="CUSTOM_MASS_CANCEL_BOOKINGS" label="Mass Cancel Bookings" codeExtensionId="ITSBkgMassCancelTableViewCommand" enable="twoOrMoreSources" />
+      <menuItem userActionId="CUSTOM_MASS_BOOKINGS_REDUCE" label="Mass Reduce Bookings" codeExtensionId="ITSBkgMassReduceTableViewCommand" enable="twoOrMoreSources" />
+      <menuItem userActionId="MASSROLL_BOOKING" label="Mass Roll Booking" variformId="CUSTOM_MASSROLL_BOOKING" enable="twoOrMoreSources" />
+    </menu>
+    <menu category="context">
+      <menuItem userActionId="ORD_INSPECT_EXPORT_BOOKING" variformId="BOOKING_INSPECTOR" label="EXPORT_BOOKING_INSPECT" bold="true" enable="oneSource" modal="false" />
+      <menuItem userActionId="ORD_APPLY_SERVICE_FOR_EXPORT_BOOKING" label="RECORD_SERVICE_EVENT" variformId="FORM_BOOKING_EVENT_HISTORY" enable="oneOrMoreSources" />
+      <menuItem userActionId="ORD_ADD_FLAG_FOR_EXPORT_BOOKING" label="APPLY_HOLD_AND_PERMISSION" variformId="ADD_FLAG_FOR_BOOKING" enable="oneOrMoreSources" />
+    </menu>
+    <!-- 2021Dec21 Revised sequence of fields to facilitate desired default view -->
+    <column fieldId="eqboNbr" />
+    <!-- 2008-09-04 ARGO-14176 rsatish v1.7.C v1.6.11 Entity entry should come first and then its ID entry else quick serach may fail -->
+    <column fieldId="eqoLine" complexQuery="include" display="none" />
+    <column fieldId="eqoLine.bzuId" complexQuery="omit" />
+    <column fieldId="eqoVesselVisit" complexQuery="include" display="none" groupLabel="1-Routing" />
+    <column fieldId="eqoVesselVisit.cvId" complexQuery="omit" groupLabel="1-Routing" />
+    <!-- lbarman 2006-07-18 v.1.1.0.0 ARGO-000: add carrier visit phase to booking table -->
+    <column fieldId="eqoVesselVisit.cvVisitPhase" complexQuery="include" display="visible" groupLabel="1-Routing" />
+    <!-- 2008-10-09 1.8.B lbarman ARGO-14482: create lov that shows visit id, carrier name and facility - also show these fields in table view -->
+    <column fieldId="eqoVesselVisit.carrierVehicleName" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoVesselVisit.cvFacility.fcyId" complexQuery="omit" display="viewable" groupLabel="1-Routing" />
+    <column fieldId="eqoVesselVisit.cvFacility" complexQuery="include" display="none" groupLabel="1-Routing" />
+    <!-- 2009-02-11 dkannadasan ARGO-23247 Add Hold/Permission columns to Bookings List view  -->
+    <!--<column fieldId="bkgImpediments" display="viewable" complexQuery="omit"/>-->
+    <column fieldId="eqoPod1" complexQuery="include" display="none" />
+    <column fieldId="eqoPod1.pointId" complexQuery="omit" />
+    <column fieldId="eqoPod2" complexQuery="include" display="none" />
+    <column fieldId="eqoPod2.pointId" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoPodOptional" complexQuery="include" display="none" />
+    <column fieldId="eqoPodOptional.pointId" complexQuery="omit" display="viewable" />
+    <column fieldId="ordersAppliedHoldOrPermName" display="viewable" complexQuery="include" groupLabel="0-Order" />
+    <column fieldId="eqoAgent" complexQuery="include" display="none" />
+    <column fieldId="eqoAgent.bzuId" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoShipper" complexQuery="include" simpleQuery="omit" display="none" />
+    <column fieldId="eqoShipper.bzuId" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <!-- 2007-09-12 lbarman v1.4.J ARGO-7899: configurable display of shipper/consignee names instead of id - provide both fields-->
+    <column fieldId="eqoShipper.bzuName" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <column fieldId="eqoConsignee" complexQuery="include" simpleQuery="omit" display="none" />
+    <column fieldId="eqoConsignee.bzuId" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <!-- 2007-09-12 lbarman v1.4.J ARGO-7899: configurable display of shipper/consignee names instead of id - provide both fields -->
+    <column fieldId="eqoConsignee.bzuName" complexQuery="omit" simpleQuery="include" display="viewable" />
+    <column fieldId="eqoClientRefNo" display="viewable" />
+    <column fieldId="eqoDispatchReserved" display="viewable" />
+    <column fieldId="eqoPreventTypeSubst" display="viewable" />
+    <column fieldId="eqoOverrideCutoff" display="visible" />
+    <column fieldId="eqoOverrideCutoffForRail" display="viewable" />
+    <column fieldId="eqoHoldPartials" display="viewable" />
+    <column fieldId="eqoPol" complexQuery="include" display="none" />
+    <column fieldId="eqoPol.pointId" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoDrayOff" display="viewable" />
+    <column fieldId="eqoOwnedOrLeased" display="viewable" />
+    <column fieldId="eqoLatestDate" display="viewable" />
+    <column fieldId="eqoTruckCo" complexQuery="include" display="none" />
+    <column fieldId="eqoTruckCo.bzuId" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoOrigin" display="viewable" />
+    <column fieldId="eqoDestination" display="viewable" />
+    <column fieldId="eqoEmptyPickupLocation" display="viewable" />
+    <column fieldId="eqoStuffingLocation" display="viewable" />
+    <column fieldId="eqoFullReturnLocation" display="viewable" />
+    <column fieldId="eqoEqStatus" display="viewable" />
+    <column fieldId="eqoStowBlock" display="viewable" />
+    <column fieldId="eqoShippingMode" display="viewable" />
+    <!--2006-06272006 lbarman v1.1.C ARGO-4273: qty and tally are now fields of the equipmentorder-->
+    <column fieldId="eqoQuantity" display="visible" />
+    <!-- 2006-09-11 lbarman v1.2.C ARGO-5136: use field tally instead of tallyDispatch -->
+    <column fieldId="eqoTallyReceive" display="visible" />
+    <column fieldId="eqoIsCompleteReceive" display="visible" />
+    <column fieldId="eqoTally" display="visible" />
+    <column fieldId="eqoIsCompleteDispatch" display="viewable" />
+    <column fieldId="eqoSpecialStow" complexQuery="include" display="none" />
+    <column fieldId="eqoSpecialStow.stwId" complexQuery="omit" display="visible" />
+    <column fieldId="eqoSpecialStow2" complexQuery="include" display="none" />
+    <column fieldId="eqoSpecialStow2.stwId" complexQuery="omit" display="viewable" />
+    <column fieldId="eqoSpecialStow3" complexQuery="include" display="none" />
+    <column fieldId="eqoSpecialStow3.stwId" complexQuery="omit" display="viewable" />
+    <!-- 2007-05-11 lbarman v1.3.6 ARGO-7090: add reefers field on booking -->
+    <column fieldId="eqoHasReefers" display="viewable" />
+    <column fieldId="eqoTempReqd" display="visible" simpleQuery="omit" complexQuery="omit" />
+    <!-- 2007-05-10 lbarman v1.3.6  ARGO-7079: add hazard codes -->
+    <column fieldId="bkgIsHazardous" display="visible" />
+    <column fieldId="bkgHazardCodes" display="visible" simpleQuery="omit" complexQuery="omit" />
+    <column fieldId="eqoOod" display="visible" />
+    <column fieldId="eqoShipper.bzuId" display="visible" />
+    <column fieldId="eqoNotes" display="visible" />
+    <!-- 2009-06-16 rsatish ARGO-15692 Support Domestic category -->
+    <column fieldId="eqoCategory" display="viewable" groupLabel="1-Routing" />
+    <column fieldId="eqboCreated" display="viewable" />
+    <column fieldId="eqboCreator" display="viewable" />
+    <column fieldId="eqboChanged" display="viewable" />
+    <column fieldId="eqboChanger" display="viewable" />
+<column fieldId="bookCustomFlexFields.bkgCustomDFFDoNotOverrideByEDI" complexQuery="include" display="viewable" />
+  </table>
+</variforms>
+

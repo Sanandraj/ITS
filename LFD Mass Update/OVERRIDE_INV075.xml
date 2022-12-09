@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+  </actions>
+  <form id="INV075">
+    <title>{Update Storage for #titleField#}</title>
+    <entity>
+      <name>UnitFacilityVisit</name>
+      <primaryKey>ufvGkey</primaryKey>
+      <titleField>ufvUnit.unitId</titleField>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="update" mode="editable" />
+    </actionsAllowed>
+    <!--<controller ref="unitUpdateStorageFormController" />
+-->
+<controller ref="customBeanUnitUpdateStorageFormController" />
+    <borderLayout>
+      <northPanel>
+        <grid title="STORAGE" name="STORAGE">
+          <row>
+            <cell>
+              <item fieldId="ufvCalculatedLastFreeDay">
+                <actionMode action="create" mode="viewOnly" />
+                <actionMode action="query" mode="viewOnly" />
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="delete" mode="viewOnly" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvLastFreeDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvGuaranteeThruDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvGuaranteeParty" />
+            </cell>
+          </row>
+
+        </grid>
+      </northPanel>
+      <centerPanel name="LINE_STORAGE">
+        <grid title="LINE_STORAGE" name="LINE_STORAGE" width="200px">
+          <row>
+            <cell>
+              <item fieldId="ufvCalculatedLineStorageLastFreeDay">
+                <actionMode action="create" mode="viewOnly" />
+                <actionMode action="query" mode="viewOnly" />
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="delete" mode="viewOnly" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvLineLastFreeDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvLineGuaranteeThruDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvLineGuaranteeParty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvLinePaidThruDay" />
+            </cell>
+          </row>
+           <row>
+            <cell>
+              <item fieldId="ufvFlexString01" />
+            </cell>
+          </row>
+        </grid>
+      </centerPanel>
+      <southPanel>
+        <grid title="POWER" name="POWER">
+          <row>
+            <cell>
+              <item fieldId="ufvCalculatedPowerLastFreeDay">
+                <actionMode action="create" mode="viewOnly" />
+                <actionMode action="query" mode="viewOnly" />
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="delete" mode="viewOnly" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvPowerLastFreeDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvPowerPaidThruDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvPowerGuaranteeThruDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvPowerGuaranteeParty" />
+            </cell>
+          </row>
+        </grid>
+      </southPanel>
+    </borderLayout>
+  </form>
+</variforms>
+

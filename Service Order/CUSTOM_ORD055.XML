@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+  </actions>
+  <table id="ORD055">
+    <title>Service Orders</title>
+    <entity>
+      <name>ServiceOrder</name>
+      <primaryKey>srvoGkey</primaryKey>
+    </entity>
+    <crudCommand variformId="ORD056" />
+    <doubleClickCommand userActionId="ORD_INSPECT_SERVICE_ORDER" variformId="ORD063" modal="false" destination="dialog" />
+    <clipboardField fieldId="srvoNbr" />
+    <menu category="actions">
+      <menuItem userActionId="ORD_APPLY_SERVICE_FOR_SERVICE_ORDER" variformId="ORD086" label="RECORD_SERVICE_EVENT" enable="oneSource" />
+      <menuItem userActionId="ORD_CANCEL_SERVICE_ORDER" variformId="ORD066" enable="oneOrMoreSources" label="ORD_SERVICE_ORDER_CANCEL" modal="true" />
+      <menuItem userActionId="CUSTOM_COMPLETE_SERVICE_ORDER" label="Complete Service Order" codeExtensionId="ITSCompleteServiceOrder" destination="dialog" enable="oneOrMoreSources" />
+    </menu>
+    <menu category="context">
+      <menuItem userActionId="ORD_INSPECT_SERVICE_ORDER" label="SERVCIE_ORDER_INSPECT" variformId="ORD063" modal="false" enable="oneSource" />
+      <menuItem userActionId="ORD_APPLY_SERVICE_FOR_SERVICE_ORDER" variformId="ORD086" label="RECORD_SERVICE_EVENT" enable="oneSource" />
+      <menuItem userActionId="ORD_CANCEL_SERVICE_ORDER" variformId="ORD066" label="ORD_SERVICE_ORDER_CANCEL" enable="oneOrMoreSources" />
+      <menuItem userActionId="CUSTOM_COMPLETE_SERVICE_ORDER" label="Complete Service Order" codeExtensionId="ITSCompleteServiceOrder" enable="oneOrMoreSources" />
+    </menu>
+    <column fieldId="srvoNbr" />
+    <column fieldId="srvoStatus" />
+    <column fieldId="srvoBillingParty.bzuId" />
+    <column fieldId="srvoLine.bzuId" />
+    <column fieldId="srvoBillOfLading.blNbr" />
+    <column fieldId="srvoEqBaseOrder.eqboNbr" />
+    <column fieldId="srvoStartDate" />
+    <column fieldId="srvoCompletionDate" />
+    <column fieldId="srvoCancelDate" />
+    <column fieldId="srvoCancelNotes" />
+    <column fieldId="srvoNotes" />
+    <column fieldId="srvoFacility.fcyId" />
+    <column fieldId="srvoCreated" display="viewable" />
+    <column fieldId="srvoCreator" display="viewable" />
+    <column fieldId="srvoChanged" display="viewable" />
+    <column fieldId="srvoChanger" display="viewable" />
+    <column fieldId="srvoCustomFlexFields.srvoCustomDFF_Invoiced" />
+    <column fieldId="srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised" />
+  </table>
+</variforms>
+

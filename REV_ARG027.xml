@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_USER_PURGE">ARG_USER_PURGE</action>
+  </actions>
+  <form id="ARG027" width="600px">
+    <title>Group</title>
+    <entity>
+      <name>Group</name>
+      <primaryKey>grpGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" pageId="PAGE_GROUP_CREATE" />
+      <actionMode action="query" mode="editable" pageId="PAGE_GROUP_QUERY" />
+      <actionMode action="update" mode="editable" pageId="PAGE_GROUP_EDIT" />
+      <actionMode action="delete" mode="viewOnly" pageId="PAGE_GROUP_DELETE" />
+    </actionsAllowed>
+    <item fieldId="grpGkey">
+      <actionMode action="create" mode="none" />
+      <actionMode action="query" mode="none" />
+      <actionMode action="update" mode="hidden" />
+      <actionMode action="delete" mode="hidden" />
+    </item>
+    <item fieldId="grpId" />
+    <!--2010-01-27 spabbala v2.1.G ARGO-23464 System exception encountered while creating Group without description.-->
+    <item fieldId="grpDescription" required="true" />
+    <item fieldId="grpBzuSet" />
+   <!--2010-01-27 spabbala v2.1.G ARGO-23122 Need a number of new attributes in the Groups UI to support the Inter Facility Transfer process. -->
+<!--
+    <item fieldId="grpDestinationFacility" />
+-->
+    <item fieldId="grpPurpose" extraEntry="none" />
+    <item fieldId="grpTimeStartDelivery" />
+    <item fieldId="grpTimeEndDelivery" />
+ <item fieldId="grpFlexString01" />
+
+
+
+<!--
+    <item fieldId="grpFlexString01" />
+    <item fieldId="grpFlexString02" />
+    <item fieldId="grpFlexString03" />
+-->
+  </form>
+</variforms>
+

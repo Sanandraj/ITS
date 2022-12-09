@@ -13,6 +13,8 @@ import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 import com.navis.orders.business.api.OrdersFinder
 
+import java.text.DecimalFormat
+
 /*
  * @Author <a href="mailto:smohanbabug@weservetech.com">Mohan Babu</a>
  * Date:
@@ -55,9 +57,12 @@ class ITSGetBookingItemsWSCallBack extends AbstractExtensionPersistenceCallback{
                         JSONBuilder itemsJsonArray = JSONBuilder.createArray()
                         for (EquipmentOrderItem eqBoOrderItem : eqBoOrderItems){
                             JSONBuilder eqItemJsonObject = JSONBuilder.createObject()
-                            eqItemJsonObject.put("length",eqBoOrderItem.getEqoiEqSize() == null ? null : eqBoOrderItem.getEqoiEqSize().getValueInUnits(LengthUnit.FEET))
+                            eqItemJsonObject.put("length",eqBoOrderItem.getEqoiEqSize() == null ? null : (int)eqBoOrderItem.getEqoiEqSize().getValueInUnits(LengthUnit.FEET))
                             eqItemJsonObject.put("iso",eqBoOrderItem.getEqoiSampleEquipType() == null ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypId())
-                            eqItemJsonObject.put("height",eqBoOrderItem.getEqoiEqHeight() == null ? null : eqBoOrderItem.getEqoiEqHeight().getValueInUnits(LengthUnit.MILLIMETERS))
+                            eqItemJsonObject.put("archeTypeISO",(eqBoOrderItem.getEqoiSampleEquipType() == null || eqBoOrderItem.getEqoiSampleEquipType().getEqtypArchetype() == null) ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypArchetype().getEqtypId())
+                            //DecimalFormat dfFormat = new DecimalFormat("#.#")
+                            //eqItemJsonObject.put("height",eqBoOrderItem.getEqoiEqHeight() == null ? null : eqBoOrderItem.getEqoiEqHeight().getValueInUnits(LengthUnit.MILLIMETERS))
+                            eqItemJsonObject.put("height",eqBoOrderItem.getEqoiSampleEquipType().getEqtypNominalHeight() == null ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypNominalHeight().getKey().replace("NOM",""))
                             eqItemJsonObject.put("Qty",eqBoOrderItem.getEqoiQty())
                             eqItemJsonObject.put("tallyOut",eqBoOrderItem.getEqoiTally())
                             itemsJsonArray.add(eqItemJsonObject)

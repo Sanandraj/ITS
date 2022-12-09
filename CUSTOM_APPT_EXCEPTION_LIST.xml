@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="view">view</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+  </actions>
+  <form id="CUSTOM_APPT_EXCEPTION_LIST">
+    <title>Exception</title>
+    <entity>
+      <name>GateAppointment</name>
+      <primaryKey>gapptGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" pageId="PAGE_APPOINTMENT_CREATE" />
+      <actionMode action="query" mode="editable" pageId="PAGE_APPOINTMENT_QUERY" />
+      <actionMode action="update" mode="editable" pageId="PAGE_APPOINTMENT_EDIT" />
+      <actionMode action="delete" mode="viewOnly" pageId="PAGE_APPOINTMENT_DELETE" />
+    </actionsAllowed>
+    <view ref="gateAppointmentForm" />
+    <controller ref="gateAppointmentFormController" />
+	<formSubmissionCodeExtension name="ITSExceptionApptSubmitFormCommand" />
+    <submitFormCommand ref="gateAppointmentSubmitFormCommand" />
+    <borderLayout width="650px">
+      <northPanel title="Basics">
+        <grid>
+          <!--title="ArgoPropertyKeys.DETAILS"-->
+          <row>
+            <cell span="2">
+              <item fieldId="gapptNbr" required="false">
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="create" mode="viewOnly" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptGate" required="true">
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="create" mode="editable" />
+              </item>
+            </cell>
+            <cell>
+              <item fieldId="gapptTranType" />
+            </cell>
+          </row>
+		   <row>
+            <cell>
+              <item fieldId="gapptUfvFlexString02" required="true"/>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <!--  2007-02-28 lbarman v1.3.B ARGO-6382: add instance security to appointment - these fields are no longer configurable -->
+              <item fieldId="gapptLineOperator" />
+            </cell>
+            <cell>
+              <item fieldId="gapptTruckingCompany" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <!-- 2007-11-14 lbarman v1.4.1, v.1.5.A ARGO-8732: add truck license nbr -->
+              <item fieldId="gapptTruckLicenseNbr" />
+            </cell>
+            <cell>
+              <!-- 2008-04-03 jku ARGO-10245 1.5.N Added TruckDriver to GateAppointment (exposed as a Driver Card LOV widget). -->
+              <item fieldId="gapptTruckDriver" />
+            </cell>
+          </row>
+          <row>
+            <cell span="2">
+              <item fieldId="gapptReferenceNbr" />
+            </cell>
+          </row>
+          <!--Non visible static fields-->
+          <row>
+            <cell>
+              <!-- 2007-04-12 v1.3.0 ARGO-6781: appointment has state to verify if it has been used or not; currently not shown in form-->
+              <item fieldId="gapptState">
+                <actionMode action="update" mode="viewOnly" />
+                <actionMode action="create" mode="viewOnly" />
+              </item>
+            </cell>
+            <cell>
+              <item fieldId="gapptTimeSlot" required="false" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptSlotStartDate" />
+            </cell>
+            <cell>
+              <item fieldId="gapptSlotEndDate" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptRuleGkey" />
+            </cell>
+          </row>
+        </grid>
+      </northPanel>
+      <centerPanel title="Unit Information">
+        <!-- these are all the fields that can be configured to show in the form; all these fields are added to the variform and
+                are selectively added to show in the form; any settings for required or readonly will be overridden with what has been defined
+                in the configuration. Do not add any  'actions allowed' constraints here! (lbarman 2007-02-06)-->
+        <grid name="apptsConfiguredPanelGrid">
+          <row>
+            <cell>
+              <item fieldId="gapptTruckId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptOrder" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptOrderItem" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptEqoNbr" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptOrder.eqboNbr">
+                <actionMode action="update" mode="hidden" />
+                <actionMode action="create" mode="hidden" />
+                <actionMode action="delete" mode="hidden" />
+                <actionMode action="view" mode="hidden" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrEquipType" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrAccessoryId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptFreightKind" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrGrossWeight" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrSealNbr1" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrSealNbr2" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrSealNbr3" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrSealNbr4" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptChassisId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptChsIsOwners" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptChassisEquipType" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptChassisAccessoryId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptImportReleaseNbr" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptNotes" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptIsXrayRequired" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBlitemBulkUnitEnum" />
+            </cell>
+          </row>
+          <!-- 2008-05-01 jku ARGO-11277 1.5.0 Allow flex fields be configured in gate appointment stage. -->
+          <row>
+            <cell>
+              <item fieldId="unitFlexString01" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString02" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString03" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString04" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString05" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString06" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString07" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString08" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString09" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString10" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString11" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString12" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString13" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString14" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitFlexString15" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString01" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString02" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString03" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString04" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString05" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString06" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString07" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString08" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString09" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString10" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexString10" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexDate01" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="ufvFlexDate02" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptTruckVisitAppointment" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <!-- 2009-06-09 spabbala v2.0.B ARGO-18915 DPWQA-Position field is not available in the Container Appointment Table.-->
+              <item fieldId="gapptUnit.unitCalculatedCurrentPositionName" />
+            </cell>
+          </row>
+          <!--2009-12-23 spabbala v2.1.E ARGO-22642 Gate/Appointment Side Changes for NFRM-521 (Associating Agents with Units)
+                       (Jan Delivery for Haifa)-->
+          <row>
+            <cell>
+              <item fieldId="gapptAgent1" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptAgent2" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrDoorDirection" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrTruckPosition" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCancelDate" />
+            </cell>
+          </row>
+          <!--2010-04-27 spai ARGO-23809 Gate Appointment Routing related fields -->
+          <row>
+            <cell>
+              <item fieldId="gapptVesselVisit" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPol" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPod1" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPod2" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPod1Optional" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPod2Optional" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptOrigin" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptDestination" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptShipper" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptConsignee" />
+            </cell>
+          </row>
+		  <row>
+          <cell>
+            <item fieldId="gapptPinNbr" />
+          </cell>
+        </row>
+          <row>
+            <cell>
+              <item fieldId="gapptUfvFlexString01" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptUnitCategory" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrVGMWeight" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCtrVGMEntity" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptIsHaz" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptImportDeliveryOrder" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBlNbr" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBl.blNbr">
+                <actionMode action="update" mode="hidden" />
+                <actionMode action="create" mode="hidden" />
+                <actionMode action="delete" mode="hidden" />
+                <actionMode action="view" mode="hidden" />
+              </item>
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBl" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBlItem" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptBlItemQty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCargoServiceOrder" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCargoServiceOrderItem" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptDoItemQty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptQty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptLotQty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptCommodity" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptPackageType" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptTotalVolumeCm3" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptUnitId" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gapptUnit.unitId">
+                <actionMode action="update" mode="hidden" />
+                <actionMode action="create" mode="hidden" />
+                <actionMode action="delete" mode="hidden" />
+                <actionMode action="view" mode="hidden" />
+              </item>
+            </cell>
+          </row>
+        </grid>
+      </centerPanel>
+      <southPanel title="Appointment Time">
+        <grid width="100%">
+          <row>
+            <cell>
+              <item fieldId="gapptRequestedDate" />
+            </cell>
+            <cell span="2">
+              <item fieldId="gapptTimeSlotOpenings" required="true" />
+            </cell>
+          </row>
+        </grid>
+      </southPanel>
+    </borderLayout>
+  </form>
+</variforms>

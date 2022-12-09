@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="REFRESH">REFRESH</action>
+    <action id="FILTER_CRITERIA">FILTER_CRITERIA</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+  </actions>
+  <form id="VSL008">
+    <!-- 2007-08-20 lbarman v1.4.I ARGO-7798: rename all usages of Shipping Line to Line Operator -->
+    <!-- 2022Jun25 Make OutVoyNbr mandatory -->
+    <title>Line Operator Using the Vessel</title>
+    <entity>
+      <name>VesselVisitLine</name>
+      <primaryKey>vvlineGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" pageId="Create Lines" />
+      <actionMode action="update" mode="editable" pageId="Update Lines" />
+    </actionsAllowed>
+    <controller ref="vesselVisitLinesFormController" />
+<formSubmissionCodeExtension name="ITSVesselVisitLineFormSubmission"/>
+    <!-- identity -->
+    <item fieldId="vvlineBizu" required="true" />
+    <item fieldId="vvlineInVoyNbr" required="true" />
+    <item fieldId="vvlineOutVoyNbr" required="true" />
+    <item fieldId="vvlineTimeBeginReceive" />
+    <item fieldId="vvlineTimeEmptyPickup" />
+    <item fieldId="vvlineTimeCargoCutoff" />
+    <item fieldId="vvlineTimeReeferCutoff" />
+    <item fieldId="vvlineTimeHazCutoff" />
+
+
+
+        <item fieldId="vvlineTimeActivateYard"/>
+       
+  </form>
+</variforms>
+

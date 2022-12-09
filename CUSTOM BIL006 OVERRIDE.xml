@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="duplicate">duplicate</action>
+    <action id="list">list</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="FILTER_CRITERIA">FILTER_CRITERIA</action>
+  </actions>
+  <form id="BIL006" width="950" height="800">
+    <title>Generate Invoice</title>
+    <entity>
+      <name>Invoice</name>
+      <primaryKey>invoiceGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" />
+      <actionMode action="query" mode="editable" pageId="" />
+      <actionMode action="update" mode="editable" pageId="" />
+      <actionMode action="delete" mode="viewOnly" pageId="" />
+    </actionsAllowed>
+    <view ref="generateInvoiceForm" />
+    <controller ref="generateInvoiceFormController" />
+   <formSubmissionCodeExtension name="ITSInvoiceGenerateFormSubmissionCommand" />
+    <submitFormCommand ref="generateInvoiceSubmitFormCommand" />
+    <attributes>
+      <attribute key="formAction" value="create" />
+      <!--Always open in create mode-->
+    </attributes>
+    <borderLayout>
+      <northPanel>
+        <item fieldId="invoiceInvoiceType" />
+        <item fieldId="invoiceEffectiveDateSelection" />
+        <item fieldId="invoiceEffectiveDate" />
+        <item fieldId="invoicePayeeCustomer" />
+        <item fieldId="invoiceContractCustomer" />
+        <item fieldId="invoiceContract" />
+        <item fieldId="invdisDiscountType" required="false" />
+        <item fieldId="invoiceCurrency" />
+        <item fieldId="invoiceCurrencyEffectiveDate" required="false" />
+        <item fieldId="invoiceGenerateTraceMode" />
+      </northPanel>
+      <centerPanel title="INVOICE_PARAMETERS" name="Parameters">
+        <!-- WARNING: Do not add any Custom fields to this section of Variform -->
+        <grid name="fieldUpdatesPanelGrid" />
+      </centerPanel>
+    </borderLayout>
+  </form>
+</variforms>

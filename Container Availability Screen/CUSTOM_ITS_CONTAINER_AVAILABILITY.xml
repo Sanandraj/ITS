@@ -19,15 +19,17 @@
         </entity>
         <actionsAllowed>
             <actionMode action="create" mode="editable" />
+<!--
             <actionMode action="update" mode="editable" />
-            <actionMode action="delete" mode="editable" />
+-->
         </actionsAllowed>
         <controller ref="customBeanITSContainerAvailabilityFormController" />
-        <!--<submitFormCommand ref="verifyAndUpdateUnitSubmitFormCommand " />-->
+        <!--<submitFormCommand ref="verifyAndUpdateUnitSubmitFormCommand " />
         <item fieldId="ufvUnit.unitId">
             <actionMode action="query" mode="hidden" pageId="" />
-        </item>
+        </item>-->
         <!--<item fieldId="ufvUnit.unitRouting.rtgTruckingCompany" /> TODO BL Number field-->
+<item fieldId="ufvFlexString02"/>
     </form>
 </variforms>
 

@@ -1,59 +1,70 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
+
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.inventory.business.units.EqBaseOrderItem
-import com.navis.orders.business.eqorders.EquipmentOrder
-import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.orders.business.eqorders.Booking
+import com.navis.orders.business.eqorders.EquipmentOrderItem
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
 /**
- * Author: <a href="mailto:skishore@weservetech.com"> KISHORE KUMAR S </a>
- * Description: This Code will be paste against Transacted Business function Extension Type in Code extension - This Code is call back for " ITSUpdateUnusedBookingTableViewCommand "
- * */
-
-class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCallback{
+ * @Author: mailto:skishore@weservetech.com, Kishore Kumar S; Date: 28/10/2022
+ *
+ *  Requirements: 5-2-Button to Cancel unused bookings after vessel cut-offs -- This groovy is used to reduce multiple booking selected from booking entity.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSBkgValidationPersistenceCallback
+ *     Code Extension Type: TRANSACTED_BUSINESS_FUNCTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ */
+class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCallback {
     @Override
     void execute(@Nullable Map input, @Nullable Map inOutResults) {
 
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSBkgValidationPersistenceCallback starts :: ")
-         Serializable bookingOrder = (Serializable) input?.get("entityGkey")
+        LOGGER.setLevel(Level.INFO)
+        LOGGER.info("ITSBkgValidationPersistenceCallback starts :: ")
+        Serializable bookingOrder = (Serializable) input?.get("entityGkey")
         Booking booking = Booking.hydrate(bookingOrder)
-        LOGGER.debug("bookingOrder :: "+booking)
-        if (booking.eqoTallyReceive > 0){
-            LOGGER.debug("Inside tally-receive > 0 ")
-            LOGGER.debug("bookingOrder "+booking)
-            Set bkgItems = booking!= null ?  booking.getEqboOrderItems() : null;
-            LOGGER.debug("bkgItems "+bkgItems)
+        if (booking == null) {
+            return;
+        }
+        Long totalItemQuantity = 0;
+        if (booking.eqoTallyReceive > 0) {
+            Set bkgItems = booking != null ? booking.getEqboOrderItems() : null;
             if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
-                LOGGER.debug("Inside not null")
                 Iterator iterator = bkgItems.iterator()
-                LOGGER.debug("Iterator")
                 while (iterator.hasNext()) {
                     EquipmentOrderItem eqoItem = EquipmentOrderItem.resolveEqoiFromEqboi((EqBaseOrderItem) iterator.next())
-                    LOGGER.debug("EqoItem :: "+eqoItem)
-                    Long eqoiQty = eqoItem.getEqoiQty()
-                    LOGGER.debug("eqoiQty :: "+eqoiQty)
-                    Long eqoiTallyOut = eqoItem.getEqoiTally()
-                    LOGGER.debug("eqoiTallyOut :: "+eqoiTallyOut)
-                    Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
-                    LOGGER.debug("eqoiTallyIn :: "+eqoiTallyIn)
+                    Long eqoiQty = eqoItem?.getEqoiQty()
+                    Long eqoiTallyOut = eqoItem?.getEqoiTally()
+                    Long eqoiTallyIn = eqoItem?.getEqoiTallyReceive()
                     if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
                         if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
-                            LOGGER.debug("Inside In")
                             eqoItem.setEqoiQty(eqoiTallyIn)
                         }
                         if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
-                            LOGGER.debug("Inside Out")
                             eqoItem.setEqoiQty(eqoiTallyOut)
                         }
                     }
+                    totalItemQuantity += eqoItem.getEqoiQty()
                 }
             }
-        }
-        else if (booking.eqoTallyReceive == 0){
-            LOGGER.debug("purged")
+            booking.setEqoQuantity(totalItemQuantity)
+        } else if (booking.eqoTallyReceive == 0) {
             booking.purge()
         }
     }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+  </actions>
+  <form id="ORD062">
+    <title>Units</title>
+    <entity>
+      <name>ItemServiceTypeUnit</name>
+      <primaryKey>itmsrvtypunitGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" />
+      <actionMode action="update" mode="editable" />
+      <actionMode action="query" mode="editable" />
+    </actionsAllowed>
+    <!--<controller ref="addUnitsToServiceTypeFormController" />
+    <submitFormCommand ref="addUnitsToServiceTypeCommand" />-->
+    <formSubmissionCodeExtension name="ITESAddEquipmentToServiceOrderSubmissionCommand"/>
+    <item fieldId="unitEquipment.eqIdFull" />
+    <item fieldId="customFlexFields.itmsrvtypunitCustomDFFQuantity" />
+  </form>
+</variforms>
+

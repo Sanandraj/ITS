@@ -34,16 +34,6 @@ import org.jdom.Element
 import org.jdom.output.Format
 import org.jdom.output.XMLOutputter
 
-import javax.jms.DeliveryMode
-import javax.jms.Queue
-import javax.jms.QueueConnection
-import javax.jms.QueueConnectionFactory
-import javax.jms.QueueSender
-import javax.jms.QueueSession
-import javax.jms.Session
-import javax.jms.TextMessage
-import javax.naming.InitialContext
-
 /**
  * @Author <a href="mailto:skishore@weservetech.com">KISHORE KUMAR S</a>
  */
@@ -78,51 +68,6 @@ class ITSAutoInvoiceGroovyJob extends AbstractGroovyJobCodeExtension {
                             LOGGER.debug("Inside for Setting Flex Values")
                             invoice.setFieldValue(metaFieldId_Inv_JMS, "true")
                             LOGGER.debug("True Value Set")
-
-                            //MessageQueue msgPath = new MessageQueue("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS" as MessageBuffer)
-                            //msg.add(requestMessage as ActiveMQMessage)
-                            /*final String WebLogicURL="FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS"
-                           Hashtable env = new Hashtable()
-                           env.put(Context.PROVIDER_URL, WebLogicURL)*/
-                            /*try{
-                                new GroovyApi().sendXml("ITSDEVOUTBOUND",requestMessage.toString())
-                            }
-                            catch (Exception e){
-                                LOGGER.error("Exception "+ e.getMessage())
-                            }*/
-                            /*InitialContext ctx = new InitialContext()
-                            LOGGER.debug("ctx :: "+ctx)
-                            Queue queue = (Queue) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
-                            LOGGER.debug("queue :: "+queue)
-                            QueueConnectionFactory connFactory = (QueueConnectionFactory) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
-                            LOGGER.debug("connFactory :: "+connFactory)
-                            QueueConnection queueConn = connFactory.createQueueConnection()
-                            QueueSession queueSession = queueConn.createQueueSession(false, Session.DUPS_OK_ACKNOWLEDGE)
-                            QueueSender queueSender = queueSession.createSender(queue)
-                            queueSender.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
-                            TextMessage message = queueSession.createTextMessage(requestMessage.toString())
-                            LOGGER.debug("message :: "+message)
-                            queueSender.send(message)
-                            LOGGER.debug("sent messages: " + message.getText())
-                            queueConn.close()*/
-
-                            /*try {
-                                InitialContext ctx = new InitialContext()
-                                Queue queue = (Queue) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
-                                LOGGER.debug("queue :: "+queue)
-                                QueueConnectionFactory connFactory = (QueueConnectionFactory) ctx.lookup("FormatName:DIRECT=OS:itsGp31Dev\\private\$\\ITS")
-                                QueueConnection queueConn = connFactory.createQueueConnection()
-                                QueueSession queueSession = queueConn.createQueueSession(false, Session.DUPS_OK_ACKNOWLEDGE)
-                                QueueSender queueSender = queueSession.createSender(queue)
-                                queueSender.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
-                                TextMessage message = queueSession.createTextMessage(requestMessage.toString())
-                                queueSender.send(message)
-                                LOGGER.debug("sent messages: " + message.getText())
-                                queueConn.close()
-                            }
-                            catch (Exception e){
-                                LOGGER.error("Error Exception :: "+e.getMessage())
-                            }*/
                         }
                     }
                 }

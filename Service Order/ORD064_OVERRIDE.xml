@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+  </actions>
+  <table id="ORD064">
+    <title>Units</title>
+    <entity>
+      <name>ItemServiceTypeUnit</name>
+      <primaryKey>itmsrvtypunitGkey</primaryKey>
+    </entity>
+    <tableActions>
+      <tableActionMode action="create" mode="allow" />
+      <tableActionMode action="update" mode="disabled" />
+      <tableActionMode action="delete" mode="allow" />
+      <tableActionMode action="view" mode="disabled" />
+    </tableActions>
+    <crudCommand variformId="ORD062" />
+    <doubleClickCommand userActionId="ORD_VIEW_UNIT_SERVICE_TYPES" variformId="ORD069" modal="true" />
+    <menu category="actions">
+      <menuItem userActionId="ORD_VIEW_UNIT_SERVICE_TYPES" label="INSPECT_UNIT" variformId="ORD069" modal="true" enable="oneSource" />
+    </menu>
+    <menu category="context">
+      <menuItem userActionId="ORD_VIEW_UNIT_SERVICE_TYPES" label="INSPECT_UNIT" variformId="ORD069" modal="true" enable="oneSource" />
+    </menu>
+    <column fieldId="itmsrvtypunitUnit.unitEquipment.eqIdFull" />
+    <column fieldId="itmsrvtypunitUnit.unitId" />
+    <column fieldId="itmsrvtypunitUnit.unitEquipment.eqEquipType.eqtypId" />
+    <column fieldId="itmsrvtypunitUnit.unitCategory" />
+    <column fieldId="itmsrvtypunitStatus" />
+    <column fieldId="itmsrvtypunitUnit.unitLineOperator.bzuId" />
+    <column fieldId="itmsrvtypunitUnit.unitVisitState" />
+    <column fieldId="itmsrvtypunitUnit.unitActiveUfv.ufvTransitState" />
+    <column fieldId="itmsrvtypunitRelatedUnit" />
+    <column fieldId="customFlexFields.itmsrvtypunitCustomDFFQuantity" /> 
+  </table>
+</variforms>
+

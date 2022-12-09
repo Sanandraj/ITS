@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+  </actions>
+  <table id="INV007" cachingStrategy="primaryKey" defaultSearchfieldId="ufvUnit.unitId">
+    <title>Unit Queries</title>
+    <entity>
+      <name>UnitFacilityVisit</name>
+      <primaryKey>ufvGkey</primaryKey>
+    </entity>
+    <tableActions>
+      <tableActionMode action="create" mode="disabled" />
+      <tableActionMode action="update" mode="disabled" />
+      <tableActionMode action="view" mode="disabled" />
+      <tableActionMode action="delete" mode="disabled" />
+    </tableActions>
+    <doubleClickCommand userActionId="INV_INSPECT_UFV" variformId="INSPECTOR_UNIT" destination="dialog" modal="false" />
+    <uiManager ref="unitQuerySharedUiTableManager" />
+    <view ref="unitTableView" />
+    <controller ref="unitQueryVariformUiCommandTableViewController" />
+    <valueConverter ref="unitsTableValueConverter" />
+    <attributes>
+      <attribute key="defaultRecapXAttribute" value="ufvUnit.unitRouting.rtgPOD1.pointId" />
+      <attribute key="defaultRecapYAttribute" value="ufvUnit.unitEquipment.eqEquipType.eqtypId" />
+    </attributes>
+    <clipboardField fieldId="ufvUnit.unitId" entityName="UnitFacilityVisit" />
+    <menu category="display">
+      <menuItem userActionId="INV_LIST_SELECTED" label="LIST_SELECTED" commandRefId="showSelectedUfvsTableViewCommand" enable="oneOrMoreSources" />
+      <menuItem userActionId="INV_MY_LIST_ADD_SELECTED" label="MY_LIST_ADD_SELECTED" icon="/images/note_add_16x16.png" commandRefId="addContentsOfMyListCommand" enable="oneOrMoreSources" />
+    </menu>
+    <menu category="actions">
+      <subMenu userActionId="INV_PARENT_MENU_UPDATES" label="INV_PARENT_MENU_UPDATES">
+        <menuItem userActionId="INV_UNIT_REROUTE" variformId="INV016" label="UNIT_REROUTE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="CUSTOM_INV016" label="Routing" variformId="CUSTOM_INV016" destination="overlapped" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ADD_FLAG_ON_UNIT" variformId="FORM_ADD_FLAG_FOR_UNIT" label="UPDATE_HOLDS_PERMS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_PHYSICAL_STATUS" variformId="INV019" label="UPDATE_PHYSICAL_STATUS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="CUSTOM_INV019" label="Physical Status" variformId="CUSTOM_INV019" destination="overlapped" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_OVERDIMENSIONS" variformId="INV020" label="UPDATE_OVERDIMENSIONS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_SET_DAMAGES" variformId="FORM_UPDATE_DAMAGES" label="SET_DAMAGES" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_HAZARDS" variformId="INV031" label="UPDATE_HAZARDS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_SEALS" variformId="INV021" label="UPDATE_SEALS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_SHIPMENT_DETAILS" variformId="INV027" enable="oneOrMoreSources" label="UPDATE_SHIPMENT_DETAILS" modal="true" />
+        <menuItem userActionId="INV_UPDATE_STORAGE" variformId="INV075" label="UPDATE_STORAGE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_OTHER_STUFF" variformId="INV015" label="UPDATE_UFV" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_SPARCS_STUFF" variformId="INV028" label="MODIFY_UNIT" enable="oneOrMoreSources" modal="true" />
+        <menuItem userActionId="INV_SHOW_UNIT_UPDATE_EDITOR" variformId="INV049" label="SHOW_UNIT_UPDATE_EDITOR" enable="oneSource" modal="true" />
+        <menuItem userActionId="INV_UPDATE_LINE_OPERATOR" variformId="INV123" label="UPDATE_LINE_OPERATOR" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_DLVRYREQ" variformId="FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" label="DELIVERY_REQUIREMENTS" modal="true" enable="oneOrMoreSources" />
+        <!--2013-07-16 ARGO-48695 azharad v2.6.H New action in Update menu to add/update Position correction.-->
+        <menuItem userActionId="CUSTOM_FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" label="Trucking Company" variformId="CUSTOM_FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" destination="overlapped" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_POS_ORIENTATION" variformId="UPDATE_UFV_POS_ORIENTATION" label="UPDATE_POS_ORIENTATION" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_POS_SLOT_ON_CARRIAGE" variformId="UPDATE_UFV_POS_SLOT_ON_CARRIAGE" label="UPDATE_POS_SLOT_ON_CARRIAGE" modal="true" enable="oneOrMoreSources" />
+        <!--2014-11-28 ARGO-63210 rkasindula v3.1.P -added user action to update rail cone status -->
+        <menuItem userActionId="INV_UPDATE_UFV_RAIL_CONE_STATUS" variformId="FORM_UPDATE_RAIL_CONE_STATUS" label="UPDATE_UFV_RAIL_CONE_STATUS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_VGM" variformId="INV_FORM_UPDATE_VGM" label="UPDATE_VGM" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_VIEW" label="INV_PARENT_MENU_VIEW">
+        <menuItem userActionId="VIEW_GATE_APPOINTMENTS" variformId="TABLE_UNIT_VIEW_GATE_APPOINTMENTS" label="VIEW_GATE_APPOINTMENTS" destination="dialog" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_REEFER" label="INV_PARENT_MENU_REEFER">
+        <!--reefer-->
+        <menuItem userActionId="INV_UPDATE_REEFER_REQUIREMENTS" variformId="INV013" label="UPDATE_REEFER_REQUIREMENTS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="CUSTOM_INV013" label="Reefer Requirements" variformId="CUSTOM_INV013" destination="overlapped" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_REEFER_POWER_STATE" variformId="INV014" label="UPDATE_REEFER_POWER_STATE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_ENTER_REEFER_RECORDING" variformId="FORM_REEFER_RECORD" label="ENTER_REEFER_RECORDING" modal="true" enable="oneSource" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_TRANSACTIONS" label="INV_PARENT_MENU_TRANSACTIONS">
+        <!--transactions-->
+        <menuItem userActionId="INV_RECORD_EVENT_ON_UNIT" variformId="FORM_RECORD_UNIT_EVENT" label="RECORD_SERVICE_EVENT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_CREATE_SERVICE_ORDER_FOR_UNITS" variformId="INV127" label="CREATE_SERVICE_ORDER" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_STRIP_UNIT" variformId="INV060" label="UNIT_STRIP" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_STUFF_UNIT" variformId="INV061" label="UNIT_STUFF" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_TRANSLOAD_UNIT" variformId="INV037" label="UNIT_TRANSLOAD" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UNIT_REEXPORT" variformId="INV_FORM_UNIT_REEXPORT" label="UNIT_REEXPORT" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RETURN_TO_STORAGE" commandRefId="unitReturnToStorageCommand" label="RETURN_TO_STORAGE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RESERVE_EQUIPMENT" variformId="INV053" label="RESERVE_EQUIPMENT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CANCEL_RESERVATION" commandRefId="unitCancelReservationCommand" label="CANCEL_RESERVATION" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ASSIGN_EXPORT_BOOKING" commandRefId="assignExportBookingUnitFormCommand" label="ASSIGN_EXPORT_BOOKING" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ASSIGN_ERO" commandRefId="assignEROUnitFormCommand" label="ASSIGN_ERO" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_OFF_HIRE_ON_HIRE" variformId="INV112" label="OFF_HIRE_ON_HIRE" modal="true" enable="oneOrMoreSources" />
+        <!--todo enable ift only if logged into facility-->
+        <menuItem userActionId="INV_IFT" variformId="INV125" label="IFT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_EXTRACT_EVENTS" commandRefId="unitEventsExtractCommand" label="UNIT_EXTRACT_EVENTS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_QUERY_UNIT_CHARGES" variformId="INV120" label="LABEL_QUERY_UNIT_CHARGES" modal="true" enable="oneSource" />
+        <menuItem userActionId="ARG_CREATE_NOTICE_REQUEST" variformId="UNIT_NOTICE_REQUEST_FORM" label="CREATE_NOTICE_REQUEST" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_ADMIN" label="INV_PARENT_MENU_ADMIN">
+        <!--admin-->
+        <menuItem userActionId="INV_UNIT_REFRESH" commandRefId="unitRefreshCommand" label="UNIT_REFRESH" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_RECTIFY" variformId="INV050" label="UNIT_RECTIFY" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RENUMBER_UNIT" variformId="INV038" label="UNIT_RENUMBER" enable="oneSource" />
+        <menuItem userActionId="INV_RETURN_TO_YARD" variformId="INV139" label="RETURN_TO_YARD" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_DEPART" commandRefId="unitDepartCommand" label="UNIT_DEPART" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CANCEL_ADVISED_UNIT" commandRefId="cancelAdvisedCommand" label="UNIT_CANCEL_ADVISED" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RESURRECT_UNIT" commandRefId="unitResurrectCommand" label="UNIT_RESURRECT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_VISIBILITY_IN_SPARCS" variformId="INV052" label="UPDATE_SPARCS_VISIBILITY" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_DELETE" commandRefId="unitDeleteCommand" label="UNIT_DELETE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CORRECT_MEASURED_WEIGHTS" variformId="INV101" label="UPDATE_MEASURED_WEIGHTS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_FIX_DISCH_MISIDENTIFICATION" variformId="FORM_FIX_DISCH_MISIDENTIFICATION" label="FIX_DISCH_MISIDENTIFICATION" enable="oneSource" />
+        <menuItem userActionId="ARG_EXPORT_SNX" commandRefId="exportSnxCommand" label="ARG_EXPORT_SNX" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNDO_LOAD" label="UNDO_LOAD" commandRefId="undoLoadedUfvTableViewCommand" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UNDO_DISCH" label="UNDO_DISCH" commandRefId="undoDischargeTableViewCommand" modal="true" enable="oneSource" />
+      </subMenu>
+      <menuItem userActionId="INV_INITIALIZE_UFV_MOVE_COUNT" commandRefId="initializeUfvMoveCountCommand" label="INITIALIZE_UFV_MOVE_COUNT" modal="true" enable="oneOrMoreSources" />
+      <menuItem userActionId="INV_UNIT_RECAP_ALL_ACTION" label="Recap All" variformId="FORM_RECAP_AXES_SELECTION" enable="zeroOrMoreSources" destination="overlapped" />
+      <menuItem userActionId="INV_UNIT_RECAP_SELECT_ACTION" label="Recap Selected" variformId="FORM_RECAP_AXES_SELECTION" enable="oneOrMoreSources" destination="overlapped" />
+      <!--<menuItem userActionId="INV_ACTION_KEYSTROKE" label="INV_ACTION_KEYSTROKE" variformId="FORM_SELECT_ACTION" enable="oneOrMoreSources"/>-->
+      <menuItem userActionId="CUSTOM_LFD_MASS_UPDATE" label="LFD Mass Update" variformId="CUSTOM_INV075" destination="dialog" enable="oneOrMoreSources" />
+    </menu>
+    <menu category="context">
+      <subMenu userActionId="INV_PARENT_MENU_UPDATES" label="INV_PARENT_MENU_UPDATES">
+        <menuItem userActionId="INV_UNIT_REROUTE" variformId="INV016" label="UNIT_REROUTE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ADD_FLAG_ON_UNIT" variformId="FORM_ADD_FLAG_FOR_UNIT" label="UPDATE_HOLDS_PERMS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_PHYSICAL_STATUS" variformId="INV019" label="UPDATE_PHYSICAL_STATUS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_OVERDIMENSIONS" variformId="INV020" label="UPDATE_OVERDIMENSIONS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_SET_DAMAGES" variformId="FORM_UPDATE_DAMAGES" label="SET_DAMAGES" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_HAZARDS" variformId="INV031" label="UPDATE_HAZARDS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_SEALS" variformId="INV021" label="UPDATE_SEALS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_SHIPMENT_DETAILS" variformId="INV027" enable="oneOrMoreSources" label="UPDATE_SHIPMENT_DETAILS" modal="true" />
+        <menuItem userActionId="INV_UPDATE_STORAGE" variformId="INV075" label="UPDATE_STORAGE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UPDATE_OTHER_STUFF" variformId="INV015" label="UPDATE_UFV" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_SPARCS_STUFF" variformId="INV028" label="MODIFY_UNIT" enable="oneOrMoreSources" modal="true" />
+        <menuItem userActionId="INV_SHOW_UNIT_UPDATE_EDITOR" variformId="INV049" label="SHOW_UNIT_UPDATE_EDITOR" enable="oneSource" modal="true" />
+        <menuItem userActionId="INV_UPDATE_LINE_OPERATOR" variformId="INV123" label="UPDATE_LINE_OPERATOR" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_DLVRYREQ" variformId="FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" label="DELIVERY_REQUIREMENTS" modal="true" enable="oneOrMoreSources" />
+        <!--2013-07-16 ARGO-48695 azharad v2.6.H New action in Update menu to add/update Position correction.-->
+        <menuItem userActionId="INV_UPDATE_POS_ORIENTATION" variformId="UPDATE_UFV_POS_ORIENTATION" label="UPDATE_POS_ORIENTATION" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_POS_SLOT_ON_CARRIAGE" variformId="UPDATE_UFV_POS_SLOT_ON_CARRIAGE" label="UPDATE_POS_SLOT_ON_CARRIAGE" modal="true" enable="oneSource" />
+        <!--2014-11-28 ARGO-63210 rkasindula v3.1.P -added user action to update rail cone status -->
+        <menuItem userActionId="INV_UPDATE_UFV_RAIL_CONE_STATUS" variformId="FORM_UPDATE_RAIL_CONE_STATUS" label="UPDATE_UFV_RAIL_CONE_STATUS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_VGM" variformId="INV_FORM_UPDATE_VGM" label="UPDATE_VGM" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_VIEW" label="INV_PARENT_MENU_VIEW">
+        <menuItem userActionId="VIEW_GATE_APPOINTMENTS" variformId="TABLE_UNIT_VIEW_GATE_APPOINTMENTS" label="VIEW_GATE_APPOINTMENTS" destination="dialog" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_REEFER" label="INV_PARENT_MENU_REEFER">
+        <!--reefer-->
+        <menuItem userActionId="INV_UPDATE_REEFER_REQUIREMENTS" variformId="INV013" label="UPDATE_REEFER_REQUIREMENTS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_REEFER_POWER_STATE" variformId="INV014" label="UPDATE_REEFER_POWER_STATE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_ENTER_REEFER_RECORDING" variformId="FORM_REEFER_RECORD" label="ENTER_REEFER_RECORDING" modal="true" enable="oneSource" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_TRANSACTIONS" label="INV_PARENT_MENU_TRANSACTIONS">
+        <!--transactions-->
+        <menuItem userActionId="INV_RECORD_EVENT_ON_UNIT" variformId="FORM_RECORD_UNIT_EVENT" label="RECORD_SERVICE_EVENT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_CREATE_SERVICE_ORDER_FOR_UNITS" variformId="INV127" label="CREATE_SERVICE_ORDER" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_STRIP_UNIT" variformId="INV060" label="UNIT_STRIP" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_STUFF_UNIT" variformId="INV061" label="UNIT_STUFF" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_TRANSLOAD_UNIT" variformId="INV037" label="UNIT_TRANSLOAD" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_UNIT_REEXPORT" variformId="INV_FORM_UNIT_REEXPORT" label="UNIT_REEXPORT" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RETURN_TO_STORAGE" commandRefId="unitReturnToStorageCommand" label="RETURN_TO_STORAGE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RESERVE_EQUIPMENT" variformId="INV053" label="RESERVE_EQUIPMENT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CANCEL_RESERVATION" commandRefId="unitCancelReservationCommand" label="CANCEL_RESERVATION" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ASSIGN_EXPORT_BOOKING" commandRefId="assignExportBookingUnitFormCommand" label="ASSIGN_EXPORT_BOOKING" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_ASSIGN_ERO" commandRefId="assignEROUnitFormCommand" label="ASSIGN_ERO" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_OFF_HIRE_ON_HIRE" variformId="INV112" label="OFF_HIRE_ON_HIRE" modal="true" enable="oneOrMoreSources" />
+        <!--todo enable ift only if logged into facility-->
+        <menuItem userActionId="INV_IFT" variformId="INV125" label="IFT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_EXTRACT_EVENTS" commandRefId="unitEventsExtractCommand" label="UNIT_EXTRACT_EVENTS" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_QUERY_UNIT_CHARGES" variformId="INV120" label="LABEL_QUERY_UNIT_CHARGES" modal="true" enable="oneSource" />
+        <menuItem userActionId="ARG_CREATE_NOTICE_REQUEST" variformId="UNIT_NOTICE_REQUEST_FORM" label="CREATE_NOTICE_REQUEST" modal="true" enable="oneOrMoreSources" />
+      </subMenu>
+      <subMenu userActionId="INV_PARENT_MENU_ADMIN" label="INV_PARENT_MENU_ADMIN">
+        <!--admin-->
+        <menuItem userActionId="INV_UNIT_REFRESH" commandRefId="unitRefreshCommand" label="UNIT_REFRESH" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_RECTIFY" variformId="INV050" label="UNIT_RECTIFY" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RENUMBER_UNIT" variformId="INV038" label="UNIT_RENUMBER" enable="oneSource" />
+        <menuItem userActionId="INV_RETURN_TO_YARD" variformId="INV139" label="RETURN_TO_YARD" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_DEPART" commandRefId="unitDepartCommand" label="UNIT_DEPART" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CANCEL_ADVISED_UNIT" commandRefId="cancelAdvisedCommand" label="UNIT_CANCEL_ADVISED" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RESURRECT_UNIT" commandRefId="unitResurrectCommand" label="UNIT_RESURRECT" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UPDATE_VISIBILITY_IN_SPARCS" variformId="INV052" label="UPDATE_SPARCS_VISIBILITY" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNIT_DELETE" commandRefId="unitDeleteCommand" label="UNIT_DELETE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_CORRECT_MEASURED_WEIGHTS" variformId="INV101" label="UPDATE_MEASURED_WEIGHTS" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_FIX_DISCH_MISIDENTIFICATION" variformId="FORM_FIX_DISCH_MISIDENTIFICATION" label="FIX_DISCH_MISIDENTIFICATION" enable="oneSource" />
+        <menuItem userActionId="ARG_EXPORT_SNX" commandRefId="exportSnxCommand" label="ARG_EXPORT_SNX" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_UNDO_LOAD" label="UNDO_LOAD" commandRefId="undoLoadedUfvTableViewCommand" enable="oneSource" />
+        <menuItem userActionId="INV_UNDO_DISCH" label="UNDO_DISCH" commandRefId="undoDischargeTableViewCommand" modal="true" enable="oneSource" />
+      </subMenu>
+      <menuItem userActionId="INV_INSPECT_UFV" label="INSPECT_UNIT" variformId="INSPECTOR_UNIT" destination="dialog" modal="false" enable="oneSource" />
+      <menuItem userActionId="INV_INITIALIZE_UFV_MOVE_COUNT" commandRefId="initializeUfvMoveCountCommand" label="INITIALIZE_UFV_MOVE_COUNT" modal="true" enable="oneOrMoreSources" />
+      <menuItem userActionId="INV_UNIT_RECAP_ALL_ACTION" label="Recap All" variformId="FORM_RECAP_AXES_SELECTION" enable="zeroOrMoreSources" destination="overlapped" />
+      <menuItem userActionId="INV_UNIT_RECAP_SELECT_ACTION" label="Recap Selected" variformId="FORM_RECAP_AXES_SELECTION" enable="oneOrMoreSources" destination="overlapped" />
+      <!--keystroke-->
+      <menuItem userActionId="CUSTOM_FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" label="Trucking Company" variformId="CUSTOM_FORM_UNIT_UPDATE_DELIVERY_REQUIREMENTS" destination="overlapped" enable="oneOrMoreSources" />
+      <menuItem userActionId="CUSTOM_INV016" label="Routing" variformId="CUSTOM_INV016" destination="overlapped" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_INV013" label="ReeferReq" variformId="CUSTOM_INV013" destination="overlapped" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_INV019" label="Physical Status" variformId="CUSTOM_INV019" destination="overlapped" enable="oneOrMoreSources" />
+      <menuItem userActionId="CUSTOM_INV_UNDO_RAMP" label="Undo Ramp" codeExtensionId="ITSUndoRampMoveTableViewCommand" destination="none" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_INV_UNDO_DERAMP" label="Undo DeRamp" codeExtensionId="ITSUndoDeRampMoveTableViewCommand" destination="none" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_LFD_MASS_UPDATE" label="LFD Mass Update" variformId="CUSTOM_INV075" destination="dialog" enable="oneOrMoreSources" />
+    </menu>
+    <column fieldId="ufvTimeOfLastMove" display="visible" complexQuery="include" />
+    <!--2010-06-09 psethuraman ARGO-25957: grouping at column level, to avoid inconsistency-->
+    <column fieldId="ufvUnit.unitId" display="visible" complexQuery="include" groupLabel="1-Unit" />
+    <!--2006-11-02 JJS 1.2.F ARGO-000: add chassis ID, for Matson-->
+    <column fieldId="ufvUnit.unitCarriageUnit.unitEquipment.eqIdFull" display="viewable" complexQuery="include" />
+    <!-- added by JJS 2007-08-19 v1.4.i ARGO-8035 -->
+    <column fieldId="ufvUnit.unitCarriageUnit.unitGradeID.eqgrdId" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <column fieldId="ufvUnit.unitCarriageUnit.unitEquipmentState.eqsGradeID.eqgrdId" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <column fieldId="ufvUnit.unitCarriageUnit.unitEquipmentState.eqsOffhireLocation" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvUnit.unitCarriageUnit.unitEquipmentState.eqsEqOperator.bzuId" display="viewable" complexQuery="omit" recapable="true" />
+    <column fieldId="ufvUnit.unitCarriageUnit.unitEquipmentState.eqsEqOwner.bzuId" display="viewable" complexQuery="omit" recapable="true" />
+    <column fieldId="ufvUnit.unitCarriageUnit.unitDamageSeverity" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsFlexString01" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsFlexString02" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsFlexString03" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <!--2007-07-09 RMK 1.4 ARGO-7271 adding accesory equipment id attribute for Matson-->
+    <column fieldId="ufvUnit.unitAcryEquipIds" display="viewable" simpleQuery="include" complexQuery="omit" />
+    <!--2007-07-09 RMK 1.4 ARGO-7743 adding cargo weight for PICT-->
+    <column fieldId="ufvUnit.unitCargoWeight" display="viewable" simpleQuery="omit" complexQuery="omit" groupLabel="4-Contents" />
+    <!--2009.08.19 jwang ARGO-19222: Add Weight Discrepancy attribute to N4 (Apex).-->
+    <column fieldId="ufvUnit.unitWeightDiscrepancy" display="viewable" simpleQuery="include" complexQuery="include" groupLabel="4-Contents" />
+    <!--2007-06-09 JJS 1.4.B ARGO-7327: allow search be serial # range -->
+    <column fieldId="ufvUnit.unitEquipment.eqIdPrefix" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipment.eqIdCheckDigit" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipment.eqIdNbrOnly" display="viewable" complexQuery="include" />
+    <!--2006-03-29 lbarman v1.0.10 ARGO-000: add SealNbr as vieawable field-->
+    <column fieldId="ufvUnit.unitSealNbr1" display="viewable" complexQuery="include" />
+    <!--2008-09-19 smandadi ARGO-14161: Add Seal 2, 3, and 4 to unit column selection LOV-->
+    <column fieldId="ufvUnit.unitSealNbr2" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitSealNbr3" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitSealNbr4" display="viewable" complexQuery="include" />
+    <!--2012-04-16 azharad ARGO-37487: Add Is Sealead column to selection LOV-->
+    <column fieldId="ufvUnit.unitIsCtrSealed" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqClass" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypId" display="visible" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqIsoGroup" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypNominalLength" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypNominalHeight" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypArchetype.eqtypId" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqRfrType" display="viewable" complexQuery="include" groupLabel="5-Reefer" recapable="true" />
+    <column fieldId="ufvUnit.unitGradeID.eqgrdId" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsGradeID.eqgrdId" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <!-- added by JJS 2007-08-19 v1.4.i ARGO-8035 -->
+    <!-- 2007-11-06 JJS v1.4.0 ARGO-8369 this flag is now deprecated: not needed now that we have EquipmentState (after one year...)-->
+    <!--column fieldId="ufvUnit.unitIsCurrentUse" display="none" simpleQuery="omit" complexQuery="include"/-->
+    <column fieldId="ufvUnit.unitEquipmentState.eqsOffhireLocation" display="viewable" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsEqOperator.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsEqOperator" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsEqOwner.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipmentState.eqsEqOwner" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitDepartureOrderItem.eqboiOrder.eqboNbr" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitArrivalOrderItem.eqboiOrder.eqboNbr" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitBadNbr" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitCategory" display="visible" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!-- 2007-10-06 lbarman v1.4.M ARGO-8540: add remark to unit table -->
+    <column fieldId="ufvUnit.unitRemark" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvRestowType" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!--2010-08-10 spabbala v2.2.A, v2.1.X ARGO-27594 Add handling reason to unit list view and filter-->
+    <column fieldId="ufvHandlingReason" display="viewable" simpleQuery="include" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvVisitState" display="visible" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvTransitState" display="visible" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitVisitState" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!--2010-07-05 psethuraman ARGO-26974: Position should be grouped under 7-Position -->
+    <column fieldId="ufvLastKnownPosition.posName" display="visible" complexQuery="include" groupLabel="7-Position" />
+    <!--2013-07-16 ARGO-48695 azharad v2.6.H Added field to add/update in Pos Orientation -->
+    <!--<column fieldId="ufvLastKnownPosition.posOrientation" display="viewable" complexQuery="include" groupLabel="7-Position"/>-->
+    <column fieldId="ufvLastKnownPosition.posOperationalPosId" display="viewable" complexQuery="include" label="Operational Pos." groupLabel="7-Position" />
+    <!--  New 2006-10-15 JJS v1.2.E ARGO-5447 Multi-facility ARGO-7084 make viewable, not visible -->
+    <column fieldId="ufvComplexPosition" display="viewable" simpleQuery="omit" complexQuery="omit" />
+    <column fieldId="ufvDoorDirection" display="viewable" complexQuery="include" />
+    <!-- New 2014-23-12 bursode ARGO-66595 slotOnCarriage is optional column for unit table -->
+    <column fieldId="ufvSlotOnCarriage" display="viewable" complexQuery="omit" simpleQuery="omit" />
+    <!-- biz meta field -->
+    <column fieldId="ufvUnit.unitDamageSeverity" display="viewable" complexQuery="include" recapable="true" />
+    <!-- 2007-07-20 lbarman v1.3.10,1.4.F ARGO-7677: Process Damage Severity and Damage Codes that are updated in SPARCS-->
+    <column fieldId="ufvUnit.unitSparcsDamageCode" display="viewable" complexQuery="include" recapable="true" />
+    <!--2006-10-22 shivajic v1.2.D ARGO-5285 denormalized field to store associated BL Nbr-->
+    <column fieldId="ufvUnit.unitGoods.gdsBlNbr" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoods.gdsIsHazardous" display="viewable" complexQuery="include" groupLabel="4-Contents" recapable="true" />
+    <column fieldId="ufvUnit.unitGoods.gdsImdgTypes" display="viewable" complexQuery="include" groupLabel="4-Contents" recapable="true" />
+    <!--2012.12.19 LASAD ARGO-38343 De-normalize 3 top UN Hazards.-->
+    <column fieldId="ufvUnit.unitGoods.gdsThreeMainHazardUNNumbers" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitExpectedPlacardIds" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitObservedPlacardIds" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvUnit.unitGoods.gdsHazards.hzrdWorstFireCode.firecodeFireCode" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoods.gdsHazards.hzrdWorstFireCode.firecodeFireCodeClass" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoods.gdsShipperBzu" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitGoods.gdsShipperBzu.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <!-- 2007-09-12 lbarman v1.4.J ARGO-7899: configurable display of shipper/consignee names instead of id - provide both fields -->
+    <column fieldId="ufvUnit.unitGoods.gdsShipperBzu.bzuName" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoods.gdsConsigneeBzu" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitGoods.gdsConsigneeBzu.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <!-- 2007-09-12 lbarman v1.4.J ARGO-7899: configurable display of shipper/consignee names instead of id - provide both fields -->
+    <column fieldId="ufvUnit.unitGoods.gdsConsigneeBzu.bzuName" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <!--2006-03-13 lbarman v1.0.9.1 ARGO-3560 add commodity to table choice-->
+    <column fieldId="ufvUnit.unitGoods.gdsCommodity" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitGoods.gdsCommodity.cmdyId" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitIsOog" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitLineOperator" display="none" complexQuery="include" />
+    <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
+    <column fieldId="ufvUnit.unitLineOperator.bzuId" display="visible" complexQuery="omit" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitDeclaredIbCv.cvCarrierMode" display="viewable" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgDeclaredCv.cvCarrierMode" display="viewable" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <!--2008-01-22 JJS v1.5.D ARGO-9453 For Matson, show the operator of the outbound carrier -->
+    <column fieldId="ufvUnit.unitDeclaredIbCv" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitDeclaredIbCv.cvId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvActualIbCv.cvOperator" display="none" complexQuery="include" />
+    <column fieldId="ufvActualIbCv.cvOperator.bzuId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvActualIbCv" display="none" complexQuery="include" />
+    <column fieldId="ufvActualIbCv.cvId" display="visible" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgDeclaredCv" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgDeclaredCv.cvId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvActualObCv" display="none" complexQuery="include" />
+    <column fieldId="ufvActualObCv.cvId" display="visible" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvActualObCv.cvOperator" display="none" complexQuery="include" />
+    <column fieldId="ufvActualObCv.cvOperator.bzuId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <!-- 2006-06-27 AFN 4502 v1.1.D fixed group code  -->
+    <column fieldId="ufvUnit.unitRouting.rtgGroup" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgGroup.grpId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOL" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOL.pointId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOL.pointUnLoc.unlocCntry" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgOPL" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgOPL.pointId" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitRouting.rtgOPL.pointUnLoc.unlocCntry" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOL.pointUnLoc.unlocCntry.cntryCode" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD1" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD1.pointId" display="visible" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD1.pointUnLoc.unlocCntry" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD1.pointUnLoc.unlocCntry.cntryCode" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <!-- added 2006-05-03 JJS ARGO-4170-->
+    <column fieldId="ufvUnit.unitRouting.rtgPOD2" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD2.pointId" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD2.pointUnLoc.unlocCntry" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgPOD2.pointUnLoc.unlocCntry.cntryCode" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitRouting.rtgProjectedPOD.pointId" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvIsCallingCsiCountry" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitFreightKind" display="visible" complexQuery="include" groupLabel="4-Contents" />
+    <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
+    <column fieldId="ufvUnit.unitGoodsAndCtrWtKg" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <!--2008-03-26 ssampath ARGO- v1.5M  -->
+    <column fieldId="ufvUnit.unitGoodsAndCtrWtKgAdvised" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoodsAndCtrWtKgGateMeasured" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoodsAndCtrWtKgYardMeasured" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitVgmEntity" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitVgmVerifiedDate" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoodsAndCtrWtKgVerfiedGross" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGrossWeightSource" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitRequiresPower" display="visible" complexQuery="include" groupLabel="5-Reefer" recapable="true" />
+    <column fieldId="ufvUnit.unitIsPowered" display="viewable" complexQuery="include" groupLabel="5-Reefer" recapable="true" />
+    <column fieldId="ufvUnit.unitIsAlarmOn" display="viewable" complexQuery="include" groupLabel="5-Reefer" />
+    <!--column fieldId="ufvUnit.unitGoods.gdsTempRequired" display="viewable"
+                complexQuery="omit" simpleQuery="omit"/-->
+    <column fieldId="ufvUnit.unitGoods.gdsTempLimitMin" display="viewable" complexQuery="omit" simpleQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitGoods.gdsTempLimitMax" display="viewable" complexQuery="omit" simpleQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitGoods.gdsReeferRqmnts.rfreqTempRequiredC" display="viewable" complexQuery="include" groupLabel="5-Reefer" />
+    <column fieldId="rfreqTempRequiredInF" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitGoods.gdsReeferRqmnts.rfreqLatestOnPowerTime" display="viewable" complexQuery="include" groupLabel="5-Reefer" />
+    <!-- 2007-10-22 lbarman ARGO-8620: add field for requested power off time of reefer requirements -->
+    <column fieldId="ufvUnit.unitGoods.gdsReeferRqmnts.rfreqRequestedOffPowerTime" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitLastReeferRecordTemp" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <!-- 2008-08-25 mkamalakannan  v1.7.B ARGO-8232: add field for faultcode,remark,
+                supplytemp,setpointtemp, hmdty, defrost,o2,co2,fuellevel of reefer requirements -->
+    <!-- 2012-08-08 Sundaga ARGO-36627: LPC - Modified ComplexQuery to Omit for BizMetafilds in Reefer group -->
+    <column fieldId="ufvUnit.unitLastReeferRecordHmdty" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordO2" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordCO2" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordFaultCode" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordDefrostTemp" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordSupplyTemp" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <!-- 2009-03-04 smandadi V1.8.O ARGO-16477: LPC - Application displays system error when Apply Filter in Units table -->
+    <column fieldId="ufvUnit.unitLastReeferRecordSetPointTemp" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordFuelLevel" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordRemark" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordVentSetting" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitLastReeferRecordVentUnit" display="viewable" complexQuery="omit" groupLabel="5-Reefer" />
+    <column fieldId="ufvUnit.unitSpecialStow" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitSpecialStow.stwId" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitSpecialStow2" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitSpecialStow2.stwId" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitSpecialStow3" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitSpecialStow3.stwId" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
+    <column fieldId="ufvFacility" display="none" complexQuery="include" />
+    <column fieldId="ufvFacility.fcyId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitComplex" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitComplex.cpxId" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvTimeIn" display="viewable" complexQuery="include" />
+    <!--2006-03-08 lbarman v1.0.9 ARGO-3499: added fields -->
+    <column fieldId="ufvTimeOut" display="viewable" complexQuery="include" />
+    <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
+    <column fieldId="ufvTimeOfLoading" display="viewable" complexQuery="include" />
+    <column fieldId="ufvTimeEcIn" display="viewable" complexQuery="include" />
+    <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
+    <column fieldId="ufvUnit.unitCreateTime" display="viewable" complexQuery="include" />
+    <!-- smarchenko, 10/26/09 it does not make sense to have filter on this, see ARGO-21184 -->
+    <column fieldId="ufvUnit.unitEqRole" display="viewable" complexQuery="include" />
+    <!--2010-07-05 psethuraman ARGO-26974: Arrival Position should be grouped under 7-Position -->
+    <column fieldId="ufvArrivePosition.posName" display="viewable" complexQuery="include" groupLabel="7-Position" />
+    <column fieldId="ufvDwellDays" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvUnit.unitComplexInTime" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvCalculatedLastFreeDay" display="viewable" complexQuery="omit" />
+    <!-- Allow filtering just on overridden last free day, needed for PNC who only has overridden dates.  -->
+    <column fieldId="ufvLastFreeDay" display="viewable" complexQuery="include" />
+    <column fieldId="ufvPaidThruDay" display="viewable" complexQuery="omit" />
+    <!-- 2008-07-08 bdrasin added power column -->
+    <column fieldId="ufvPowerPaidThruDay" display="viewable" complexQuery="omit" />
+    <!--2009-10-05 aprabhakar  v2.0.L, ARGO-20581 - Consolidate Billing related Unit Attributes on Unit View -->
+    <column fieldId="ufvGuaranteeThruDay" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvGuaranteeParty.bzuId" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvPowerGuaranteeThruDay" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvPowerGuaranteeParty.bzuId" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvLineLastFreeDay" display="viewable" complexQuery="include" />
+    <column fieldId="ufvLinePaidThruDay" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvLineGuaranteeThruDay" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvLineGuaranteeParty.bzuId" display="viewable" complexQuery="omit" />
+    <!--11.11.21 spabbala v2.3.F ARGO-34660 Last Free Day is duplicated instead of Line Storage Last Free Day-->
+    <column fieldId="ufvCalculatedLineStorageLastFreeDay" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvUnit.unitAppliedHoldOrPermName" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitGrantedHoldsPermissions" display="viewable" complexQuery="include" />
+    <!-- 2007-10-11 lbarman v1.4.M ARGO-8567: allow filtering in event types; show impediments in unit table -->
+    <column fieldId="ufvUnit.unitImpediments" display="viewable" complexQuery="omit" />
+    <!-- 2007-10-11 lbarman v1.4.M ARGO-8606: add field ufvVerifiedYardPosition -->
+    <column fieldId="ufvVerifiedYardPosition" display="viewable" complexQuery="include" />
+    <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
+    <column fieldId="ufvUnit.unitStoppedVessel" display="visible" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitStoppedRail" display="visible" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitStoppedRoad" display="visible" complexQuery="include" recapable="true" />
+    <!-- 2006-03-24 JJS ARGO-3744 potential -->
+    <column fieldId="ufvUnit.unitDeliveryImpedimentString" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvUnit.unitVesselLoadImpedimentString" display="viewable" complexQuery="omit" />
+    <column fieldId="ufvUnit.unitRailRampImpedimentString" display="viewable" complexQuery="omit" />
+    <!-- 2006-03-24 JJS ARGO-3744 new -->
+    <column fieldId="ufvUnit.unitImpedimentRoad" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitImpedimentRail" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitImpedimentVessel" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitIsStowplanPosted" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!-- 2006-02-22 AFN ARGO-3257 -->
+    <column fieldId="ufvVisibleInSparcs" display="viewable" complexQuery="include" groupLabel="91-Other" />
+    <column fieldId="ufvUnit.unitImportDeliveryOrder.idoId" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitExportReleaseNbr" display="viewable" complexQuery="include" groupLabel="91-Other" />
+    <column fieldId="ufvUnit.unitExportReleaseDate" display="viewable" complexQuery="omit" groupLabel="91-Other" />
+    <column fieldId="ufvUnit.unitFlexString01" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString02" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString03" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString04" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString05" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString06" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString07" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString08" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString09" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString10" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!-- 2008-03-24 ssampath ARGO-8885 More flex fields.. -->
+    <column fieldId="ufvUnit.unitFlexString11" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString12" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString13" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString14" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <column fieldId="ufvUnit.unitFlexString15" display="viewable" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!-- ARGO-5445 eyu 10/25/2006 v.1.2.F Add flex fields. -->
+    <column fieldId="ufvFlexString01" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString02" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString03" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString04" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <!-- 2008-03-24 ssampath ARGO-8885 More flex fields.. -->
+    <column fieldId="ufvFlexString05" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString06" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString07" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString08" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString09" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexString10" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate01" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate02" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate03" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate04" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate05" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate06" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate07" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvFlexDate08" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <!-- 2006-09-26 isaacson ARGO-3967 -->
+    <column fieldId="ufvSparcsNote" display="viewable" complexQuery="include" groupLabel="1-Unit" />
+    <!-- 2006-03-03 JJS ARGO-3465 added for ECN -->
+    <column fieldId="ufvUnit.unitFlag1ReferenceId" display="viewable" complexQuery="omit" groupLabel="3-Routing" />
+    <!--2006-03-08 lbarman v1.0.9 ARGO-3499: added fields -->
+    <column fieldId="ufvUnit.unitGoods.gdsDestination" display="viewable" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgTruckingCompany" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgTruckingCompany.bzuId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgReturnToLocation" display="viewable" complexQuery="include" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitDrayStatus" display="viewable" complexQuery="include" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitTimeLastStateChange" display="viewable" complexQuery="omit" />
+    <!-- 2008.04.03 mpompa ARGO-10145 Add Origin -->
+    <column fieldId="ufvUnit.unitGoods.gdsOrigin" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <!-- 2006-Oct-27 svaitheas v1.2.F ARGO-5352 :Add creator, created, changed, changer to all sub panes of booking form-->
+    <!-- 2006-Dec-19 svaitheas v1.2.L ARGO-5791 :Removed the duplicate field in list-->
+    <column fieldId="ufvPositionPlannedFinal" display="viewable" complexQuery="include" />
+    <!-- jwang 2008-05-01 ARGO-11406: add MnR Status field -->
+    <column fieldId="ufvUnit.unitMnrStatus.mnrstatId" display="viewable" complexQuery="include" />
+    <!-- jwang ARGO-11056, Originally requested by Antwerp as one of the attributes of Unit -->
+    <!-- todo As per discussion with Jon we may have to add a config setting to allow use cases where this -->
+    <!-- attribute will be at the EquipmentState entity level, but for now we are just doing it at one place -->
+    <column fieldId="ufvUnit.unitConditionID.eqcondId" display="viewable" complexQuery="include" recapable="true" />
+    <column fieldId="ufvUnit.unitEquipment.eqCscExpiration" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitEquipment.eqTareWeightKg" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitEquipment.eqSafeWeightKg" display="viewable" complexQuery="include" />
+    <column fieldId="ufvPowerLastFreeDay" display="viewable" complexQuery="include" />
+    <column fieldId="ufvCalculatedPowerLastFreeDay" display="viewable" complexQuery="omit" />
+    <!-- bshrinevas March 10 2009 ARGO-17145 -->
+    <column fieldId="ufvUnit.unitArePlacardsMismatched" display="viewable" simpleQuery="include" complexQuery="include" groupLabel="1-Unit" recapable="true" />
+    <!-- 2009-03-25 jwang 1.8 ARGO-17440: PIN number cannot be associated to a Advised unit. -->
+    <!-- jwang, This is needed because the unit gkey needs to passed to an action
+             that needs the unit gkey to pre-populate a form. -->
+    <column fieldId="ufvUnit.unitGkey" display="none" complexQuery="omit" />
+    <!-- 2009-04-14 rsatish v1.9.D ARGO-17303 Unit exam and inbond status -->
+    <column fieldId="ufvUnit.unitExam" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitInbond" display="viewable" complexQuery="include" groupLabel="4-Contents" recapable="true" />
+    <!-- 2009-04-23 snayak v1.9.E ARGO-18208 support the waybill number and waybill date under Routing -->
+    <column fieldId="ufvUnit.unitWayBillNbr" display="viewable" complexQuery="include" groupLabel="3-Routing" />
+    <column fieldId="ufvUnit.unitWayBillDate" display="viewable" complexQuery="include" groupLabel="3-Routing" />
+    <!--2009-05-11 spabbala 1.9.F ARGO-18588 Add Bonded Trucking company in the Unit and the Delivery Requirements.-->
+    <column fieldId="ufvUnit.unitRouting.rtgBondTruckingCompany" display="none" complexQuery="include" />
+    <column fieldId="ufvUnit.unitRouting.rtgBondTruckingCompany.bzuId" display="viewable" complexQuery="omit" groupLabel="3-Routing" recapable="true" />
+    <column fieldId="ufvUnit.unitRouting.rtgBondedDestination" complexQuery="include" display="viewable" groupLabel="3-Routing" recapable="true" />
+    <!-- 2009-11-17 aprabhakar v2.1.B ARGO-21123 - Create a new entity for holds and permissions called Class [ DB, SNX and UI Changes] -->
+    <!--2009-12-14 spabbala v2.1.D ARGO-22213 Filter on unit query field 'Unit Hold/Perm View' throws a System Error.-->
+    <column fieldId="ufvUnit.unitAppliedHoldOrPermView" display="viewable" complexQuery="include" />
+    <!--2009-12-14 spabbala v2.1.D ARGO-22575 Need a rolled up API (callable from road module) to return the comma delimited Hold Classes on a
+        container.-->
+    <column fieldId="ufvUnit.unitAppliedHoldOrRequiredPermView" display="viewable" complexQuery="omit" />
+    <!--2009-12-14 spabbala v2.1.E ARGO-22643 Support Associating Agents with Units (NFRM-521 Jan Delivery for Haifa)-->
+    <!--adding unitAgent1-->
+    <column fieldId="ufvUnit.unitAgent1" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitAgent1.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <!--adding unitAgent2-->
+    <column fieldId="ufvUnit.unitAgent2" display="none" complexQuery="include" simpleQuery="omit" />
+    <column fieldId="ufvUnit.unitAgent2.bzuId" display="viewable" complexQuery="omit" simpleQuery="include" groupLabel="4-Contents" />
+    <!--2010-01-22 spabbala v2.1.G ARGO-23322 Add a new attribute to UnitFacilityVisit NFRM-252 -->
+    <column fieldId="ufvIsDirectIbToObMove" display="viewable" complexQuery="include" groupLabel="4-Contents" />
+    <!--2010-03-05 spabbala v2.1.J ARGO-23434 new custom field to log errors for marry request-->
+    <column fieldId="ufvValidateMarryErrors" display="viewable" complexQuery="include" />
+    <column fieldId="ufvUnit.unitIsBundle" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <!--2010-10-07 v2.2.D spabbala ARGO-28364 Add audit information changed to inv_unit-->
+    <column fieldId="ufvUnit.unitChanged" display="viewable" groupLabel="91-Other" />
+    <!-- RMK NFRM-707, ARGO-28706 Support for search by any equipment ID in Unit's eq set.-->
+    <column fieldId="ufvUeEqId" display="none" complexQuery="include" simpleQuery="always" />
+    <column fieldId="ufvUnit.unitCargoQuantity" display="viewable" complexQuery="omit" groupLabel="1-Unit" />
+    <column fieldId="ufvUnit.unitCargoQuantityUnit" display="viewable" complexQuery="omit" groupLabel="1-Unit" />
+    <column fieldId="ufvStowFactor" display="viewable" />
+    <column fieldId="ufvReturnToYard" display="viewable" groupLabel="91-Other" />
+    <!-- mpadhye ARGO-33292 Add ufvDlvTimeAppntmnt to Units table view (viewable field) , filter criteria and Unit inspector -->
+    <column fieldId="ufvDlvTimeAppntmnt" display="viewable" complexQuery="include" simpleQuery="omit" groupLabel="8-Timestamp" recapable="true" />
+    <column fieldId="ufvMoveCount" hAlignment="left" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="1-Unit" />
+    <!-- 2013-02-05 mahalma ARGO-43411  Add ufvGapptNbr to Units table view (viewable field) -->
+    <column fieldId="ufvGapptNbr" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="1-Unit" />
+    <!--azharad ARGO-53604: New field to manage carrier incompatibility reason to prevent Load.-->
+    <column fieldId="ufvCarrierIncompatibleReason" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="92-XPS" />
+    <!--2014-01-06 azharad ARGO-53789: Added Tank Rails field at Unit Inspector-->
+    <column fieldId="ufvUnit.unitEquipment.eqTankRails" display="viewable" complexQuery="include" groupLabel="2-Equipment" recapable="true" />
+    <!--2014-11-10 rkasindula ARGO-63210 NFRM-1152 field "ufvRailConeStatus" is added to UFV entity-->
+    <column fieldId="ufvRailConeStatus" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="92-XPS" />
+    <column fieldId="ufvCasUnitReference" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="91-Other" />
+    <column fieldId="ufvCasTransactionReference" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="91-Other" />
+    <column fieldId="ufvEcsUnitReference" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="91-Other" />
+    <!--2015-05-05 bursode ARGO-74146 NFRM-1051 field UnitCombo added as optional col-->
+    <column fieldId="ufvUnit.unitCombo" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="1-Unit" />
+    <column fieldId="ufvUnit.unitRouting.rtgCarrierService.srvcId" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="3-Routing" />
+    <column fieldId="ufvIsAutoCheSuitable" display="viewable" complexQuery="include" groupLabel="91-Other" />
+    <column fieldId="ufvLastKnownPosition.posSlot" display="viewable" complexQuery="include" simpleQuery="include" groupLabel="7-Position" />
+  </table>
+</variforms>
+
