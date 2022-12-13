@@ -96,5 +96,5 @@ class ITSCustomStorageRule extends AbstractStorageRule {
     }
 
 
-    private static final Logger log = Logger.getLogger(this.class)
+    private static Logger log = Logger.getLogger(this.class)
 }
