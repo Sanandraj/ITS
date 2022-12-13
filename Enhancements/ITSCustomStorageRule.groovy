@@ -1,31 +1,43 @@
-package ITS.Enhancements
-
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
 
 import com.navis.argo.business.model.Facility
-import com.navis.cargo.InventoryCargoEntity
-import com.navis.cargo.InventoryCargoField
-import com.navis.cargo.business.model.BlRelease
 import com.navis.external.framework.util.EFieldChanges
-import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.portal.FieldChanges
-import com.navis.framework.portal.QueryUtils
-import com.navis.framework.portal.query.DomainQuery
-import com.navis.framework.portal.query.PredicateFactory
 import com.navis.inventory.InventoryField
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.inventory.external.inventory.AbstractStorageRule
+import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Logger
 
 import java.time.*
 
-/**
- * UAarthi - Custom start rule for import demurrage charges (includes 3-2)
- *
- * 1.	The application should start Import demurrage:
- *  a.	If these holds exists, demurrage starts when these holds are released 1H, 7H, 2H, 71, 72, 73
- *  b.	Otherwise demurrage starts at the first 3am after discharge
 
+/**
+ * @Author: uaarthi@weservetech.com, Aarthi U; Date: 22-11-2022
+ *
+ *  Requirements: Custom start rule for import demurrage charges (includes 3-2)
+ *                1.The application should start Import demurrage:
+ *                   a.	If these holds exists, demurrage starts when these holds are released 1H, 7H, 2H, 71, 72, 73
+ *                   b.	Otherwise demurrage starts at the first 3am after discharge
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type STORAGE_RULE
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSCustomStorageRule
+ *     Code Extension Type: STORAGE_RULE
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ *
  */
 
 class ITSCustomStorageRule extends AbstractStorageRule {
@@ -51,19 +63,14 @@ class ITSCustomStorageRule extends AbstractStorageRule {
                 Facility fcy = Facility.findFacility("PIERG");
                 UnitFacilityVisit ufv = unit.getUfvForFacilityNewest(fcy);
                 if (ufv != null) {
+
                     Date timeInYard = ufv.getUfvTimeEcIn() != null ? ufv.getUfvTimeEcIn() : ufv.getUfvTimeIn();
-                    if (timeInYard != null) {
-
-                        /*  InventoryCargoManager inventoryCargoManager = (InventoryCargoManager) Roastery.getBean(InventoryCargoManager.BEAN_ID);
-                          Set<BillOfLading> blSet = (Set<BillOfLading>) inventoryCargoManager.getBlsForGoodsBl(unit);
-
-                          List<Long> blKeys = blSet.stream().map(bl -> bl.getGkey()).collect(Collectors.toList())
-                          if(blKeys != null && !blKeys.isEmpty()){
-                              List<String> dispCodes = ["1H","7H", "2H", "71", "72", "73"]
-                              findBlReleases(blKeys,dispCodes)
-                          }*/
-
-                        LocalDateTime lcDate = timeInYard.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                    Date firstDeliverableDate = ufv.getUfvFlexDate01()
+                    if (firstDeliverableDate != null) {
+                        LocalDateTime lcDate = firstDeliverableDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        if (!StringUtils.isEmpty(unit.getUnitFlexString06()) && "Y".equalsIgnoreCase(unit.getUnitFlexString06())) {
+                            return firstDeliverableDate
+                        }
                         int hour = lcDate.getHour()
                         if (hour < 3) {
                             ZonedDateTime zonedDateTime = lcDate.withHour(3).withMinute(0).withSecond(0).atZone(ZoneOffset.systemDefault());
@@ -88,13 +95,6 @@ class ITSCustomStorageRule extends AbstractStorageRule {
         return startDay
     }
 
-
-    private List<BlRelease> findBlReleases(List<Long> inBlGkeys, List<String> inDispositionCodes) {
-        DomainQuery dq = QueryUtils.createDomainQuery(InventoryCargoEntity.BL_RELEASE)
-                .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_BL, inBlGkeys))
-                .addDqPredicate(PredicateFactory.in(InventoryCargoField.BLREL_DISPOSITION_CODE, inDispositionCodes));
-        return HibernateApi.getInstance().findEntitiesByDomainQuery(dq);
-    }
 
     private static final Logger log = Logger.getLogger(this.class)
 }
