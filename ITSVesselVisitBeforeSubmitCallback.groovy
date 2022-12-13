@@ -81,7 +81,6 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
                                         isValid = false;
                                     }
                                 }
-
                                 CarrierVisitPhaseEnum inPhase = vesselVisitDetails.getVvdVisitPhase()
                                 CarrierVisitReadyToBillEnum invoiceReadyToSetFromValue = null
                                 CarrierVisitReadyToBillEnum invoiceReadyToSetToValue = null
@@ -97,7 +96,7 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
 
                                 if ((CarrierVisitPhaseEnum.COMPLETE.equals(inPhase) || CarrierVisitPhaseEnum.DEPARTED.equals(inPhase))) {
                                     if (invoiceReadyToSetToValue != null && (CarrierVisitReadyToBillEnum.READY.equals(invoiceReadyToSetFromValue) && !CarrierVisitReadyToBillEnum.READY.equals(invoiceReadyToSetToValue))) {
-                                        if (findChargeableMarineEventsIsInvoiced(vesselVisitDetails, eventToRecord)) {
+                                        if (findChargeableMarineEventsIsInvoiced(vesselVisitDetails.getPrimaryKey(), eventToRecord)) {
                                             inOutResults.put("ERROR", "Invoice is already generated for Complete or Departed Phase !!")
                                         } else {
                                             inOutResults.put("WARNING", "Vessel is already set ready for the bill, if any invoices generated it will be deleted automatically !!")
@@ -123,14 +122,19 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
                 }
             }
         })
-
     }
 
 
-    private boolean findChargeableMarineEventsIsInvoiced(VesselVisitDetails vesselVisitDetails, List<String> inEventTypeIDs) {
+    private boolean findChargeableMarineEventsIsInvoiced(Serializable inVVPrimaryKey, List<String> inEventTypeIDs) {
         boolean isCMEInvoiced = false
+        if (inVVPrimaryKey == null) {
+            return false;
+        }
+        if (inEventTypeIDs == null || (inEventTypeIDs != null && inEventTypeIDs.isEmpty())) {
+            return false;
+        }
         DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_MARINE_EVENT)
-        domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_VVD_GKEY, vesselVisitDetails.getPrimaryKey()))
+        domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_VVD_GKEY, inVVPrimaryKey))
         domainQuery.addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXM_EVENT_TYPE_ID, inEventTypeIDs))
         domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_STATUS, "INVOICED"))
         List inValues = HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery);
