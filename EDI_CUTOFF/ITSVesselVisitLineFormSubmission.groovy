@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 import com.navis.external.framework.ui.AbstractFormSubmissionCommand
 import com.navis.external.framework.util.EFieldChange
 import com.navis.external.framework.util.EFieldChanges
@@ -11,7 +16,7 @@ import com.navis.vessel.business.schedule.VesselVisitLine
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 12/JUL/2022
+ * @Author <a href="mailto:sanandaraj@weservetech.com">S Anandaraj</a>, 12/JUL/2022
  *
  * Requirements : This groovy is used to validate LINE CARGO-cut-off field because EDI-cut-off field is mandatory.
  *
