@@ -2,8 +2,8 @@
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
  */
+
 import com.navis.argo.business.atoms.UnitCategoryEnum
-import com.navis.argo.business.reference.Equipment
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
 import com.navis.framework.business.Roastery
 import com.navis.framework.portal.query.DomainQuery
@@ -18,11 +18,11 @@ import com.navis.services.business.event.GroovyEvent
 
 /*
      *
-     * @Author : Gopinath Kannappan, 12/Dec/2022
+     *  @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 12/Dec/2022
      *
-     * Requirements : B 5-1 Standardize Marine Invoices -- This groovy is used to record the Marine Billable event, while Vessel is ready to bill.
+     *  Requirements : B 5-1 Standardize Marine Invoices -- This groovy is used to record the Marine Billable event, while Vessel is ready to bill.
      *
-     * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION.
+     *  @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION.
      *
      *  Load Code Extension to N4:
             1. Go to Administration --> System -->  Code Extension
@@ -33,8 +33,9 @@ import com.navis.services.business.event.GroovyEvent
                Groovy Code: Copy and paste the contents of groovy code.
             4. Click Save button
 
-     *  Set up General Notice for event type "APPT_CREATE" on GATEAPPOINTMENT Entity then execute this code extension (ITSSetPinNbrOnApptCreateGenNotice).
+     *  Set up General Notice for event type "APPT_CREATE/APPT_UPDATE" on TRANSACTION APPOINTMENT Entity then execute this code extension (ITSSetPinNbrOnApptCreateGenNotice).
      *
+     *  S.No    Modified Date   Modified By     Jira      Description
      *
  */
 
