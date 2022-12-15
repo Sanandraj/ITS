@@ -1,7 +1,8 @@
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
-*/
+ */
+
 
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
@@ -68,7 +69,13 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                         }
                         VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
+                        if (vvd != null && vvd.getVvdTimeCargoCutoff() == null) {
+                            OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"), PropertyKeyFactory.valueOf("Booking Reduction"))
+                            return
+                        } else if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))) {
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"), PropertyKeyFactory.valueOf("Unable to perform"))
+                            return
+                        } else if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
                                 vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))) {
                             Long totalItemQuantity = 0
                             if (booking.getEqboNbr() != null) {
