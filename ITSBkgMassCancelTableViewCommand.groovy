@@ -5,6 +5,7 @@
 
 
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
@@ -14,6 +15,7 @@ import com.navis.framework.presentation.ui.message.MessageType
 import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.orders.business.eqorders.Booking
+import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -66,7 +68,16 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand {
                         if (booking == null) {
                             return;
                         }
+                        VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
+                        if (vvd != null && vvd.getVvdTimeCargoCutoff() == null){
+                            OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"),PropertyKeyFactory.valueOf("Booking Reduction"))
+                            return
+                        }                        
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
+                        if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"), PropertyKeyFactory.valueOf("Unable to perform"))
+                            return
+                        }
                         if (timeZone != null && booking.getEqboNbr() != null && booking.eqoTallyReceive == 0) {
                             PersistenceTemplate template = new PersistenceTemplate(getUserContext())
                             template.invoke(new CarinaPersistenceCallback() {
