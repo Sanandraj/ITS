@@ -83,7 +83,11 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         EventType event = EventType.findEventTypeProxy("TO_BE_DETERMINED")
 
-                        if (vvd.getVvdTimeCargoCutoff().equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
+                        if (vvd.getVvdTimeCargoCutoff() == null){
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is not set."),PropertyKeyFactory.valueOf("Unable to perform"))
+                            return
+                        }
+                        else if (vvd.getVvdTimeCargoCutoff().equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
                                 vvd.getVvdTimeCargoCutoff().after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))) {
                             OptionDialog.showQuestion(PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff - Cancel or Reduce Booking ", "Cancel and Reduce Booking"), PropertyKeyFactory.keyWithFormat("Perform Vessel CutOff", "Cancel and Reduce Booking"), ButtonTypes.YES_NO, new AbstractCarinaOptionCommand() {
                                 @Override
@@ -102,7 +106,7 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                 }
                             })
                         } else {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off not set."), PropertyKeyFactory.valueOf("Unable to perform"))
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"),PropertyKeyFactory.valueOf("Unable to perform"))
                         }
                         if (event != null) {
                             vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
