@@ -75,7 +75,7 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand {
                         }                        
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"), PropertyKeyFactory.valueOf("Unable to perform"))
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Past Dry cutoff - ${vvd.getVvdTimeCargoCutoff().toString()}."), PropertyKeyFactory.valueOf("Unable to perform."))
                             return
                         }
                         if (timeZone != null && booking.getEqboNbr() != null && booking.eqoTallyReceive == 0) {

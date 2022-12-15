@@ -61,7 +61,7 @@ import org.apache.log4j.Logger
 class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
     @Override
     void execute(EntityId inEntityId, List<Serializable> inGkeys, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.INFO)
+      //  LOGGER.setLevel(Level.INFO)
         LOGGER.info("ITSUpdateUnusedBookingTableViewCommand Starts : ")
         if (inGkeys == null && inGkeys.isEmpty()) {
             return;
@@ -106,7 +106,7 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
                                 }
                             })
                         } else {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"),PropertyKeyFactory.valueOf("Unable to perform"))
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Past Dry cutoff - ${vvd.getVvdTimeCargoCutoff().toString()}."),PropertyKeyFactory.valueOf("Unable to perform"))
                         }
                         if (event != null) {
                             vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))

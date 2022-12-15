@@ -73,7 +73,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                             OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"), PropertyKeyFactory.valueOf("Booking Reduction"))
                             return
                         } else if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))) {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Dry cut-off is passed"), PropertyKeyFactory.valueOf("Unable to perform"))
+                            OptionDialog.showError(PropertyKeyFactory.valueOf("Past Dry cutoff - ${vvd.getVvdTimeCargoCutoff().toString()}."), PropertyKeyFactory.valueOf("Unable to perform."))
                             return
                         } else if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
                                 vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))) {
