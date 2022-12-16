@@ -70,8 +70,8 @@ import org.jetbrains.annotations.Nullable
         4. Select the extension in "Post Code Extension" tab
         5. Click on save
  *
- *  *  S.No    Modified Date                       Modified By                             Jira      Description
- *      1      21/11/2022   <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>  IP-324    To validate the EDI Booking Cut-Off and Line EDI Booking Cut-Off against requested Vessel Visit
+ *  S.No    Modified Date    Modified By         Jira      Description
+ *   1      21/11/2022       Anandaraj           IP-324    To validate the EDI Booking Cut-Off and Line EDI Booking Cut-Off against requested Vessel Visit.
  */
 
 class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
@@ -169,7 +169,10 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
                         bkgTransaction.setEdiHazardArray(null)
                         List<BookingTransactionDocument.BookingTransaction.EdiBookingItem> bkgItemList = bkgTransaction.getEdiBookingItemList()
                         for (BookingTransactionDocument.BookingTransaction.EdiBookingItem bookingItem : bkgItemList) {
+                            LOGGER.debug("before item hazard set to null"+bookingItem.getEdiHazardArray(0))
                             bookingItem.unsetEdiCommodity()
+                            bookingItem.setEdiHazardArray(null)
+                            LOGGER.debug("after item hazard set to null"+bookingItem.getEdiHazardArray(0))
                         }
                         registerWarning("DoNotOverrideByEDI flag is enabled for booking: " + bookingNbr + ". Could not update Hazmat/Commodity")
                     }
@@ -183,16 +186,16 @@ class ITSBookingPostInterceptor extends AbstractEdiPostInterceptor {
                     registerError("DoNotRollBookingByEDI flag is enabled for booking: " + bookingNbr + ", cannot process EDI.")
                 }
             }
-            // Do not roll booking by EDI validation - End
-            List<BookingTransactionDocument.BookingTransaction.EdiBookingItem> bookingItemList = bkgTransaction.getEdiBookingItemList()
-            if (bookingItemList.size() == 0) {
-                registerError("Booking " + bookingNbr + " received without order item, cannot process EDI.")
-                return
-            }
             //If MSG_FUNCTION_DELETE/REMOVE exist we are skipping the post
 
             if(MSG_FUNCTION_DELETE.equals(bkgTransaction.getMsgFunction()) || MSG_FUNCTION_REMOVE.equals(bkgTransaction.getMsgFunction())){
                 logMsg("Skipping the post msg function for DELETE/REMOVE")
+                return
+            }
+            // Do not roll booking by EDI validation - End
+            List<BookingTransactionDocument.BookingTransaction.EdiBookingItem> bookingItemList = bkgTransaction.getEdiBookingItemList()
+            if (bookingItemList.size() == 0) {
+                registerError("Booking " + bookingNbr + " received without order item, cannot process EDI.")
                 return
             }
             for (BookingTransactionDocument.BookingTransaction.EdiBookingItem bookingItem : bookingItemList) {

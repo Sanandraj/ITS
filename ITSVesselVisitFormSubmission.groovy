@@ -3,16 +3,16 @@
  *
  */
 
+
 import com.navis.external.framework.ui.AbstractFormSubmissionCommand
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.util.message.MessageCollector
 import com.navis.framework.util.message.MessageLevel
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:sanandaraj@servimostech.com">S Anandaraj</a>, 12/JUL/2022
+ * @Author <a href="mailto:sanandaraj@weservetech.com">S Anandaraj</a>, 12/JUL/2022
  *
  * Requirements : This groovy is used to validate CARGO-cut-off field because EDI-cut-off field is mandatory.
  *
@@ -27,21 +27,16 @@ import org.apache.log4j.Logger
  Groovy Code: Copy and paste the contents of groovy code.
  *   4. Click Save button
  *
- * <formSubmissionCodeExtension name="ITSVesselVisitFormSubmission"/>
- *
- *
  *  S.No    Modified Date   Modified By     Jira      Description
  *   1      12-Nov-2022     Gopinath K      IP-9      B 5-1 Standardize Marine Invoices
  */
 
 class ITSVesselVisitFormSubmission extends AbstractFormSubmissionCommand {
 
-    private static final Logger LOGGER = Logger.getLogger(ITSVesselVisitFormSubmission.class)
+    private static Logger LOGGER = Logger.getLogger(ITSVesselVisitFormSubmission.class)
 
     @Override
     void doBeforeSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSVesselVisitFormSubmission Vessel Visit Validation")
         Map paramMap = new HashMap()
         Map results = new HashMap()
         paramMap.put("GKEYS", inGkeys)
@@ -55,7 +50,9 @@ class ITSVesselVisitFormSubmission extends AbstractFormSubmissionCommand {
 
         }
 
-
+        if (messageCollector.hasError()) {
+            getExtensionHelper().showMessageDialog(MessageLevel.WARNING, 'ACTION FAILED', 'Your request failed due to: ', messageCollector)
+        }
 
     }
 }

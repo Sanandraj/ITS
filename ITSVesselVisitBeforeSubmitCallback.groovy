@@ -14,7 +14,6 @@ import com.navis.external.framework.persistence.AbstractExtensionPersistenceCall
 import com.navis.external.framework.util.EFieldChange
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.external.framework.util.ExtensionUtils
-import com.navis.framework.metafields.Metafield
 import com.navis.framework.metafields.MetafieldId
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
@@ -24,30 +23,34 @@ import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.vessel.business.schedule.VesselVisitDetails
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
-/*
-*
-* @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 12/Nov/2022
-*
-*  Requirements : This groovy is used to validate the vessel visit set to ready to invoice.
-*
-* @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_.Copy --> Paste this code   (ITSVesselVisitBeforeSubmitCallback.groovy)
-*
-* @Set up :- Calling as transaction business function from ITSVesselVisitFormSubmission and execute it.
-*
-*
-*/
+/**
+ * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 12/Nov/2022
+ *
+ *  Requirements : This groovy is used to validate the vessel visit set to ready to invoice.
+ *
+ * @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION
+ *
+ *  Load Code Extension to N4:
+ *   1. Go to Administration --> System -->  Code Extension
+ *   2. Click Add (+)
+ *   3. Enter the values as below:
+ Code Extension Name:  ITSVesselVisitBeforeSubmitCallback
+ Code Extension Type:  TRANSACTED_BUSINESS_FUNCTION
+ Groovy Code: Copy and paste the contents of groovy code.
+ *   4. Click Save button
+ *
+ * @Set up :- Calling as transaction business function from ITSVesselVisitFormSubmission and execute it.
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ */
 
 class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCallback {
 
     @Override
     void execute(@Nullable Map inParms, @Nullable Map inOutResults) {
-        LOGGER.setLevel(Level.DEBUG)
-
-        LOGGER.debug("ITSVesselVisitBeforeSubmitCallback Start New Changes ::")
         PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
         pt.invoke(new CarinaPersistenceCallback() {
             protected void doInTransaction() {
@@ -78,9 +81,6 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
                                         isValid = false;
                                     }
                                 }
-
-
-                               // String vesselVisitId = vesselVisitDetails.getCvdCv() != null ? vesselVisitDetails.getCvdCv().getCvId() : null
                                 CarrierVisitPhaseEnum inPhase = vesselVisitDetails.getVvdVisitPhase()
                                 CarrierVisitReadyToBillEnum invoiceReadyToSetFromValue = null
                                 CarrierVisitReadyToBillEnum invoiceReadyToSetToValue = null
@@ -96,7 +96,7 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
 
                                 if ((CarrierVisitPhaseEnum.COMPLETE.equals(inPhase) || CarrierVisitPhaseEnum.DEPARTED.equals(inPhase))) {
                                     if (invoiceReadyToSetToValue != null && (CarrierVisitReadyToBillEnum.READY.equals(invoiceReadyToSetFromValue) && !CarrierVisitReadyToBillEnum.READY.equals(invoiceReadyToSetToValue))) {
-                                        if (findChargeableMarineEventsIsInvoiced(vesselVisitDetails, eventToRecord)) {
+                                        if (findChargeableMarineEventsIsInvoiced(vesselVisitDetails.getPrimaryKey(), eventToRecord)) {
                                             inOutResults.put("ERROR", "Invoice is already generated for Complete or Departed Phase !!")
                                         } else {
                                             inOutResults.put("WARNING", "Vessel is already set ready for the bill, if any invoices generated it will be deleted automatically !!")
@@ -112,7 +112,7 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
                             }
                         }
 
-                        if(isValid){
+                        if (isValid) {
                             inOutResults.put("ERROR", "Cannot update CARGO-cut-off field because EDI-cut-off field is mandatory !!")
                         }
                     }
@@ -122,18 +122,22 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
                 }
             }
         })
-
-        LOGGER.debug("ITSVesselVisitBeforeSubmitCallback End::")
     }
 
 
-    private boolean findChargeableMarineEventsIsInvoiced(VesselVisitDetails vesselVisitDetails, List<String> inEventTypeIDs) {
+    private boolean findChargeableMarineEventsIsInvoiced(Serializable inVVPrimaryKey, List<String> inEventTypeIDs) {
         boolean isCMEInvoiced = false
+        if (inVVPrimaryKey == null) {
+            return false;
+        }
+        if (inEventTypeIDs == null || (inEventTypeIDs != null && inEventTypeIDs.isEmpty())) {
+            return false;
+        }
         DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_MARINE_EVENT)
-        domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_VVD_GKEY, vesselVisitDetails.getPrimaryKey()))
+        domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_VVD_GKEY, inVVPrimaryKey))
         domainQuery.addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXM_EVENT_TYPE_ID, inEventTypeIDs))
         domainQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXM_STATUS, "INVOICED"))
-        List inValues = HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery)
+        List inValues = HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery);
         if (inValues != null && inValues.size() >= 1) {
             isCMEInvoiced = true
         }
@@ -142,5 +146,5 @@ class ITSVesselVisitBeforeSubmitCallback extends AbstractExtensionPersistenceCal
 
     private static final MetafieldId CARGO_CUT_OFF = MetafieldIdFactory.valueOf("vvdTimeCargoCutoff")
     private static final MetafieldId CARGO_EDI_OFF = MetafieldIdFactory.valueOf("vvFlexDate02")
-    private static final Logger LOGGER = Logger.getLogger(ITSVesselVisitBeforeSubmitCallback.class)
+    private static Logger LOGGER = Logger.getLogger(ITSVesselVisitBeforeSubmitCallback.class)
 }
