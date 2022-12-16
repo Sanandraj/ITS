@@ -88,7 +88,7 @@ class GateWebservicePreInvokeInTx {
         if(submitTransactionElement != null){
             Element trkElement = submitTransactionElement != null ? submitTransactionElement.getChild(GateApiConstants.TRUCK) : null
             Element trkTranElement = submitTransactionElement != null ? submitTransactionElement.getChild(GateApiConstants.TRUCK_TRANSACTION) : null
-            Element attrTrkTranAppt = trkTranElement.getAttribute(GateApiConstants.APPOINTMENT_NBR)
+            Attribute attrTrkTranAppt = trkTranElement.getAttribute(GateApiConstants.APPOINTMENT_NBR)
             Element stage = submitTransactionElement.getChild("stage-id") != null ? submitTransactionElement.getChild("stage-id") : null
             String stageId = stage != null ? stage.getValue() : null;
             if (stageId != null && stageId.equalsIgnoreCase("INGATE")){
