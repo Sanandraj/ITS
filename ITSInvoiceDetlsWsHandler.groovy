@@ -71,7 +71,7 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
             if (OutputList != null && !OutputList.isEmpty()) {
                 for (Invoice invoice : (OutputList as List<Invoice>)) {
                     responseRoot.addContent(fetchInvoiceDetails(invoice))
-                    invoice.setFieldValue(MetafieldIdFactory.valueOf("invoiceFlexString05"), "TRUE")
+                    invoice.setFieldValue(MetafieldIdFactory.valueOf("invoiceFlexString05"), "COMPLETE")
                 }
             } else {
                 Element messages = new Element("messages")
