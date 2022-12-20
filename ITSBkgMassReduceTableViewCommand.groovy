@@ -81,56 +81,58 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                 vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))) {
                             Long totalItemQuantity = 0
                             boolean bkgQtyUpdate = false
-                            if (booking.getEqboNbr() != null) {
-                                if (booking.eqoTallyReceive > 0) {
+                            if (booking.getEqboNbr() != null ) {
+                                if (booking.eqoTallyReceive >= 0) {
                                     Set bkgItems = booking.getEqboOrderItems()
-                                    if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
+                                    if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1 && inGkeys.size()>=count) {
+                                        count = count + 1
                                         Iterator iterator = bkgItems.iterator()
                                         while (iterator.hasNext()) {
+                                            LOGGER.warn("count :: " + count)
                                             EquipmentOrderItem eqoItem = EquipmentOrderItem.resolveEqoiFromEqboi((EqBaseOrderItem) iterator.next())
                                             Long eqoiQty = eqoItem.getEqoiQty()
                                             Long eqoiTallyOut = eqoItem.getEqoiTally()
                                             Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
-                                            if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
+                                            LOGGER.warn("eqoiTallyIn :: " + eqoiTallyIn)
+                                            if (eqoiTallyIn >= 0 || eqoiTallyOut >= 0) {
                                                 if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
                                                     eqoItem.setEqoiQty(eqoiTallyIn)
-                                                    count = count + 1
                                                     bkgReduce = true
                                                     bkgQtyUpdate = true
                                                     if (event != null) {
                                                         vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
                                                     }
-                                                }
-                                                else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                                                } else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
                                                     eqoItem.setEqoiQty(eqoiTallyOut)
-                                                    count = count + 1
                                                     bkgReduce = true
                                                     bkgQtyUpdate = true
                                                     if (event != null) {
                                                         vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
                                                     }
+                                                } else {
+                                                    errorCount = errorCount + 1
+                                                    count = count -1
+                                                    LOGGER.warn("errorCount :: " + errorCount)
                                                 }
                                             }
                                             totalItemQuantity += eqoItem.getEqoiQty()
+                                            LOGGER.warn("totalItemQuantity :: " + totalItemQuantity)
                                         }
                                     }
                                 }
                             }
-                            if (bkgQtyUpdate){
+                            if (bkgQtyUpdate) {
                                 booking.setEqoQuantity(totalItemQuantity)
                             }
 
-                        } else {
-                            errorCount = errorCount + 1
-                            if (count == 0) {
-                                error = true
-                            }
                         }
                     }
                     if (!bkgReduce) {
+                        LOGGER.warn("!bkgReduce :: " + count)
                         informationBox(count, Long.valueOf(inGkeys.size()))
                     }
                     if (bkgReduce) {
+                        LOGGER.warn("bkgReduce :: " + count)
                         informationBox(count, errorCount)
                     }
                 } else {
