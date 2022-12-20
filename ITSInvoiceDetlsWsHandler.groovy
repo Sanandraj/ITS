@@ -3,10 +3,14 @@
  *
  */
 
+
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.billing.BillingField
 import com.navis.billing.business.atoms.InvoiceStatusEnum
-import com.navis.billing.business.model.*
+import com.navis.billing.business.model.Invoice
+import com.navis.billing.business.model.InvoiceItem
+import com.navis.billing.business.model.InvoiceParmValue
+import com.navis.billing.business.model.Tariff
 import com.navis.external.argo.AbstractArgoCustomWSHandler
 import com.navis.framework.metafields.MetafieldId
 import com.navis.framework.metafields.MetafieldIdFactory
@@ -36,12 +40,12 @@ import java.text.SimpleDateFormat
  4. Click Save button
  *
  *  Request:
-    <custom class= "ITSInvoiceDetlsWsHandler" type="extension">
-    <Invoices>
-    <InputDate>?</InputDate>
-    </Invoices>
-    </custom>
-*/
+ <custom class= "ITSInvoiceDetlsWsHandler" type="extension">
+ <Invoices>
+ <InputDate>?</InputDate>
+ </Invoices>
+ </custom>
+ */
 
 class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
     @Override
@@ -51,10 +55,8 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
         LOGGER.setLevel(Level.DEBUG)
         Element rootElement = inECustom.getChild("Invoices")
         Element inputDate = rootElement.getChild("InputDate")
-        inputDate.getNamespace()
         Element responseRoot = new Element("invoice-status")
         inOutEResponse.addContent(responseRoot)
-
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd")
         ParsePosition pp = new ParsePosition(0)
         Date invoiceCreatedDate = dateFormat.parse(inputDate.getValue(), pp)
@@ -71,14 +73,14 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
             if (OutputList != null && !OutputList.isEmpty()) {
                 for (Invoice invoice : (OutputList as List<Invoice>)) {
                     responseRoot.addContent(fetchInvoiceDetails(invoice))
-                    invoice.setFieldValue(MetafieldIdFactory.valueOf("invoiceFlexString05"), "COMPLETE")
+                    invoice.setFieldValue(MetafieldIdFactory.valueOf(INVOICE_FLEX_STRING05), COMPLETE)
                 }
             } else {
                 Element messages = new Element("messages")
                 responseRoot.addContent(messages)
                 Element message = new Element("message")
                 messages.addContent(message)
-                responseRoot.setText("No Data found for the Given Input Date : ${inputDate.getValue()}")
+                responseRoot.setText(FAILURE_RESPONSE_TAG + "${inputDate.getValue()}")
                 responseRoot.setAttribute(STATUS, NOT_OK_STATUS_NO)
                 responseRoot.setAttribute(STATUS_ID, NOT_OK_STATUS)
             }
@@ -87,32 +89,24 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
 
     private static fetchInvoiceDetails(Invoice invoice) {
         final Element responseRoot = new Element("invoice")
-        responseRoot.setAttribute("update_time", ArgoUtils.timeNow().toString())
-        // type is always "TB" hence hard-coded
-        responseRoot.setAttribute("type", "TB")
+        responseRoot.setAttribute(UPDATE_TIME, ArgoUtils.timeNow().toString())
+        /** type is always "TB" hence hard-coded*/
+        responseRoot.setAttribute(BATCH_TYPE, TYPE_TB)
 
         Element company = new Element("company")
         responseRoot.addContent(company)
         Element companyNbr = new Element("companyNbr")
         company.addContent(companyNbr)
-        // the company Nbr is standard hence hardcoded
-        companyNbr.addContent("1")
+        /** the company Nbr is standard hence hardcoded*/
+        companyNbr.addContent(COMPANY_NBR)
 
         Element batchDate = new Element("batchDate")
         company.addContent(batchDate)
         /** the batch date fetch the present groovy job run time */
         batchDate.addContent(ArgoUtils.timeNow().toString())
 
-        InvoiceType invType = InvoiceType.findInvoiceType(invoice.getInvoiceInvoiceType().getInvtypeId())
-        Set invSavedFieldsSet = invType.getInvtypeSavedFields()
-        LOGGER.debug("invSavedFieldsSet :: " + invSavedFieldsSet)
-        for (InvoiceTypeSavedField savedField : (invSavedFieldsSet as List<InvoiceTypeSavedField>)) {
-            LOGGER.debug("savedFieldDetail :: " + savedField.getFieldValue(MetafieldIdFactory.valueOf("invtypfldName")))
-        }
-
         /** getting invoice param values from the customized field details(invoice generation) - reportable entity */
         List<InvoiceParmValue> invParmValue = InvoiceParmValue.getInvoiceParmValueByInvoice(invoice)
-        LOGGER.debug("invParmValue :: " + invParmValue)
         List<String> parmList = new ArrayList<String>()
         if (invParmValue != null) {
             for (InvoiceParmValue invoiceParmValue : invParmValue) {
@@ -241,7 +235,6 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
             invoiceNotes?.addContent(invoice?.getInvoiceNotes()?.toString())
         }
         List<InvoiceItem> invoiceItemList = InvoiceItem.getInvoiceItemByInvoice(invoice)
-        LOGGER.debug("invoiceItemList :: " + invoiceItemList)
         if (invoiceItemList != null) {
             for (InvoiceItem invItem : invoiceItemList) {
                 Element distribution = new Element("distribution")
@@ -249,15 +242,14 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
                 Element distributionCategoryNbr = new Element("distributionCategoryNbr")
                 distribution.addContent(distributionCategoryNbr)
                 Tariff tariff = Tariff.findTariff(invItem?.getItemTariff())
-                LOGGER.debug("tariff :: " + tariff)
                 distributionCategoryNbr.addContent(tariff?.getTariffFlexString01()?.toString())
                 Element majorAccNbr = new Element("majorAccNbr")
                 distribution.addContent(majorAccNbr)
                 majorAccNbr.addContent(invItem?.getItemGlCode())
                 Element subAccNbr = new Element("subAccNbr")
                 distribution.addContent(subAccNbr)
-                // ITS Sub-Acc Nbr is Standard - hence "0" is hardCoded
-                subAccNbr.addContent("0")
+                /** ITS Sub-Acc Nbr is Standard - hence "0" is hardCoded*/
+                subAccNbr.addContent(SUB_ACC_NBR)
                 Element distributionAmount = new Element("distributionAmount")
                 distribution.addContent(distributionAmount)
                 distributionAmount.addContent(invItem.getItemAmount().toString())
@@ -272,4 +264,12 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
     private static final String OK_STATUS_NO = "ok"
     private static final String NOT_OK_STATUS = "no_invoices_found"
     private static final String NOT_OK_STATUS_NO = "error"
+    private static final String INVOICE_FLEX_STRING05 = "invoiceFlexString05"
+    private static final String COMPLETE = "COMPLETE"
+    private static final String BATCH_TYPE = "TYPE"
+    private static final String TYPE_TB = "TB"
+    private static final String COMPANY_NBR = "1"
+    private static final String UPDATE_TIME = "Update-Time"
+    private static final String SUB_ACC_NBR = "0"
+    private static final String FAILURE_RESPONSE_TAG = "No Data found for the Given Input Date :"
 }
