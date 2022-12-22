@@ -531,18 +531,18 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
             StringBuilder sbFirstLine = new StringBuilder();
             if (!inCheId.isEmpty()) {
                 sbFirstLine.append(inCheId); // 4 chars
-                sbFirstLine.append(T_SPACE); // 5 chars
+                sbFirstLine.append(T_SPACE); // 1 chars
                 if (inCheStatus != null) {
                     if (inCheStatus.length()>4) {
                         inCheStatus = inCheStatus.substring(0, 4);
                     } else {
                         inCheStatus = inCheStatus;
                     }
-                    sbFirstLine.append(inCheStatus); // 11 chars
+                    sbFirstLine.append(inCheStatus); // 4 chars
                 } else
                     sbFirstLine.append(T_SPACE);
 
-                sbFirstLine.append(T_SPACE); // 5 chars
+                sbFirstLine.append(T_SPACE); // 1 chars
                 if (inChePowName != null)
                     sbFirstLine.append(inChePowName); // 5 chars
             }
