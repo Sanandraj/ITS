@@ -207,7 +207,7 @@ class ITSDraymanGateAdaptor {
             //genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruckLicenseNbr());
             genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckId() : T_EMPTY);
             genericMap.put(T__TRUCK_TYPE, T__DRAYMAN);
-            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
+            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck()? (inTv.getTvdtlsTruck().getTruckAeiTagId()? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY) : T_EMPTY);
             genericMap.put(T__LICENCE_NBR, inTv.getTvdtlsTruckLicenseNbr());
             genericMap.put(T__LICENCE_STATE, truckLicenceState);
             genericMap.put(T__EX_ERR_REASON, T_EMPTY);
@@ -496,7 +496,8 @@ class ITSDraymanGateAdaptor {
 
     private Map getValueFromPosition(LocPosition locPosition, String eqLength) {
         Map posValues = new HashMap();
-        logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
+        if (locPosition)
+            logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
 
         //loc PosSlot: E130032, PosLocId: PIERG, BlockName: null, posBin: null, posName: Y-PIERG-E130032
         //AbstractYardBlock
@@ -536,8 +537,12 @@ class ITSDraymanGateAdaptor {
 
                     if (slotArray.size() > 0)
                         posValues.put(T__ROW, slotArray[0]);
-                    if (slotArray.size() > 1)
-                        posValues.put(T__BAY, slotArray[1]);
+                    if (slotArray.size() > 1) {
+                        if (slotArray[1].length() == 1)
+                            posValues.put(T__BAY, T_ZERO + slotArray[1]);
+                        else
+                            posValues.put(T__BAY, slotArray[1]);
+                    }
                     if (slotArray.size() > 2)
                         posValues.put(T__CELL, slotArray[2]);
                     if (slotArray.size() > 3)
@@ -796,6 +801,7 @@ class ITSDraymanGateAdaptor {
     private static final String ABM_BLOCK = "ABM_BLOCK";
     private static final String T_20 = "20";
     private static final String T_40 = "40";
+    private static final String T_ZERO = "0";
 
     private static final String T__TIP = "TIP";
     private static final String T__DRAYMAN = "Drayman";
