@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="REFRESH">REFRESH</action>
+    <action id="FILTER_CRITERIA">FILTER_CRITERIA</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+  </actions>
+  <form id="FORM_EDIT_VESSEL_VISIT">
+    <title>Vessel Visit Details for #titleField#</title>
+    <entity>
+      <name>VesselVisitDetails</name>
+      <primaryKey>cvdGkey</primaryKey>
+      <titleField>cvdCv.cvId</titleField>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="update" mode="editable" />
+    </actionsAllowed>
+    <controller ref="vvdEditVesselVisitFormController" />
+<formSubmissionCodeExtension name="ITSVesselVisitFormSubmission"/> 
+    <borderLayout>
+      <northPanel>
+        <borderLayout>
+          <westPanel title="VVD_VESSEL_VOYAGE" flexFieldGroups="VisitVoyage">
+            <item fieldId="cvdCv.cvId">
+            </item>
+            <item fieldId="vvdVessel" />
+            <item fieldId="vesselCvdService" required="true" extraEntry="none" />
+            <item fieldId="validateUnits" />
+            <item fieldId="vvdIbVygNbr" required="true" />
+            <item fieldId="vvdObVygNbr" required="true" />
+            <item fieldId="vvdBizu" />
+            <!--add flex fields-->
+            <item fieldId="vvFlexString01" />
+            <item fieldId="vvFlexString02" />
+            <item fieldId="vvFlexString03" />
+            <item fieldId="vvFlexString04" />
+            <item fieldId="vvFlexString05" />
+            <item fieldId="vvFlexString06" />
+            <item fieldId="vvFlexString07" />
+            <item fieldId="vvFlexString08" />
+            <item fieldId="vvFlexDate01" />
+            <item fieldId="vvFlexDate02" />
+            <item fieldId="vvFlexDate03" />
+            <item fieldId="vvFlexDate04" />
+            <item fieldId="vvFlexDate05" />
+            <item fieldId="vvFlexDate06" />
+            <item fieldId="vvFlexDate07" />
+            <item fieldId="vvFlexDate08" />
+          </westPanel>
+          <centerPanel title="VVD_SCHEDULE">
+            <item fieldId="cvdCv.cvFacility" required="true">
+              <item-attribute type="lovKey">argoLov.facilityWithoutScope</item-attribute>
+            </item>
+            <item fieldId="cvdOutCallNumber" />
+            <item fieldId="vvdClassification" />
+             <item fieldId="cvdCv.cvReadyToInvoice" extraEntry="none">
+	<item-attribute type="lovKey">customCodeExtensionLov?EXTENSION=ITSCustomLOVFactory,KEY=customCvReadyToInvoice</item-attribute>
+             </item>
+          </centerPanel>
+        </borderLayout>
+      </northPanel>
+      <centerPanel>
+        <tabs>
+          <tab label="TIMING" flexFieldGroups="Timetable">
+            <borderLayout width="auto">
+              <northPanel>
+                <grid>
+<!-- 2022Apr30 Add ETA and ETD -->
+                  <row>
+                    <cell>
+                      <item fieldId="cvdETA" />
+                    </cell>
+                    <cell>
+                      <item fieldId="cvdETD" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdPublishedEta" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdPublishedEtd" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimeOffPortArrive" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdTimeOffPortDepart" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimePilotOnBoard" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdTimePilotOffBoard" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimeLaborOnBoard" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdTimeLaborOffBoard" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimeEmptyPickup" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdTimeBeginReceive" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimeCargoCutoff" />
+                    </cell>
+                    <cell>
+                      <item fieldId="vvdTimeReeferCutoff" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="vvdTimeHazCutoff" />
+                    </cell>
+                    <cell>
+                      <item fieldId="cvdTimeDischargeComplete" />
+                    </cell>
+                  </row>
+                  <row>
+                    <cell>
+                      <item fieldId="cvdTimeFirstAvailability" />
+                    </cell>
+                    <cell>
+                      <item fieldId="cvdInboundFirstFreeDay" />
+                    </cell>
+                  </row>
+                </grid>
+              </northPanel>
+              <centerPanel>
+                <!--add flex fields-->
+                <item fieldId="vvFlexString01" />
+                <item fieldId="vvFlexString02" />
+                <item fieldId="vvFlexString03" />
+                <item fieldId="vvFlexString04" />
+                <item fieldId="vvFlexString05" />
+                <item fieldId="vvFlexString06" />
+                <item fieldId="vvFlexString07" />
+                <item fieldId="vvFlexString08" />
+                <item fieldId="vvFlexDate01" />
+                <item fieldId="vvFlexDate02" />
+                <item fieldId="vvFlexDate03" />
+                <item fieldId="vvFlexDate04" />
+                <item fieldId="vvFlexDate05" />
+                <item fieldId="vvFlexDate06" />
+                <item fieldId="vvFlexDate07" />
+                <item fieldId="vvFlexDate08" />
+              </centerPanel>
+              <southPanel title="Visit Notes">
+                <item fieldId="vvdNotes" />
+              </southPanel>
+            </borderLayout>
+          </tab>
+          <tab label="ESTIMATES" flexFieldGroups="Estimates">
+            <item fieldId="vvdEstMoveCount.mcLoad" />
+            <item fieldId="vvdEstMoveCount.mcDischarge" />
+            <item fieldId="vvdEstMoveCount.mcRestow" />
+            <item fieldId="vvdEstMoveCount.mcShift" />
+            <item fieldId="vvdEstMoveCount.mcBbkLoad" />
+            <item fieldId="vvdEstMoveCount.mcBbkDischarge" />
+            <item fieldId="vvdEstMoveCountTotal">
+              <actionMode action="create" mode="viewOnly" />
+              <actionMode action="query" mode="viewOnly" />
+              <actionMode action="update" mode="viewOnly" />
+              <actionMode action="delete" mode="viewOnly" />
+            </item>
+            <!--add flex fields-->
+            <item fieldId="vvFlexString01" />
+            <item fieldId="vvFlexString02" />
+            <item fieldId="vvFlexString03" />
+            <item fieldId="vvFlexString04" />
+            <item fieldId="vvFlexString05" />
+            <item fieldId="vvFlexString06" />
+            <item fieldId="vvFlexString07" />
+            <item fieldId="vvFlexString08" />
+            <item fieldId="vvFlexDate01" />
+            <item fieldId="vvFlexDate02" />
+            <item fieldId="vvFlexDate03" />
+            <item fieldId="vvFlexDate04" />
+            <item fieldId="vvFlexDate05" />
+            <item fieldId="vvFlexDate06" />
+            <item fieldId="vvFlexDate07" />
+            <item fieldId="vvFlexDate08" />
+          </tab>
+          <tab label="MISCELLANEOUS" flexFieldGroups="Miscellaneous">
+            <item fieldId="vvdInVesselCaptain" />
+            <item fieldId="vvdOutVesselCaptain" />
+            <item fieldId="vvdInCustomsVoyNbr" />
+            <item fieldId="vvdOutCustomsVoyNbr" />
+            <item fieldId="vvdStackingStrategy" />
+            <item fieldId="vvdIsCommonCarrier" />
+            <item fieldId="vvdIsDrayOff" />
+            <item fieldId="vvdIsNoClientAccess" />
+            <!--add flex fields-->
+            <item fieldId="vvFlexString01" />
+            <item fieldId="vvFlexString02" />
+            <item fieldId="vvFlexString03" />
+            <item fieldId="vvFlexString04" />
+            <item fieldId="vvFlexString05" />
+            <item fieldId="vvFlexString06" />
+            <item fieldId="vvFlexString07" />
+            <item fieldId="vvFlexString08" />
+            <item fieldId="vvFlexDate01" />
+            <item fieldId="vvFlexDate02" />
+            <item fieldId="vvFlexDate03" />
+            <item fieldId="vvFlexDate04" />
+            <item fieldId="vvFlexDate05" />
+            <item fieldId="vvFlexDate06" />
+            <item fieldId="vvFlexDate07" />
+            <item fieldId="vvFlexDate08" />
+          </tab>
+        </tabs>
+      </centerPanel>
+    </borderLayout>
+  </form>
+</variforms>
+
