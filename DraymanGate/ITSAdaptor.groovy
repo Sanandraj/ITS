@@ -41,7 +41,7 @@ import java.util.concurrent.*
  * library class for processing and sending the drayman gate message
  *
  * */
-class ITSDraymanGateAdaptor {
+class ITSAdaptor {
 
     // On cancelling transaction - call from TruckTransaction ELI
     public void prepareAndPushMessage(TruckTransaction inTruckTran, String inMessageType) {
@@ -597,6 +597,11 @@ class ITSDraymanGateAdaptor {
                             posValues.put(T__BAY, String.valueOf(Integer.parseInt(rowVal) + 1));
                         else
                             posValues.put(T__BAY, rowVal);
+
+                        if (posValues.get(T__BAY) != null && ((String)posValues.get(T__BAY)).length() == 1) {
+                            posValues.put(T__BAY, T_ZERO + (String)posValues.get(T__BAY))
+                        }
+                        logMsg("--bayval: "+posValues.get(T__BAY));
                     }
                     posValues.put(T__CELL, slotVal);
                 }
@@ -661,9 +666,13 @@ class ITSDraymanGateAdaptor {
                 integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow());
             }
 
-            integrationServiceMessage.setIsmUserString1(truckTagId);
-            integrationServiceMessage.setIsmUserString2(messageType);
-            integrationServiceMessage.setIsmUserString5(T__SUCCESS);
+            if (truckTagId)
+                integrationServiceMessage.setIsmUserString1(truckTagId);
+            if (messageType)
+                integrationServiceMessage.setIsmUserString2(messageType);
+
+            if (T__DRAYMAN.equals(inIntegrationService.getIntservName()))
+                integrationServiceMessage.setIsmUserString5(T__SUCCESS);
 
             if (responseMessage) {
                 integrationServiceMessage.setIsmUserString4(responseMessage);
@@ -828,5 +837,5 @@ class ITSDraymanGateAdaptor {
 
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyyMMddHHmmss");
 
-    private static final Logger LOGGER = Logger.getLogger(ITSDraymanGateAdaptor.class);
+    private static final Logger LOGGER = Logger.getLogger(ITSAdaptor.class);
 }

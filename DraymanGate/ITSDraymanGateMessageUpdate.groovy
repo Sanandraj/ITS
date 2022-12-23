@@ -32,6 +32,6 @@ class ITSDraymanGateMessageUpdate extends AbstractGeneralNoticeCodeExtension {
         }
     }
 
-    private static final String LIBRARY = "ITSDraymanGateAdaptor";
+    private static final String LIBRARY = "ITSAdaptor";
     private static final Logger LOGGER = Logger.getLogger(ITSDraymanGateMessageUpdate.class);
 }
