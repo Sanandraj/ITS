@@ -201,7 +201,7 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
             invoiceFinalNumber?.addContent(invoice?.getInvoiceFinalNbr()?.toString())
         }
         if (parmList != null && parmList.size() > 0 && parmList?.get(0) != null) {
-            invoiceVesselCode?.addContent(parmList?.get(0)?.replaceAll("[^A-Z]", ""))
+            invoiceVesselCode?.addContent(parmList?.get(0)?.replaceAll(REGEX_A_Z, EMPTY))
         }
         invoiceTotalCharge?.addContent(invoice.getInvoiceTotalCharges().toString())
         invoiceTotalTaxes?.addContent(invoice?.getInvoiceTotalTaxes()?.toString())
@@ -313,4 +313,6 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
     private static final String MAJOR_ACC_NBR = "majorAccNbr"
     private static final String SUB_ACCOUT_NBR = "subAccNbr"
     private static final String DISTRIBUTION_AMOUNT = "distributionAmount"
+    private static final String REGEX_A_Z = "[^A-Z]"
+    private static final String EMPTY = ""
 }
