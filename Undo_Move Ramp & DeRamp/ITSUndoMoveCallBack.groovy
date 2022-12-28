@@ -77,7 +77,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                         UnitFacilityVisit ufv = null;
                         UnitFacilityVisit chassisUfv =null;
                         Event event = null;
-                        LOGGER.debug("Executed undo Ramp");
                         try {
                             ufv = UnitFacilityVisit.hydrate(inGkeys.get(0))
                             if (ufv != null) {
@@ -88,7 +87,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                         String notes = event?.getEventNote() != null ? event.getEventNote() : null
                                         if (notes != null) {
                                             String chassisNum = StringUtils.substringBefore(notes, 'dismounted')
-                                            LOGGER.debug("Got chassis number "+chassisNum);
                                             Chassis chassis = Chassis.findChassis(chassisNum?.trim())
                                             if (chassis != null) {
                                                 Unit unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), chassis)
@@ -101,7 +99,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                 }
                             }
                             apexManager.undoRampedUfv(inGkeys.toArray(), fieldChanges)
-                            LOGGER.debug("Got chassis ufv "+chassisUfv);
                             if (chassisUfv != null && UfvTransitStateEnum.S40_YARD.equals(chassisUfv.getUfvTransitState())) {
                                 try {
                                     ufv?.getUfvUnit()?.attachCarriage(chassisUfv?.getUfvUnit()?.getUnitEquipment())
@@ -135,7 +132,6 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
         }
         inOutResults.put("ErrorMsg", errorMessage);
         inOutResults.put("Success", successCount);
-        LOGGER.debug("Success count "+ Integer.toString(successCount));
     }
 
     UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
