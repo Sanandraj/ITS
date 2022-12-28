@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
 import com.navis.apex.business.api.ApexManager
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.EventEnum
@@ -21,10 +25,25 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <ahref="mailto:mharikumar@weservetech.com"   >   Harikumar M</a>,
- * Date : 16/Sep/2022
- * Descreption: This code extension is used to undo a move like Rail Ramp/DeRamp
- * ITS needs the container should be put back on the chassis if it was dismounted.
+ *
+ * @Author: mailto:mharikumar@weservetech.com,Harikumar M; Date:16/09/2022
+ *
+ * Requirements : 6-11,This code extension is used to undo a move like Rail Ramp/DeRamp
+ also stores the previous deleted move in a new UNDO event after successfully deleted of last move.
+ *
+ * @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION
+ *
+ *  Load Code Extension to N4:
+ 1. Go to Administration --> System -->  Code Extension
+ 2. Click Add (+)
+ 3. Enter the values as below:
+ Code Extension Name:  ITSUndoMoveCallBack
+ Code Extension Type:  TRANSACTED_BUSINESS_FUNCTION
+ Groovy Code: Copy and paste the contents of groovy code.
+ 4. Click Save button
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 
@@ -33,7 +52,8 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
 
     @Override
     public void execute(Map inParams, Map inOutResults) {
-        //LOGGER.setLevel(Level.DEBUG)
+        LOGGER.setLevel(Level.DEBUG)
+        LOGGER.debug("inParams" + inParams)
         int successCount = 0;
         String errorMessage = "";
         EventManager eventManager = (EventManager) Roastery.getBean(EventManager.BEAN_ID)
@@ -58,6 +78,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                         UnitFacilityVisit ufv = null;
                         UnitFacilityVisit chassisUfv =null;
                         Event event = null;
+                        LOGGER.debug("Executed undo Ramp");
                         try {
                             ufv = UnitFacilityVisit.hydrate(inGkeys.get(0))
                             if (ufv != null) {
@@ -68,6 +89,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                         String notes = event?.getEventNote() != null ? event.getEventNote() : null
                                         if (notes != null) {
                                             String chassisNum = StringUtils.substringBefore(notes, 'dismounted')
+                                            LOGGER.debug("Got chassis number "+chassisNum);
                                             Chassis chassis = Chassis.findChassis(chassisNum?.trim())
                                             if (chassis != null) {
                                                 Unit unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), chassis)
@@ -80,6 +102,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                                 }
                             }
                             apexManager.undoRampedUfv(inGkeys.toArray(), fieldChanges)
+                            LOGGER.debug("Got chassis ufv "+chassisUfv);
                             if (chassisUfv != null && UfvTransitStateEnum.S40_YARD.equals(chassisUfv.getUfvTransitState())) {
                                 try {
                                     ufv?.getUfvUnit()?.attachCarriage(chassisUfv?.getUfvUnit()?.getUnitEquipment())
@@ -99,8 +122,8 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
                             }
 
                         }  catch (Exception e) {
-                                errorMessage = errorMessage + "\n" + e.message
-                            }
+                            errorMessage = errorMessage + "\n" + e.message
+                        }
 
                     }
                     if (errorMessage == null || errorMessage.isEmpty()) {
@@ -113,6 +136,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
         }
         inOutResults.put("ErrorMsg", errorMessage);
         inOutResults.put("Success", successCount);
+        LOGGER.debug("Success count "+ Integer.toString(successCount));
     }
 
     UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
