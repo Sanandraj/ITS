@@ -52,8 +52,7 @@ class ITSUndoMoveCallBack extends AbstractExtensionPersistenceCallback {
 
     @Override
     public void execute(Map inParams, Map inOutResults) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("inParams" + inParams)
+        //LOGGER.setLevel(Level.DEBUG)
         int successCount = 0;
         String errorMessage = "";
         EventManager eventManager = (EventManager) Roastery.getBean(EventManager.BEAN_ID)
