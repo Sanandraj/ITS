@@ -3,11 +3,13 @@
  *
  */
 
+
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.DataSourceEnum
 import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.model.GeneralReference
+import com.navis.argo.business.services.IServiceExtract
 import com.navis.external.framework.entity.AbstractEntityLifecycleInterceptor
 import com.navis.external.framework.entity.EEntityView
 import com.navis.external.framework.util.EFieldChange
@@ -23,11 +25,12 @@ import java.time.ZoneId
 
 /**
  *
- * @Author <a href="mailto:annalakshmig@weservetech.com">AnnaLakshmi G</a>, 16/SEP/2022
+ * @Author <ahref="mailto:annalakshmig@weservetech.com" > AnnaLakshmi G</a>, 16/SEP/2022
  *
  * Requirements : Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
+ This groovy will check the out time of the unit and then update the status.
  *
- * @Inclusion Location	: Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
+ * @Inclusion Location    : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
  *
  *  Load Code Extension to N4:
  1. Go to Administration --> System -->  Code Extension
@@ -39,7 +42,7 @@ import java.time.ZoneId
  4. Click Save button
  *
  *  S.No      Modified Date                          Modified By               Jira      Description
- * @Author <a href="mailto:mnaresh@weservetech.com">Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
+ * @Author <ahref="mailto:mnaresh@weservetech.com" > Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
  */
 
 
@@ -52,6 +55,15 @@ class ITSCUEStatusELI extends AbstractEntityLifecycleInterceptor {
 
     void onUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         ChargeableUnitEvent cue = (ChargeableUnitEvent) inEntity._entity
+        LOGGER.setLevel(Level.DEBUG)
+        if (cue != null && "UNIT_EXTENDED_DWELL".equals(cue.getBexuEventType()) && inOriginalFieldChanges.hasFieldChange(ArgoExtractField.BEXU_STATUS)) {
+            String cueNewStatus = (String) inOriginalFieldChanges.findFieldChange(ArgoExtractField.BEXU_STATUS).getNewValue()
+            if (IServiceExtract.CANCELLED.equals(cueNewStatus) || IServiceExtract.GUARANTEED.equals(cueNewStatus)) {
+                LOGGER.debug("Guarantee status change")
+                inMoreFieldChanges.setFieldChange(ArgoExtractField.BEXU_STATUS, IServiceExtract.QUEUED)
+            }
+        }
+
 
         if (cue != null && "UNIT_EXTENDED_DWELL".equals(cue.getBexuEventType()) && cue.getBexuPaidThruDay() != null) {
             LocalDateTime lcPTDDate = cue.getBexuPaidThruDay().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -61,18 +73,16 @@ class ITSCUEStatusELI extends AbstractEntityLifecycleInterceptor {
             if (cue.getBexuUfvTimeOut() != null) {
                 lcUnitOut = cue.getBexuUfvTimeOut().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
             }
-            if (lcPTDDate.getHour() < 3) {
-                possibleOutTime = lcPTDDate.withHour(3).withMinute(0).withSecond(0)
-            } else {
-                possibleOutTime = lcPTDDate.plusDays(1).withHour(3).withMinute(0).withSecond(0)
+            if (lcPTDDate != null) {
+                possibleOutTime = lcPTDDate.withHour(23).withMinute(59).withSecond(59)
 
             }
 
-            if ("INVOICED".equals(cue.getBexuStatus()) && (lcUnitOut == null || lcUnitOut.isAfter(possibleOutTime))) {
-                updateStatus(inMoreFieldChanges, "QUEUED")
+            /*   if ("INVOICED".equals(cue.getBexuStatus()) && (lcUnitOut == null || lcUnitOut.isAfter(possibleOutTime))) {
+                   updateStatus(inMoreFieldChanges, "QUEUED")
 
-            }
-            if ("QUEUED".equals(cue.getBexuStatus()) && (lcUnitOut != null && lcUnitOut.isBefore(possibleOutTime))) {
+               }*/
+            if (IServiceExtract.QUEUED.equals(cue.getBexuStatus()) && (lcUnitOut != null && lcUnitOut.isBefore(possibleOutTime))) {
                 updateStatus(inMoreFieldChanges, "INVOICED")
             }
         }
