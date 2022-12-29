@@ -1,20 +1,22 @@
-import com.navis.argo.business.reference.Accessory
+package ITS
+
+import com.navis.argo.business.atoms.BizRoleEnum
+import com.navis.argo.business.reference.ScopedBizUnit
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.zk.util.JSONBuilder
-import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.road.RoadEntity
 import com.navis.road.RoadField
-import com.navis.road.business.atoms.TranStatusEnum
 import com.navis.road.business.atoms.TruckVisitStatusEnum
 import com.navis.road.business.atoms.TruckerFriendlyTranSubTypeEnum
 import com.navis.road.business.model.TruckTransaction
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
+
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 
@@ -37,7 +39,6 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
         String[] containerNumbers = containerNumber?.toUpperCase()?.split(",")*.trim()
         outMap.put("RESPONSE", prepareGateTransactionMessageToITS(trkcId, tranDate, containerNumbers))
     }
-
 
     String prepareGateTransactionMessageToITS(String trkcId, String tranDate, String[] ctrNbrs) {
         String errorMessage = validateMandatoryFields(trkcId, tranDate)
@@ -64,54 +65,52 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
                         switch (truckTransaction.getTranTruckerTranSubType()) {
                             case TruckerFriendlyTranSubTypeEnum.PUC:
                                 gateTransactionFunction = BARE_OUT
-                                gateTrnStatusDesc = checkDeliveryGateStatus(truckTransaction)
+
                                 break;
 
                             case TruckerFriendlyTranSubTypeEnum.DOC:
                                 gateTransactionFunction = BARE_IN
-                                gateTrnStatusDesc = checkReceivalGateStatus(truckTransaction)
+
                                 break;
 
                             case TruckerFriendlyTranSubTypeEnum.PUE:
                             case TruckerFriendlyTranSubTypeEnum.PUI:
                                 gateTransactionFunction = FULL_OUT
-                                gateTrnStatusDesc = checkDeliveryGateStatus(truckTransaction)
+
                                 break;
 
                             case TruckerFriendlyTranSubTypeEnum.DOE:
                             case TruckerFriendlyTranSubTypeEnum.DOI:
                                 gateTransactionFunction = FULL_IN
-                                gateTrnStatusDesc = checkReceivalGateStatus(truckTransaction)
+
                                 break;
 
                             case TruckerFriendlyTranSubTypeEnum.PUM:
                                 gateTransactionFunction = EMPTY_OUT
-                                gateTrnStatusDesc = checkDeliveryGateStatus(truckTransaction)
+
                                 break;
 
                             case TruckerFriendlyTranSubTypeEnum.DOM:
                                 gateTransactionFunction = EMPTY_IN
-                                gateTrnStatusDesc = checkReceivalGateStatus(truckTransaction)
-                                break;
 
+                                break;
                         }
 
 
                         JSONBuilder jsonObject = JSONBuilder.createObject();
+                        jsonObject.put(GATE_TRANS_ID, trkTranGkey)
                         jsonObject.put(TICKET_NUM, truckTransaction.getTranNbr()?.toString() != null ? truckTransaction.getTranNbr().toString() : EMPTY_STR)
                         jsonObject.put(GATE_TRANS_DT_TM, truckTransaction.getTranCreated() != null ? ISO_DATE_FORMAT.format(truckTransaction.getTranCreated()) : EMPTY_STR)
-                        jsonObject.put(SHIPPING_LINE_SCAC, truckTransaction.getTranLineId() != null ? truckTransaction.getTranLineId() : EMPTY_STR)
-                        jsonObject.put(GATE_TRANS_FUNCTION_DSC, gateTransactionFunction)
+                        jsonObject.put(SHIPPING_LINE_CD, truckTransaction.getTranLineId() != null ? truckTransaction.getTranLineId() : EMPTY_STR)
+                        if (truckTransaction.getTranLineId() != null) {
+                            ScopedBizUnit scopedBizUnit = ScopedBizUnit.findScopedBizUnit(truckTransaction.getTranLineId(), BizRoleEnum.LINEOP)
+                            jsonObject.put(SHIPPING_LINE_SCAC, scopedBizUnit?.getBzuScac() != null ? scopedBizUnit.getBzuScac() : EMPTY_STR)
+                        }else{
+                            jsonObject.put(SHIPPING_LINE_SCAC, truckTransaction.getTranLine()?.getBzuScac() != null ? truckTransaction.getTranLine().getBzuScac() : EMPTY_STR)
 
-                        if (truckTransaction.getTranStatus() != null) {
-                            if (TranStatusEnum.TROUBLE.equals(truckTransaction.getTranStatus())) {
-                                gateTrnStatusDesc = TROUBLED
-                            } else if (TranStatusEnum.CANCEL.equals(truckTransaction.getTranStatus())) {
-                                gateTrnStatusDesc = CANCELLED
-                            }
-                            jsonObject.put(GATE_TRANS_STATUS_DSC, gateTrnStatusDesc)
                         }
-
+                        jsonObject.put(GATE_TRANS_FUNCTION_DSC, gateTransactionFunction)
+                        jsonObject.put(GATE_TRANS_STATUS_DSC, truckTransaction.getTranStatus() != null ? truckTransaction.getTranStatus().getKey() : EMPTY_STR)
                         jsonObject.put(DRIVER_LICENSE_NUM, truckTransaction.getTranTruckVisit()?.getTvdtlsDriverLicenseNbr() != null ? truckTransaction.getTranTruckVisit().getTvdtlsDriverLicenseNbr() : "")
                         String truckPos = ""
                         if (truckTransaction.getTranTruckVisit() != null) {
@@ -122,13 +121,14 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
                             } else if (TruckVisitStatusEnum.TROUBLE.equals(truckTransaction.getTranTruckVisit().getTvdtlsStatus())) {
                                 truckPos = WINDOW
                             } else {
-                                if (YARD_ID.equalsIgnoreCase(truckTransaction.getTranTruckVisit().getTvdtlsNextStageId())) {
+
+                                if (YARD_ID.equalsIgnoreCase(truckTransaction.getTranTruckVisit().getTvdtlsNextStageId()) || CHECKDELIVERY.equalsIgnoreCase(truckTransaction.getTranTruckVisit().getTvdtlsNextStageId())) {
                                     truckPos = IN_YARD
                                 } else if (OUTGATE_ID.equalsIgnoreCase(truckTransaction.getTranTruckVisit().getTvdtlsNextStageId())) {
                                     truckPos = OUT_GATE
-                                } else {
+                                } /*else {
                                     truckPos = IN_GATE
-                                }
+                                }*/
                             }
                         }
                         jsonObject.put(TRUCK_POSITION_DSC, truckPos)
@@ -187,36 +187,6 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
         return stringBuilder.toString()
     }
 
-    private String checkReceivalGateStatus(TruckTransaction transaction) {
-        String gateStatus = ""
-        if(transaction.getTranUfv() != null && transaction.getTranUfv().isTransitState(UfvTransitStateEnum.S40_YARD)) {
-            gateStatus = RECEIVED
-        }
-       else if (TranStatusEnum.OK.equals(transaction.getTranStatus())) {
-            if (INGATE_ID.equalsIgnoreCase(transaction.getTranStageId())) {
-                gateStatus = EIRED
-            }
-        }
-
-        return gateStatus
-    }
-
-    Accessory acc;
-    private String checkDeliveryGateStatus(TruckTransaction transaction) {
-        String gateStatus = ""
-        if(transaction.getTranUfv() != null && transaction.getTranUfv().isTransitState(UfvTransitStateEnum.S70_DEPARTED)) {
-            gateStatus = COMPLETED
-        }
-        else  if(transaction.getTranUfv() != null && transaction.getTranUfv().isTransitStateBeyond(UfvTransitStateEnum.S40_YARD)) {
-            gateStatus = RELEASED
-        }
-        if (TranStatusEnum.OK.equals(transaction.getTranStatus())) {
-            if (INGATE_ID.equalsIgnoreCase(transaction.getTranStageId())) {
-                gateStatus = ISSUED
-            }
-        }
-        return gateStatus
-    }
 
     private static final String BARE_IN = "BARE-IN"
     private static final String BARE_OUT = "BARE-OUT"
@@ -239,12 +209,16 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
     private static final String INGATE_ID = "ingate"
     private static final String YARD_ID = "yard"
     private static final String OUTGATE_ID = "outgate"
+    private static final String CHECKDELIVERY = "checkdelivery"
+
     private static final String TRUCKING_CO_SCAC = "truckingCoScac"
     private static final String GATE_TRANS_DATE = "gateTransDate"
     private static final String CONTAINER_NUMBERS = "containerNumbers"
     private static final String TICKET_NUM = "ticketNum"
     private static final String GATE_TRANS_DT_TM = "gateTransDtTm"
     private static final String SHIPPING_LINE_SCAC = "shippingLineScac"
+    private static final String SHIPPING_LINE_CD = "shippingLineCd"
+
     private static final String GATE_TRANS_FUNCTION_DSC = "gateTransFunctionDsc"
     private static final String GATE_TRANS_STATUS_DSC = "gateTransStatusDsc"
     private static final String CONTAINER_NUMBER = "containerNumber"
@@ -254,10 +228,12 @@ class ITSGetGateTransactionsWSCallback extends AbstractExtensionPersistenceCallb
     private static final String TRUCK_POSITION_DT_TM = "truckPositionDtTm"
     private static final String GATE_TRANSACTIONS = "gateTransactions"
     private static final String ERROR_MESSAGE = "errorMessage"
-    private static final String EMPTY_STR =""
+    private static final String EMPTY_STR = ""
+    private static final String GATE_TRANS_ID = "gateTransId"
+
     private static DateFormat SRC_DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy")
     private static DateFormat DST_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd")
-    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss");
+    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private static Logger LOGGER = Logger.getLogger(this.class);
 
 }

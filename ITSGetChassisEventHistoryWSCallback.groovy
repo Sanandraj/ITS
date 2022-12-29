@@ -1,14 +1,25 @@
+package ITS
+
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.atoms.BizRoleEnum
 import com.navis.argo.business.atoms.EquipClassEnum
 import com.navis.argo.business.atoms.EventEnum
+import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
+import com.navis.argo.business.model.CarrierVisit
+import com.navis.argo.business.reference.Equipment
+import com.navis.argo.business.reference.ScopedBizUnit
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.external.framework.util.ExtensionUtils
 import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.zk.util.JSONBuilder
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
+import com.navis.rail.business.entity.TrainVisitDetails
+import com.navis.road.business.model.TruckVisitDetails
 import com.navis.services.business.event.Event
+import com.navis.services.business.event.EventFieldChange
+import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -43,12 +54,12 @@ class ITSGetChassisEventHistoryWSCallback extends AbstractExtensionPersistenceCa
         def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSBaseUtilLibrary");
         String errorMessage = library.validateMandatoryFields(chassisNumber)
         JSONBuilder mainObj = JSONBuilder.createObject();
-        boolean isFullMode = !StringUtils.isEmpty(fetchMode) && fetchMode.equalsIgnoreCase(FULL_MODE)
+        //boolean isFullMode = !StringUtils.isEmpty(fetchMode) && fetchMode.equalsIgnoreCase(FULL_MODE)
+        boolean isFullMode = true
         if (errorMessage != null) {
             mainObj.put(ERROR_MESSAGE, _errorMessage)
         } else {
             String[] chassisNbrs = chassisNumber?.toUpperCase()?.split(",")*.trim()
-
             QueryResult rs = library.fetchUnitList(chassisNbrs, EquipClassEnum.CHASSIS)
             Map<Serializable, String> map = library.getUnitMap(rs, isFullMode)
             JSONBuilder jsonArray = JSONBuilder.createArray()
@@ -57,64 +68,138 @@ class ITSGetChassisEventHistoryWSCallback extends AbstractExtensionPersistenceCa
                 UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate(entry.getKey())
                 if (unitFacilityVisit != null) {
                     Unit unit = unitFacilityVisit.getUfvUnit()
+
                     if (unit != null) {
                         List<Event> eventsList = library.getSpecificEventList(unit, isFullMode, EVENT_LIST)
-                        if (isFullMode) {
-                            for (Event evt : eventsList) {
-                                if (EVENT_LIST_START.contains(evt.getEventTypeId())) {
-                                    proceedFullMode = true;
-                                    break
-                                }
+                        CarrierVisit obCV = unitFacilityVisit.getUfvActualObCv()
+                        CarrierVisit ibCV = unitFacilityVisit.getUfvActualIbCv()
+                        StringBuilder sb = new StringBuilder()
+                        StringBuilder stringBuilder = new StringBuilder()
+                        String inBoundCarrier
+                        String outBoundCarrier
+
+                        if (LocTypeEnum.TRUCK.equals(ibCV.getCvCarrierMode())) {
+                            TruckVisitDetails truckVisitDetails = TruckVisitDetails.resolveFromCv(ibCV)
+                            if (truckVisitDetails != null && truckVisitDetails.getTvdtlsTrkCompany() != null) {
+                                inBoundCarrier = sb.append("T-").append(truckVisitDetails.getTvdtlsTrkCompany().getBzuScac()).toString()
+                            }
+                        } else if (LocTypeEnum.TRAIN.equals(ibCV.getCvCarrierMode())) {
+                            TrainVisitDetails trainVisitDetails = TrainVisitDetails.resolveTvdFromCv(ibCV)
+                            if (trainVisitDetails != null && trainVisitDetails.getRvdtlsId() != null) {
+                                inBoundCarrier = sb.append("R-").append(trainVisitDetails.getRvdtlsId()).toString()
+                            }
+                        } else if (LocTypeEnum.VESSEL.equals(ibCV.getCvCarrierMode())) {
+                            VesselVisitDetails vesselVisitDetails = VesselVisitDetails.resolveVvdFromCv(ibCV)
+                            if (vesselVisitDetails != null && vesselVisitDetails.getVesselId() != null) {
+                                inBoundCarrier = sb.append("V-").append(vesselVisitDetails.getVesselId()).toString()
                             }
                         }
-                        // skip the chassis record incase if a chassis with active inbound record is there but it doesnt have any visit event to send
-                        if (isFullMode && !proceedFullMode) {
-                            continue
+                        if (LocTypeEnum.TRUCK.equals(obCV.getCvCarrierMode())) {
+                            TruckVisitDetails truckVisitDetails = TruckVisitDetails.resolveFromCv(obCV)
+                            if (truckVisitDetails != null && truckVisitDetails.getTvdtlsTrkCompany() != null) {
+                                outBoundCarrier = stringBuilder.append("T-").append(truckVisitDetails.getTvdtlsTrkCompany().getBzuScac()).toString()
+                            }
+                        } else if (LocTypeEnum.TRAIN.equals(obCV.getCvCarrierMode())) {
+                            TrainVisitDetails trainVisitDetails = TrainVisitDetails.resolveTvdFromCv(obCV)
+                            if (trainVisitDetails != null && trainVisitDetails.getRvdtlsId() != null) {
+                                outBoundCarrier = stringBuilder.append("R-").append(trainVisitDetails.getRvdtlsId()).toString()
+                            }
+                        } else if (LocTypeEnum.VESSEL.equals(obCV.getCvCarrierMode())) {
+                            VesselVisitDetails vesselVisitDetails = VesselVisitDetails.resolveVvdFromCv(obCV)
+                            if (vesselVisitDetails != null && vesselVisitDetails.getVesselId() != null) {
+                                outBoundCarrier = stringBuilder.append("V-").append(vesselVisitDetails.getVesselId()).toString()
+                            }
                         }
                         for (Event event : eventsList) {
-                            if (event != null /*&& (!isFullMode || (isFullMode && proceedFullMode))*/) {
-                                Map<String, String> carrierParms = new HashMap<>()
-                                carrierParms = getCarrierParams(event.getEventTypeId(), unitFacilityVisit)
-                                JSONBuilder jsonEventObject = JSONBuilder.createObject();
-                                jsonEventObject.put(CHASSIS_NUMBER, unit.getUnitId())
-                                jsonEventObject.put(EVENT_CD, event.getEventTypeId() != null ? event.getEventTypeId() : "")
-                                jsonEventObject.put(EVENT_DT_TM, event.getEvntAppliedDate() != null ? ISO_DATE_FORMAT.format(event.getEvntAppliedDate()) : "")
-                                jsonEventObject.put(CHASSIS_OWNER_SCAC, unit.getUnitEquipment()?.getEquipmentOwnerId() != null ? unit.getUnitEquipment().getEquipmentOwnerId() : "")
-                                jsonEventObject.put(CHASSIS_SZ_TP, new StringBuilder().append(unit.getUnitEquipment()?.getEqEquipType()?.getEqtypNominalLength()?.getKey()?.substring(3, 5))
-                                        .append(unit.getUnitEquipment()?.getEqEquipType()?.getEqtypIsoGroup()?.getKey()).toString())
-                                jsonEventObject.put(CARRIER_TYPE_CD, carrierParms.get(CARRIER_TYPE_CD) != null ? carrierParms.get(CARRIER_TYPE_CD) : "")
-                                jsonEventObject.put(CARRIER_CD, carrierParms.get(CARRIER_CD) != null ? carrierParms.get(CARRIER_CD) : "")
-                                // optional
-                                if (carrierParms.get(POSITION) != null) {
-                                    jsonEventObject.put(POSITION, carrierParms.get(POSITION))
-                                }
-                                if (unit.getUnitAcryId() != null) {
-                                    jsonEventObject.put(GENSET_NUMBER, unit.getUnitAcryId())
-                                }
-
-                                if (unit.getUnitRelatedUnit() != null && unit.getUnitRelatedUnit().getUnitEquipment() != null && EquipClassEnum.CONTAINER.equals(unit.getUnitRelatedUnit().getUnitEquipment().getEqClass())) {
-                                    jsonEventObject.put(CONTAINER_NUMBER, unit.getUnitRelatedUnit().getUnitId())
-                                    UnitCategoryEnum unitCategoryEnum = unit.getUnitRelatedUnit().getUnitCategory();
-                                    String ctrStatusCd = ""
-                                    if (unit.getUnitRelatedUnit().getUnitLineOperator() != null) {
-                                        jsonEventObject.put(SHIPPING_LINE_SCAC, unit.getUnitRelatedUnit().getUnitLineOperator().getBzuId())
+                            String fromPosition
+                            String toPosition
+                            String carrier
+                            boolean isValidEventToSend = false
+                            if (event != null && event.getEventTypeId() != null) {
+                                if (MOVE_EVENT_LIST.contains(event.getEventTypeId())) {
+                                    isValidEventToSend = true
+                                    if(EventEnum.UNIT_CARRIAGE_IN_GATE.getKey().equals(event.getEventTypeId()) || EventEnum.UNIT_IN_GATE.getKey().equals(event.getEventTypeId())){
+                                        carrier = inBoundCarrier
+                                    }else{
+                                        carrier = outBoundCarrier
                                     }
+                                } else {
+                                    Set<EventFieldChange> fcList = (Set<EventFieldChange>) event.getFieldChanges()
+                                    if (fcList != null && fcList.size() > 0) {
+                                        for (EventFieldChange efc : fcList) {
+                                            if ("posName".equals(efc?.getMetafieldId())) {
+                                                isValidEventToSend = true
+                                                fromPosition = efc.getPrevVal()
+                                                toPosition = efc.getNewVal()
+                                                if(EventEnum.UNIT_BRING_BACK_INTO_YARD.getKey().equals(event.getEventTypeId()) || EventEnum.UNIT_RECTIFY.getKey().equals(event.getEventTypeId())){
+                                                    carrier = ""
+                                                }
+                                                else{
+                                                    if (!StringUtils.isEmpty(fromPosition) && !StringUtils.isEmpty(toPosition)) {
+                                                        if (!fromPosition.startsWith("Y") && toPosition.startsWith("Y")) {
+                                                            carrier = inBoundCarrier
+                                                        } else if (fromPosition.startsWith("Y") && !toPosition.startsWith("Y")) {
+                                                            carrier = outBoundCarrier
+                                                        }
+                                                    }
+                                                }
 
-                                    if (unitCategoryEnum != null) {
-                                        if (unitCategoryEnum.equals(UnitCategoryEnum.STORAGE))
-                                            ctrStatusCd = EMPTY
-                                        else {
-                                            ctrStatusCd = unitCategoryEnum.getKey().substring(0, 3)
-
+                                            }
                                         }
                                     }
                                 }
-                                jsonArray.add(jsonEventObject)
+                                if(isValidEventToSend){
+
+                                    JSONBuilder jsonEventObject = JSONBuilder.createObject();
+                                    // jsonEventObject.put("eventgkey", event.getEventGKey().toString())
+                                    jsonEventObject.put(UNIT_ID, unitFacilityVisit.getUfvGkey())
+                                    jsonEventObject.put(CHASSIS_NUMBER, unit.getUnitId())
+                                    jsonEventObject.put(EVENT_CD, event.getEventTypeId() != null ? event.getEventTypeId() : "")
+                                    jsonEventObject.put(EVENT_DT_TM, event.getEvntAppliedDate() != null ? ISO_DATE_FORMAT.format(event.getEvntAppliedDate()) : "")
+                                    jsonEventObject.put(CHASSIS_OWNER_CD, unit.getUnitEquipment()?.getEquipmentOwnerId() != null ? unit.getUnitEquipment().getEquipmentOwnerId() : "")
+                                    jsonEventObject.put(CHASSIS_OWNER_SCAC, unit.getUnitEquipment()?.getEquipmentOwner()?.getBzuScac() != null ? unit.getUnitEquipment().getEquipmentOwner().getBzuScac() : "")
+                                    jsonEventObject.put(CHASSIS_SZ_TP, new StringBuilder().append(unit.getUnitEquipment()?.getEqEquipType()?.getEqtypNominalLength()?.getKey()?.substring(3, 5))
+                                            .append(unit.getUnitEquipment()?.getEqEquipType()?.getEqtypIsoGroup()?.getKey()).toString())
+
+                                    // optional
+                                    if (fromPosition != null) {
+                                        jsonEventObject.put(FROM_POSITION, fromPosition)
+                                    }
+                                    if (toPosition != null) {
+                                        jsonEventObject.put(TO_POSITION, toPosition)
+                                    }
+                                    jsonEventObject.put(CARRIER, carrier != null ? carrier : "")
+
+                                    if (event.getEvntRelatedEntityId() != null) {
+                                        Equipment equipment = Equipment.findEquipment(event.getEvntRelatedEntityId())
+                                        if (equipment != null && EquipClassEnum.CONTAINER.equals(equipment.getEqClass())) {
+                                            jsonEventObject.put(CONTAINER_NUMBER, event.getEvntRelatedEntityId())
+                                            Unit relatedUnit = Unit.hydrate(event.getEvntRelatedEntityGkey())
+                                            if (relatedUnit != null && relatedUnit.getUnitLineOperator() != null) {
+                                                jsonEventObject.put(SHIPPING_LINE_CD, relatedUnit.getUnitLineOperator().getBzuId() != null ? relatedUnit.getUnitLineOperator().getBzuId() : "")
+                                                jsonEventObject.put(SHIPPING_LINE_SCAC, relatedUnit.getUnitLineOperator().getBzuScac() != null ? relatedUnit.getUnitLineOperator().getBzuScac() : "")
+                                            }
+                                            String ctrStatusCd
+                                            UnitCategoryEnum unitCategoryEnum = relatedUnit?.getUnitCategory();
+                                            if (unitCategoryEnum != null) {
+                                                if (unitCategoryEnum.equals(UnitCategoryEnum.STORAGE))
+                                                    ctrStatusCd = EMPTY
+                                                else {
+                                                    ctrStatusCd = unitCategoryEnum.getKey().substring(0, 3)
+                                                }
+                                                if (ctrStatusCd != null) {
+                                                    jsonEventObject.put(CONTAINER_STATUS_CD, ctrStatusCd)
+                                                }
+                                            }
+                                        } else if (equipment != null && EquipClassEnum.ACCESSORY.equals(equipment.getEqClass())) {
+                                            jsonEventObject.put(GENSET_NUMBER, event.getEvntRelatedEntityId())
+                                        }
+                                    }
+                                    jsonArray.add(jsonEventObject)
+                                }
 
                             }
-                            if (EVENT_LIST_START.contains(event.getEventTypeId())) {
-                                break
-                            }
+
                         }
 
                     }
@@ -127,61 +212,30 @@ class ITSGetChassisEventHistoryWSCallback extends AbstractExtensionPersistenceCa
     }
 
 
-    private Map<String, String> getCarrierParams(String evtId, UnitFacilityVisit ufv) {
-        Map<String, String> carrierParams = new HashMap<>()
-        String carrierTypeCode = null
-        String carrierCd = null;
-        String position = null;
-        switch (evtId) {
-            case EventEnum.UNIT_CARRIAGE_IN_GATE.getKey():
-            case EventEnum.UNIT_CARRIAGE_RECEIVE.getKey():
-            case EventEnum.UNIT_CARRIAGE_DISMOUNT.getKey():
-            case EventEnum.UNIT_IN_GATE.getKey():
-            case EventEnum.UNIT_RECEIVE.getKey():
-                carrierTypeCode = CARRIER_TYPE_CODE_TRUCK
-                carrierCd = ufv.getUfvActualIbCv()?.getCvOperator()?.getBzuId()
-                break;
-            case EventEnum.UNIT_OUT_GATE.getKey():
-            case EventEnum.UNIT_DELIVER.getKey():
-            case EventEnum.UNIT_CARRIAGE_DELIVER.getKey():
-            case EventEnum.UNIT_CARRIAGE_OUT_GATE.getKey():
-            case EventEnum.UNIT_CARRIAGE_MOUNT.getKey():
-                carrierTypeCode = CARRIER_TYPE_CODE_TRUCK
-                carrierCd = ufv.getUfvActualObCv()?.getCvOperator()?.getBzuId()
-                break;
-            default:
-                carrierTypeCode = CARRIER_TYPE_CODE_YARD
-                carrierCd = ContextHelper.getThreadYard().getId()
-                position = ufv.getUfvLastKnownPosition()?.getPosSlot()
-        }
-        carrierParams.put(CARRIER_TYPE_CD, carrierTypeCode)
-        carrierParams.put(CARRIER_CD, carrierCd)
-        carrierParams.put(POSITION, position)
-        return carrierParams;
-    }
-
     private static final String CHASSIS_NUMBERS = "chassisNumbers"
     private static final String CHASSIS_NUMBER = "chassisNumber"
     private static final String EVENT_CD = "eventCd"
     private static final String EVENT_DT_TM = "eventDtTm"
+    private static final String CHASSIS_OWNER_CD = "chassisOwnerCd"
     private static final String CHASSIS_OWNER_SCAC = "chassisOwnerScac"
     private static final String CHASSIS_SZ_TP = "chassisSzTp"
-    private static final String CARRIER_TYPE_CD = "carrierTypeCd"
-    private static final String CARRIER_CD = "carrierCd"
-    private static final String POSITION = "position"
+    private static final String CARRIER = "carrier"
+    private static final String FROM_POSITION = "fromPosition"
+    private static final String TO_POSITION = "toPosition"
     private static final String GENSET_NUMBER = "gensetNumber"
     private static final String CONTAINER_NUMBER = "containerNumber"
     private static final String SHIPPING_LINE_SCAC = "shippingLineScac"
+    private static final String SHIPPING_LINE_CD = "shippingLineCd"
+    private static final String CONTAINER_STATUS_CD = "containerStatusCd"
     private static final String EMPTY = "MTY"
     private static final String CHASSIS_EVENT_HISTORIES = "chassisEventHistories"
-    private static final String CARRIER_TYPE_CODE_TRUCK = "T"
-    private static final String CARRIER_TYPE_CODE_YARD = "Y"
     private static final String FETCH_MODE = "fetchMode"
     private static final String FULL_MODE = "FULL"
     private static final String ERROR_MESSAGE = "errorMessage"
-    private static final List<String> EVENT_LIST = [EventEnum.UNIT_CARRIAGE_IN_GATE.getKey(), EventEnum.UNIT_CARRIAGE_RECEIVE.getKey(), EventEnum.UNIT_CARRIAGE_DISMOUNT.getKey(), EventEnum.UNIT_IN_GATE.getKey(), EventEnum.UNIT_RECEIVE.getKey(), EventEnum.UNIT_OUT_GATE.getKey(), EventEnum.UNIT_DELIVER.getKey(), EventEnum.UNIT_CARRIAGE_DELIVER.getKey(), EventEnum.UNIT_CARRIAGE_OUT_GATE.getKey(), EventEnum.UNIT_CARRIAGE_MOUNT.getKey()]
-    private static final List<String> EVENT_LIST_START = [EventEnum.UNIT_IN_GATE.getKey(), EventEnum.UNIT_CARRIAGE_IN_GATE.getKey()]
-    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss");
+    private static final String UNIT_ID = "unitId"
+    private static final List<String> MOVE_EVENT_LIST = [ EventEnum.UNIT_CARRIAGE_IN_GATE.getKey(), EventEnum.UNIT_IN_GATE.getKey(), EventEnum.UNIT_CARRIAGE_OUT_GATE.getKey(), EventEnum.UNIT_OUT_GATE.getKey()]
+    private static final List<String> EVENT_LIST = [ EventEnum.UNIT_CARRIAGE_IN_GATE.getKey(), EventEnum.UNIT_IN_GATE.getKey(), /*EventEnum.UNIT_RECEIVE.getKey(),*/ /*EventEnum.UNIT_OUT_GATE.getKey(),*/ EventEnum.UNIT_DELIVER.getKey(), EventEnum.UNIT_CARRIAGE_DELIVER.getKey()/*, EventEnum.UNIT_CARRIAGE_OUT_GATE.getKey()*/]
+    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private static final String _errorMessage = "Missing Required Field : chassisNumbers"
     private static Logger LOGGER = Logger.getLogger(this.class);
 
