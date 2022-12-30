@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+  </actions>
+  <form id="INV127" width="810px">
+    <title>Service Order</title>
+    <entity>
+      <name>ServiceOrder</name>
+      <primaryKey>srvoGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="update" mode="editable" />
+      <actionMode action="create" mode="editable" />
+    </actionsAllowed>
+    <controller ref="customBeanITSShowCreateServiceOrderFormController" />
+<!--<formSubmissionCodeExtension name="ITSServiceOrderCompletionFormSubmissionCommand" />-->
+<!--<submitFormCommand ref="customBeanITSServiceOrderCompletionFormSubmissionCommand" />-->
+
+    <attributes>
+      <!--Always open in create mode-->
+      <attribute key="formAction" value="create" />
+    </attributes>
+    <layoutStrategy ref="messageFieldFormLayoutStrategy" />
+    <borderLayout name="CREATE_SERVICE_ORDER" title="CREATE_SERVICE_ORDER">
+      <northPanel>
+        <grid>
+          <row>
+            <cell>
+              <item fieldId="srvoNbr" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="srvoBillingParty" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="srvoLine" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="srvoCompletionDate" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="srvoNotes" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="unitEvntTypeArray" />
+            </cell>
+          </row>
+  <row>
+          <cell>
+			<item fieldId="srvoCustomFlexFields.srvoCustomDFF_AutoCompleteSO" />
+			</cell>
+		  </row>
+          <row>
+            <cell>
+              <item fieldId="messageField" displayLabel="false" displayNullValue="true" />
+            </cell>
+          </row>
+		
+        </grid>
+      </northPanel>
+    </borderLayout>
+  </form>
+</variforms>
+

@@ -1,3 +1,4 @@
+package ITSIntegration
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
@@ -257,7 +258,7 @@ class ITSInvoiceDetlsWsHandler extends AbstractArgoCustomWSHandler {
         }
         return responseRoot
     }
-    private static Logger LOGGER = Logger.getLogger(this.class)
+    private static Logger LOGGER = Logger.getLogger(ITSInvoiceDetlsWsHandler.class)
     private static final String STATUS = "status"
     private static final String STATUS_ID = "status-id"
     private static final String OK_STATUS = "ok"
