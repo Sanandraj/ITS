@@ -27,8 +27,27 @@ import org.apache.log4j.Logger
 import org.apache.xmlbeans.XmlObject
 
 /**
- * Author: bgopal@weservetech.com
- * This code extension creates or updates or deletes a container from fleet file.
+ * Author: <a href="bgopal@weservetech.com">Gobal B</a>
+ *
+ * Requirements: This code extension creates or updates or deletes a container from fleet file.
+ *
+ * Inclusion Location	: Incorporated as a code extension of the type EDI_POST_INTERCEPTOR.
+ *
+ * Load Code Extension to N4:
+ * 1. Go to Administration --> System --> Code Extensions
+ * 2. Click Add (+)
+ * 3. Enter the values as below:
+ *     Code Extension Name:  ITSContainerFleetProcessor
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ * 4. Click Save button
+ *
+ * Attach code extension to EDI session:
+ * 1. Go to Administration-->EDI-->EDI configuration
+ * 2. Select the EDI session and right click on it
+ * 3. Click on Edit
+ * 4. Select the extension in "Post Code Extension" tab
+ * 5. Click on save
+ *
  * Modified : @author <ahref="mailto:mmadhavan@weservetech.com">Madhavan M</a>
  */
 public class ITSContainerFleetProcessor extends AbstractEdiPostInterceptor {
