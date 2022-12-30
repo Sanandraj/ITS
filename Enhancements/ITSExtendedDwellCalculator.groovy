@@ -76,8 +76,8 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
 
             HibernateApi hibernateApi = Roastery.getHibernateApi();
             hibernateApi.update(invoiceItem);
-            hibernateApi.delete(invoiceItem);
-            hibernateApi.flush();
+           hibernateApi.delete(invoiceItem);
+           // hibernateApi.flush(); //
         }
     }
 
