@@ -41,7 +41,7 @@ import org.apache.log4j.Logger
 /**
  * @Author: uaarthi@weservetech.com; Date: 21-12-2022
  *
- *  Requirements:
+ *  Requirements: Override Create Service Order Form to handle Auto Completion of Service Orders
  *
  * @Inclusion Location: Incorporated as a code extension of the type
  *
@@ -49,8 +49,8 @@ import org.apache.log4j.Logger
  *  1. Go to Administration --> System --> Code Extensions
  *  2. Click Add (+)
  *  3. Enter the values as below:
- *     Code Extension Name:
- *     Code Extension Type:  
+ *     Code Extension Name: customBeanITSShowCreateServiceOrderFormController
+ *     Code Extension Type:  BEAN_PROTOTYPE
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
@@ -68,7 +68,7 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
     }
 
 
-    @Override
+   /* @Override
     protected void configure() {
         logger.warn("get current values configure " + getCurrentValues())
         PersistenceTemplate pt = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
@@ -89,23 +89,17 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                 }
             }
         })
-        logger.warn("line " + line)
-        logger.warn("lineId " + lineId)
-        logger.warn("issameOp " + isSameOp)
-        logger.warn("Configure " + _ufvGkeys)
 
         if (isSameOp) {
             // this.currentValues.setFieldValue(InventoryCompoundField.UNIT_LINE_OP_GKEY, line)
             LookupFormWidget billingPartyWidget = (LookupFormWidget) getFormWidget(OrdersField.SRVO_BILLING_PARTY)
             if (billingPartyWidget != null && lineId != null) {
-
+                //
             }
         }
-      /*  CheckBoxFormWidget autoCompleteSO = (CheckBoxFormWidget) getFormWidget(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_AutoCompleteSO"));
-        autoCompleteSO.setValue(true)
-        autoCompleteSO.internalSetValue(true)*/
+
         super.configure()
-    }
+    }*/
 
     @Override
     void setWidgetValue(ICarinaWidget inWidget, Object inValue) {
@@ -122,7 +116,6 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
             protected void augmentRequest(BizRequest inBizRequest) {
                 List<Serializable> itemGkeys = (List) this.getFormController().getAttribute("source");
                 _ufvGkeys = itemGkeys.toArray(new Serializable[itemGkeys.size()]);
-                logger.warn(" getCreateUpdateDataCommand _ufvGkeys " + _ufvGkeys)
                 inBizRequest.setParameter("UfvGkeys", _ufvGkeys);
             }
 
@@ -131,48 +124,21 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                     this.setErrorMsg(this.extractErrorMessage(inResponse));
                     this.focusOnField(this.extractFailedField(inResponse));
                 } else {
-                    logger.warn(" doAfterSubmit inResponse " + inResponse)
-
                     this.setSuccessMsg(FrameworkPresentationUtils.getTranslation(FrameworkUiPropertyKeys.LABEL__CREATE_SUCCESSFUL));
-                    ICarinaWidget srvoNbrWdget = getFormWidget(InventoryBizMetafield.SRVO_NBR);
-                    String srvoNbr = srvoNbrWdget.getValue()
-                    //       assignField(metafield, (Object) null);
-
-                    /*    assignField(metafield, (Object)null);
-                        metafield = InventoryBizMetafield.SRVO_BILLING_PARTY;
-                        assignField(metafield, (Object)null);
-                        metafield = InventoryBizMetafield.SRVO_LINE;
-                        assignField(metafield, (Object)null);
-                        metafield = InventoryBizMetafield.UNIT_EVNT_TYPE_ARRAY;
-                        assignField(metafield, (Object)null);
-                        this.focusOnField(InventoryBizMetafield.SRVO_NBR);
-                        CarinaButton executeButton = this.getFormController().getButton(FrameworkUserActions.EXECUTE);
-                        if (executeButton != null) {
-                            executeButton.setEnabled(true);
-                        }*/
-
-
                 }
 
             }
 
             @Override
             void doAfterSubmit(BizResponse inOutBizResponse, String inEntityName, Serializable inEntityGkey, FieldChanges inOutFieldChanges) {
-                logger.warn(" doAfterSubmit _ufvGkeys " + _ufvGkeys)
-                logger.warn(" doAfterSubmit inEntityGkey " + inEntityGkey)
-                logger.warn(" doAfterSubmit inOutFieldChanges " + inOutFieldChanges)
-                logger.warn(" doAfterSubmit inOutBizResponse " + inOutBizResponse)
-
 
                 ICarinaWidget srvoNbrWdget = getFormWidget(InventoryBizMetafield.SRVO_NBR);
                 String srvoNbr = srvoNbrWdget.getValue()
-                logger.warn(" doAfterSubmit srvoNbr " + srvoNbr)
 
 
                 QueryResult result = inOutBizResponse.getQueryResult()
                 if (StringUtils.isEmpty(srvoNbr) && result != null) {
                     srvoNbr = result.getValue(0, InventoryBizMetafield.SRVO_NBR);
-                    logger.warn(" doAfterSubmit srvoNbr 2 " + srvoNbr)
 
                     if (srvoNbr == null) {
                         srvoNbr = result.getValue(3, InventoryBizMetafield.SRVO_NBR);
@@ -184,7 +150,6 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                 Serializable billingParty = (Serializable) srvoNbrBillParty.getValue()
                 ICarinaWidget autoCompleteSO = getFormWidget(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_AutoCompleteSO"));
                 boolean isAutoComplete = autoCompleteSO.getValue()
-                logger.warn(" doAfterSubmit isAutoComplete " + isAutoComplete)
 
                 MessageCollector mc = MessageCollectorFactory.createMessageCollector();
                 if (isAutoComplete) {
@@ -226,7 +191,6 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                 protected void doInTransaction() {
                     Object baseUtil = ExtensionUtils.getLibrary(FrameworkPresentationUtils.getUserContext(), "BaseGroovyUtil");
 
-                    logger.debug("Entering");
                     ServiceOrder inSrvOrder = ServiceOrder.findServiceOrderByNbr(srvOrderNbr);
                     if (inSrvOrder != null) {
                         if ((ServiceOrderStatusEnum.COMPLETED.equals(inSrvOrder.getSrvoStatus()) || ServiceOrderStatusEnum.CANCELLED.equals(inSrvOrder?.getSrvoStatus()))) {
@@ -258,12 +222,10 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                                                             Double quantity = 0;
                                                             quantity = (Double) istUnit.getFieldValue(MetafieldIdFactory.valueOf("customFlexFields.itmsrvtypunitCustomDFFQuantity"))
                                                             if (null != istUnit?.getItmsrvtypunitEvent()) {
-                                                                logger.debug("istUnit EvnttypeId" + istUnit?.getItmsrvtypunitEvent()?.getEventTypeId());
                                                                 istuEventId = istUnit.getItmsrvtypunitEvent().getEventTypeId();
 
                                                             }
                                                             if (null != itemServiceType?.getItmsrvtypEventType()) {
-                                                                logger.debug("serviceTypeSet EvnttypeId" + itemServiceType?.getItmsrvtypEventType()?.getEvnttypeId());
                                                                 if (!itemServiceType.getItmsrvtypEventType().getEvnttypeId().equalsIgnoreCase(istuEventId)) {
                                                                     baseUtil.recordEventOnCompleteServiceOrder(itemServiceType.getItmsrvtypEventType().getEvnttypeId(), istUnit.getItmsrvtypunitUnit(), inSrvOrder, billParty, quantity);
                                                                     istUnit.setItmsrvtypunitStatus(ServiceOrderUnitStatusEnum.COMPLETED);
