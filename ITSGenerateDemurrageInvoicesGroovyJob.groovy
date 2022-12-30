@@ -19,6 +19,7 @@ import com.navis.framework.portal.UserContext
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.Junction
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.framework.presentation.FrameworkPresentationUtils
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.BizViolation
 import com.navis.inventory.business.api.UnitStorageManager
@@ -33,11 +34,12 @@ import org.jdom.output.XMLOutputter
 
 import javax.xml.rpc.ServiceException
 import javax.xml.rpc.Stub
+import java.sql.Time
 
 /**
  * @Author: mailto:dashokkumar@weservetech.com, Ashok K.D; Date: 29/12/2022
  *
- *  Requirements: Generating Invoice for Import units with Line_Storage CUE event. SPTD set as in Invoice based on which has higher value Delivery date or GTD
+ *  Requirements: Generating Invoice for Import units with Line_Storage CUE event. SPTD set as in Invoice based on conditions
  *
  * @Inclusion Location: Incorporated as a code extension of the type
  *
@@ -74,7 +76,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         Date timeNow = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), context.getTimeZone())
         HibernateApi hibernateApi = Roastery.getHibernateApi()
         StringBuilder result = new StringBuilder("Generating Invoices \n")
-
+        Date today = ArgoUtils.timeNow()
 
         List<ChargeableUnitEvent> cueDataList = getLineIdAndGuaranteePartyToBill(eventTypeId, statuses, context)
 
@@ -105,21 +107,62 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 timeOut = lineIdAndGuranteeParty?.getBexuUfvTimeOut()
 
 
-                if (gtd != null && timeOut != null) {
-                    if (gtd.before(timeOut)) {
+
+                /*  if (gtd != null && timeOut != null) {
+
+                      if (gtd.before(timeOut)) {
+                          date = timeOut
+                          LOGGER.debug("Date Timeout :: " + date)
+                      } else if (gtd.after(timeOut)) {
+                          date = gtd
+                          LOGGER.debug("date GTD :: " + date)
+                      }
+                  } else if (timeOut != null && gtd == null) {
+                      date = timeOut
+                      LOGGER.debug("Date with Timout only :: " + date)
+                  } else if (gtd != null && timeOut == null) {
+                      date = gtd
+                      LOGGER.debug("Date with GTD only :: " + date)
+                  }
+  */
+               /* if (gtd != null && gtd.after(today)){
+                    if (gtd.after(timeOut)){
                         date = timeOut
-                        LOGGER.debug("Date Timeout :: " + date)
-                    } else if (gtd.after(timeOut)) {
+                        } else date = today
+
+                    } else if (gtd != null && gtd.before(today)){
+                    if (timeOut == null){
                         date = gtd
-                        LOGGER.debug("date GTD :: " + date)
+                    } else if (timeOut.before(gtd)){
+                        date = timeOut
+
+                    } else if (timeOut.after(gtd)){
+                        date = gtd
+
                     }
-                } else if (timeOut != null && gtd == null) {
-                    date = timeOut
-                    LOGGER.debug("Date with Timout only :: " + date)
-                } else if (gtd != null && timeOut == null) {
-                    date = gtd
-                    LOGGER.debug("Date with GTD only :: " + date)
+
+                }*/
+
+                if(gtd != null){
+                    if(today != null && gtd.after(today)){
+                        if (timeOut != null && gtd.after(timeOut)){
+                            date = timeOut
+                            LOGGER.debug("Date Timeout :: " + date)
+                        } else {
+                            date = today
+                            LOGGER.debug("Date today :: " + date)
+                        }
+
+                    } else {
+                        date = gtd
+                        LOGGER.debug("Date GTD :: " + date)
+                        if (timeOut != null && timeOut.before(gtd)) {
+                            date = timeOut
+                            LOGGER.debug("Date Timeout 1:: " + date)
+                        }
+                    }
                 }
+
 
                 LOGGER.debug("Value of the eqid : $eqId, Line: $lineId, GTD: $gtd, Timeout $timeOut, UfvGkey: $ufvGkey, PayeeId : $payee, Timeout: $timeOut ")
 
@@ -189,7 +232,8 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, eventTypeId))
                 .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_CATEGORY, UnitCategoryEnum.IMPORT.getKey()))
                 .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, statuses))
-                .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EQ_ID, ["MSDU9015906", "TEST3854135", "KTRE1122456", "RAIU0031512", "FFAU3787757", "MITU2211456", "MOAU6784145", "MMFU1003150"]))
+                .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EQ_ID, ["SUDU6295994", "SGRU2127789", "NYKU9773280",  "TCNU8563916", "CAIU3061660", "TUTU1122456"]))
+                .addDqPredicate(PredicateFactory.isNotNull(ArgoExtractField.BEXU_GUARANTEE_THRU_DAY))
 
 
         LOGGER.debug("Domain query2 :: " + query)
@@ -198,8 +242,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         Junction notInvoiced = PredicateFactory.disjunction()
                 .add(PredicateFactory.ltProperty(ArgoExtractField.BEXU_PAID_THRU_DAY, ArgoExtractField.BEXU_GUARANTEE_THRU_DAY))
                 .add(PredicateFactory.isNull(ArgoExtractField.BEXU_PAID_THRU_DAY))
-                .add(PredicateFactory.isNotNull(ArgoExtractField.BEXU_UFV_TIME_OUT))
-                .add(PredicateFactory.isNotNull(ArgoExtractField.BEXU_GUARANTEE_THRU_DAY))
+
         LOGGER.debug("If not invoiced :: $notInvoiced")
         DomainQuery dq = query.addDqPredicate(notInvoiced)
 
@@ -317,10 +360,8 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
             }
         }
     }
-
     private static final String QUEUED = "QUEUED"
     private static final String PARTIAL = "PARTIAL"
     private static String IS_INVOICE_FINAL = "True"
     private static final Logger LOGGER = Logger.getLogger(ITSGenerateDemurrageInvoicesGroovyJob.class)
-
 }
