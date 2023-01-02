@@ -48,6 +48,9 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
 
         List<Serializable> gkeyList = (List<Serializable>) inputParams.get("GKEYS")
         FieldChanges fieldChanges = (FieldChanges) inputParams.get("FIELD_CHANGES")
+        if(gkeyList == null || (gkeyList != null && gkeyList.isEmpty())) {
+            return ;
+        }
         for (int i = 0; i < gkeyList.size(); i++) {
             LOGGER.debug("ITSRecordWaiverTransactionCallback size : " + gkeyList.size())
             FieldChanges newFieldChanges = new FieldChanges(fieldChanges)
@@ -55,12 +58,24 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
             UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate(gkey)
             ChargeableUnitEvent chargeableUnitEvent
             if (unitFacilityVisit != null) {
-                String unitId = unitFacilityVisit.getUfvUnit().getUnitId()
-                Serializable extractEventType = (Serializable) newFieldChanges.findFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE).getNewValue()
+                String unitId = unitFacilityVisit.getUfvUnit()?.getUnitId()
+                Serializable extractEventType = null
+                if (newFieldChanges.hasFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE)) {
+                    extractEventType = (Serializable) newFieldChanges.findFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE).getNewValue()
+                }
+
                 LOGGER.debug("ITSRecordWaiverTransactionCallback extractEventType : " + extractEventType)
 
-                Date startDate = (Date) newFieldChanges.findFieldChange(ArgoExtractField.GNTE_GUARANTEE_START_DAY).getNewValue()
-                Date endDate = (Date) newFieldChanges.findFieldChange(ArgoExtractField.GNTE_GUARANTEE_END_DAY).getNewValue()
+
+
+                Date startDate = null
+                if (newFieldChanges.hasFieldChange(ArgoExtractField.GNTE_GUARANTEE_START_DAY)) {
+                    startDate = (Date) newFieldChanges.findFieldChange(ArgoExtractField.GNTE_GUARANTEE_START_DAY).getNewValue()
+                }
+                Date endDate = null
+                if (newFieldChanges.hasFieldChange(ArgoExtractField.GNTE_GUARANTEE_END_DAY)) {
+                    endDate = (Date) newFieldChanges.findFieldChange(ArgoExtractField.GNTE_GUARANTEE_END_DAY).getNewValue()
+                }
 
                 Date linePaidThruDay = unitFacilityVisit.getUfvLinePaidThruDay()
                 Date calculatedLfd = unitFacilityVisit.getUfvCalculatedLastFreeDayDate("LINE_STORAGE")
@@ -71,36 +86,49 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
                     LOGGER.debug("inside calculatedLfd    throw BizViolation  :: " + startDate)
                     throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " A Waiver start date should be ", "after the line last free day.")
                 }
-                chargeableUnitEvent = ChargeableUnitEvent.hydrate(extractEventType)
-                DomainQuery cueQuery = QueryUtils.createDomainQuery("ChargeableUnitEvent")
-                        .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UFV_GKEY, gkey))
-                        .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, chargeableUnitEvent.getEventType()))
-                        .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, "PARTIAL", "QUEUED"))
-                List<ChargeableUnitEvent> chargeableUnitEventList = HibernateApi.getInstance().findEntitiesByDomainQuery(cueQuery)
-                chargeableUnitEvent = chargeableUnitEventList.get(0)
-
-                newFieldChanges.setFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE, chargeableUnitEvent.getPrimaryKey())
-                newFieldChanges.setFieldChange(UnitField.UFV_UNIT_ID, unitId)
-                newFieldChanges.setFieldChange(ArgoExtractField.GNTE_GUARANTEE_TYPE, GuaranteeTypeEnum.WAIVER)
-                newFieldChanges.setFieldChange(ArgoExtractField.GNTE_APPLIED_TO_NATURAL_KEY, unitId)
-                newFieldChanges.setFieldChange(ArgoExtractField.GNTE_APPLIED_TO_PRIMARY_KEY, chargeableUnitEvent.getPrimaryKey())
-
-                CrudOperation crud = new CrudOperation(null, 1, "UnitFacilityVisit", newFieldChanges, gkey)
-                BizRequest req = new BizRequest(ContextHelper.getThreadUserContext())
-                req.addCrudOperation(crud)
-                BizResponse response = new BizResponse()
-                InventoryFacade inventoryFacade = (InventoryFacade) Roastery.getBean(InventoryFacade.BEAN_ID)
-
-                inventoryFacade.recordWaiverForUfv(req, response)
-                LOGGER.debug("ITSRecordWaiverTransactionCallback message : " + response.getMessages())
-
-                if (response.getMessages(MessageLevel.SEVERE)) {
-                    List<UserMessage> userMessageList = (List<UserMessage>) response.getMessages(MessageLevel.SEVERE)
-                    for (UserMessage message : userMessageList) {
-                        getMessageCollector().appendMessage(message)
-                    }
-                    LOGGER.debug("ITSRecordWaiverTransactionCallback userMessageList : " + userMessageList.toString())
+                chargeableUnitEvent = extractEventType != null ? ChargeableUnitEvent.hydrate(extractEventType) : null;
+                DomainQuery cueQuery = null;
+                List<ChargeableUnitEvent> chargeableUnitEventList = null;
+                LOGGER.debug("inside calculatedLfd    throw BizViolation  :: " + startDate)
+                if(chargeableUnitEvent != null){
+                    cueQuery = QueryUtils.createDomainQuery("ChargeableUnitEvent")
+                    cueQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UFV_GKEY, gkey))
+                    cueQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, chargeableUnitEvent.getEventType()))
+                    cueQuery.addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, "PARTIAL", "QUEUED"));
                 }
+
+
+                chargeableUnitEventList = cueQuery != null ? HibernateApi.getInstance().findEntitiesByDomainQuery(cueQuery) : null;
+                if(chargeableUnitEventList != null){
+                    chargeableUnitEvent = !chargeableUnitEventList.isEmpty() ? chargeableUnitEventList.get(0) : null;
+                }
+
+                if(chargeableUnitEvent != null){
+                    newFieldChanges.setFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE, chargeableUnitEvent.getPrimaryKey())
+                    newFieldChanges.setFieldChange(UnitField.UFV_UNIT_ID, unitId)
+                    newFieldChanges.setFieldChange(ArgoExtractField.GNTE_GUARANTEE_TYPE, GuaranteeTypeEnum.WAIVER)
+                    newFieldChanges.setFieldChange(ArgoExtractField.GNTE_APPLIED_TO_NATURAL_KEY, unitId)
+                    newFieldChanges.setFieldChange(ArgoExtractField.GNTE_APPLIED_TO_PRIMARY_KEY, chargeableUnitEvent.getPrimaryKey())
+
+                    CrudOperation crud = new CrudOperation(null, 1, "UnitFacilityVisit", newFieldChanges, gkey)
+                    BizRequest req = new BizRequest(ContextHelper.getThreadUserContext())
+                    req.addCrudOperation(crud)
+                    BizResponse response = new BizResponse()
+                    InventoryFacade inventoryFacade = (InventoryFacade) Roastery.getBean(InventoryFacade.BEAN_ID)
+
+                    inventoryFacade.recordWaiverForUfv(req, response)
+                    LOGGER.debug("ITSRecordWaiverTransactionCallback message : " + response.getMessages())
+
+                    if (response.getMessages(MessageLevel.SEVERE)) {
+                        List<UserMessage> userMessageList = (List<UserMessage>) response.getMessages(MessageLevel.SEVERE)
+                        for (UserMessage message : userMessageList) {
+                            getMessageCollector().appendMessage(message)
+                        }
+                        LOGGER.debug("ITSRecordWaiverTransactionCallback userMessageList : " + userMessageList.toString())
+                    }
+
+                }
+
             }
         }
     }
