@@ -68,6 +68,7 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
     }
 
 
+    //TODO Configure method - To handle Multiple Billing Parties - Pending confirmation, if this requirement is valid
    /* @Override
     protected void configure() {
         logger.warn("get current values configure " + getCurrentValues())
