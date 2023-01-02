@@ -110,24 +110,17 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                     if (today != null && gtd.after(today)) {
                         if (timeOut != null && gtd.after(timeOut)) {
                             date = timeOut
-                            LOGGER.debug("Date Timeout :: " + date)
                         } else {
                             date = today
-                            LOGGER.debug("Date today :: " + date)
                         }
 
                     } else {
                         date = gtd
-                        LOGGER.debug("Date GTD :: " + date)
                         if (timeOut != null && timeOut.before(gtd)) {
                             date = timeOut
-                            LOGGER.debug("Date Timeout 1:: " + date)
                         }
                     }
                 }
-
-
-                LOGGER.debug("Value of the eqid : $eqId, Line: $lineId, GTD: $gtd, Timeout $timeOut, UfvGkey: $ufvGkey, PayeeId : $payee, Timeout: $timeOut ")
 
 
                 if (eqId == null || lineId == null || date == null || ufvGkey == null) {
@@ -141,7 +134,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 try {
                     ufv = null
                     ufv = (UnitFacilityVisit) hibernateApi.get(UnitFacilityVisit.class, ufvGkey)
-                    LOGGER.debug("UFV :: " + ufv)
+
                 } catch (Exception inUfvEx) {
                     continue
                 }
@@ -150,24 +143,19 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                     LOGGER.debug("No UFV founf for Gkey : " + ufvGkey)
                     continue
                 }
-
-                UnitStorageManager storageManager = (UnitStorageManager) Roastery.getBean(UnitStorageManager.BEAN_ID)
-                LOGGER.debug("storage manager :: " + storageManager)
-
+                
 
                 Element element
-                LOGGER.debug("Test array list :: " + unitIdsProcessed)
 
                 if (!unitIdsProcessed.contains(eqId)) {
-                    LOGGER.debug("Processing gurantee invoice for container $eqId) with gtd: $gtd")
+
                     element =
                             buildGetInvoiceByInvTypeIdForUnitElement(eqId, invoiceTypeId, action, payee, guranteePartyRole, currencyId, timeNow, date, lineId)
-                    LOGGER.debug("element :: " + element)
                     if (element != null) {
                         unitIdsProcessed.add(eqId)
                         LOGGER.debug("The XML request string : \n ${elementToString(element)}")
                         try {
-                            processInvoiceAndPrint(element, result, lineId, eqId)
+                            processInvoiceAndPrint(element)
                         } catch (Exception ex) {
                             LOGGER.debug("The process failed due to ${ex.getMessage()}")
                             registerError("The process failed in due to ${ex.getMessage()} for ${eqId}")
@@ -195,28 +183,19 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, eventTypeId))
                 .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_CATEGORY, UnitCategoryEnum.IMPORT.getKey()))
                 .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, statuses))
-                .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EQ_ID, ["SUDU6295994", "SGRU2127789", "NYKU9773280", "TCNU8563916", "CAIU3061660", "TUTU1122456"]))
                 .addDqPredicate(PredicateFactory.isNotNull(ArgoExtractField.BEXU_GUARANTEE_THRU_DAY))
 
-
-        LOGGER.debug("Domain query2 :: " + query)
-        LOGGER.debug("after yesterday and DQ")
 
         Junction notInvoiced = PredicateFactory.disjunction()
                 .add(PredicateFactory.ltProperty(ArgoExtractField.BEXU_PAID_THRU_DAY, ArgoExtractField.BEXU_GUARANTEE_THRU_DAY))
                 .add(PredicateFactory.isNull(ArgoExtractField.BEXU_PAID_THRU_DAY))
 
-        LOGGER.debug("If not invoiced :: $notInvoiced")
         DomainQuery dq = query.addDqPredicate(notInvoiced)
 
-        LOGGER.debug("Domain query custom  :: " + dq.toString())
 
         List<ChargeableUnitEvent> result = HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
-        LOGGER.debug("Result2 :: " + result)
 
-        List<Object[]> lineIdsAndGuaranteeIds = new ArrayList<Object[]>()
 
-        LOGGER.debug("Line Id and Guarantee Id: ${lineIdsAndGuaranteeIds.size()}")
         return result
     }
 
@@ -231,11 +210,9 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         addChildTextElement(BillingWsApiConsts.ACTION, inAction, elem)
         addChildTextElement(BillingWsApiConsts.INVOICE_TYPE_ID, invoiceTypeId, elem)
         if (inPayee != null) {
-            LOGGER.debug("In Payee :: " + inPayee)
             addChildTextElement(BillingWsApiConsts.PAYEE_CUSTOMER_ID, inPayee, elem)
         }
         if (guranteePartyRole != null) {
-            LOGGER.debug("Guarantee party role :: " + guranteePartyRole)
             addChildTextElement(BillingWsApiConsts.PAYEE_CUSTOMER_BIZ_ROLE, guranteePartyRole, elem)
         }
 
@@ -270,7 +247,6 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         Element childElement = new Element(inElementName, XmlUtil.ARGO_NAMESPACE)
         Text childText = new Text(inElementText)
         childElement.addContent(childText)
-        LOGGER.debug("Child element :: " + childElement)
         inParentElement.addContent(childElement)
     }
 
@@ -290,7 +266,6 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
 
     private ScopeCoordinateIdsWsType getScopeCoordenatesForWs() {
         ScopeCoordinateIdsWsType scopeCoordinates = new ScopeCoordinateIdsWsType()
-        UserContext uContext = ContextHelper.getThreadUserContext()
         scopeCoordinates.setOperatorId(ContextHelper.getThreadOperator() != null ? ContextHelper.getThreadOperator().getId() : null)
         scopeCoordinates.setComplexId(ContextHelper.getThreadComplex() != null ? ContextHelper.getThreadComplex().getCpxId() : null)
         scopeCoordinates.setFacilityId(ContextHelper.getThreadFacility() != null ? ContextHelper.getThreadFacility().getFcyId() : null)
@@ -298,25 +273,21 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         return scopeCoordinates
     }
 
-    private void processInvoiceAndPrint(Element element, StringBuilder result, String lineId, String inEqId) {
-        LOGGER.setLevel(Level.DEBUG)
+    private void processInvoiceAndPrint(Element element) {
         getInvoiceByInvTypeIdForUnit(element)
     }
 
     public getInvoiceByInvTypeIdForUnit(Element inElement) throws BizViolation {
         LOGGER.setLevel(Level.DEBUG)
         ArgoServicePort port = getWsStub()
-        LOGGER.debug("Port :: " + port)
         ScopeCoordinateIdsWsType scopeCoordinates = getScopeCoordenatesForWs()
         GenericInvokeResponseWsType invokeResponseWsType = port.genericInvoke(scopeCoordinates, XmlUtil.toString(inElement, false));
         ResponseType response = invokeResponseWsType.getCommonResponse()
-        LOGGER.debug("Response :: " + response)
         QueryResultType[] queryResultTypes = response.getQueryResults()
         if (queryResultTypes == null || queryResultTypes.length != 1) {
             if (response.getMessageCollector() != null && response.getMessageCollector().getMessages(0) != null) {
                 MessageType type = response.getMessageCollector().getMessages(0)
                 String message = type.getMessage()
-                LOGGER.debug("message :: " + message)
                 throw BizFailure.create("Error from Billing Webservice - " + message)
             } else {
                 throw BizFailure.create(ArgoPropertyKeys.BILLING_WEBSERVICE_SERVICES_URL, null, null);
