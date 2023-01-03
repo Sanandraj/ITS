@@ -25,7 +25,7 @@ import java.time.ZoneId
 
 /**
  *
- * @Author <ahref="mailto:annalakshmig@weservetech.com" > AnnaLakshmi G</a>, 16/SEP/2022
+ * @Author <ahref="mailto:annalakshmig@weservetech.com"  >  AnnaLakshmi G</a>, 16/SEP/2022
  *
  * Requirements : Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
  This groovy will check the out time of the unit and then update the status.
@@ -42,7 +42,7 @@ import java.time.ZoneId
  4. Click Save button
  *
  *  S.No      Modified Date                          Modified By               Jira      Description
- * @Author <ahref="mailto:mnaresh@weservetech.com" > Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
+ * @Author <ahref="mailto:mnaresh@weservetech.com"  >  Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
  */
 
 
@@ -61,6 +61,9 @@ class ITSCUEStatusELI extends AbstractEntityLifecycleInterceptor {
             if (IServiceExtract.CANCELLED.equals(cueNewStatus) || IServiceExtract.GUARANTEED.equals(cueNewStatus)) {
                 LOGGER.debug("Guarantee status change")
                 inMoreFieldChanges.setFieldChange(ArgoExtractField.BEXU_STATUS, IServiceExtract.QUEUED)
+                if (!"FIXED_PRICE".equals(cue.getBexuOverrideValueType())) {
+                    inMoreFieldChanges.setFieldChange(ArgoExtractField.BEXU_IS_OVERRIDE_VALUE, Boolean.FALSE)
+                }
             }
         }
 
