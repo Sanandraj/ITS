@@ -125,6 +125,8 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                     }
                     return
                 }
+
+                boolean wasDeliverable = unit.getUnitFlexString03() != null && "Y".equalsIgnoreCase(unit.getUnitFlexString03())
                 GoodsBase goodsBase = unit.getUnitGoods()
                 boolean isHoldReleased = true
                 if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
@@ -158,7 +160,7 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
 
 
                 // Billing 7-4 Container sorting Fee
-                if ("Y".equalsIgnoreCase(unit.getUnitFlexString03()) && ufv.getUfvCalculatedLineStorageLastFreeDay() != null && ArgoUtils.timeNow() > DateUtil.parseStringToDate(ufv.getUfvCalculatedLineStorageLastFreeDay(), getUserContext())) {
+                if (wasDeliverable && "Y".equalsIgnoreCase(unit.getUnitFlexString03()) && ufv.getUfvCalculatedLineStorageLastFreeDay() != null && ArgoUtils.timeNow() > DateUtil.parseStringToDate(ufv.getUfvCalculatedLineStorageLastFreeDay(), getUserContext())) {
                     EventType deliverableMove = EventType.findEventType("UNIT_DELIVERABLE_MOVE")
                     FieldChanges fc = new FieldChanges()
                     fc.setFieldChange(UnitField.POS_SLOT, currPosition != null ? currPosition : null, lastKnownPosition.getPosSlot())
