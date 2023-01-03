@@ -26,26 +26,26 @@ import com.navis.www.services.argoservice.ArgoServicePort
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
-/*
-     *
-     * @Author : Gopinath Kannappan, 12/Nov/2022
-     *
-     * Requirements : B 5-1 Standardize Marine Invoices -- This groovy is used to record the Marine Billable event, while Vessel is ready to bill.
-     *
-     * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION.
-     *
-     *  Load Code Extension to N4:
-            1. Go to Administration --> System -->  Code Extension
-            2. Click Add (+)
-            3. Enter the values as below:
-                Code Extension Name:  ITSVesselReadyToBillGenNotice
-                Code Extension Type:  GENERAL_NOTICE_CODE_EXTENSION
-               Groovy Code: Copy and paste the contents of groovy code.
-            4. Click Save button
-
-     *  Set up General Notice for event type "UPDATE_VV" on VesselVisit Entity then execute this code extension (ITSVesselReadyToBillGenNotice).
-     *
-     *
+/**
+ * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 12/Nov/2022
+ *
+ * Requirements : B 5-1 Standardize Marine Invoices -- This groovy is used to record the Marine Billable event, while Vessel is ready to bill.
+ *
+ * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION.
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSVesselReadyToBillGenNotice
+ *     Code Extension Type: GENERAL_NOTICES_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Setup General Notice for event type "UPDATE_VV" on VesselVisit Entity then execute this code extension (ITSVesselReadyToBillGenNotice).
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 
@@ -55,7 +55,7 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
 
     @Override
     void execute(GroovyEvent inGroovyEvent) {
-        LOGGER.setLevel(Level.DEBUG)
+        LOGGER.setLevel(Level.INFO)
         VesselVisitDetails vvDetail = inGroovyEvent != null ? (VesselVisitDetails) inGroovyEvent.getEntity() : null
         Object library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSAutoBillMarineUtility")
         EventFieldChange eventFieldChange = inGroovyEvent != null ? library.getFieldChange(inGroovyEvent.getEvent(), MetafieldIdFactory.valueOf("cvdCv.cvReadyToInvoice").getFieldId()) : null
@@ -116,7 +116,7 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
                                                                         if (ptResponse == null) {
                                                                             LOGGER.error("Something went wrong in N4 Billing.Billing invoice request failed")
                                                                         } else {
-                                                                            LOGGER.debug("ITSAutoGenerateMarineInvoiceGenNotice ptResponse :" + ptResponse)
+                                                                            LOGGER.info("ITSAutoGenerateMarineInvoiceGenNotice ptResponse :" + ptResponse)
                                                                         }
                                                                     } catch(Exception ex){
                                                                         LOGGER.error("Exception while calling billing service"+ex)
@@ -129,10 +129,10 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
 
                                                         } else if ("INVOICED".equals(inCME.getStatus())) {
                                                             // do nothing here
-                                                            LOGGER.debug("CME is INVOICED, not able to delete it " + inCME.getStatus())
+                                                            LOGGER.info("CME is INVOICED, not able to delete it " + inCME.getStatus())
                                                         } else {
                                                             // do nothing here
-                                                            LOGGER.debug("CME not in proper status " + inCME.getStatus())
+                                                            LOGGER.info("CME not in proper status " + inCME.getStatus())
                                                         }
                                                     }
                                                 }
@@ -143,7 +143,7 @@ class ITSVesselReadyToBillGenNotice extends AbstractGeneralNoticeCodeExtension {
 
                                 }
                             } catch (Exception ex) {
-                                LOGGER.debug("ITSVesselReadyToBillGenNotice error while recording an event " + ex)
+                                LOGGER.info("ITSVesselReadyToBillGenNotice error while recording an event " + ex)
                             }
 
                         }
