@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 package ITS
 
 import com.navis.argo.ContextHelper
@@ -32,13 +37,27 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 
 /*
-* @Author <a href="mailto:annalakshmig@weservetech.com">Annalakshmi G</a>, 18/NOV/2022
-
-* Requirements : This groovy is used to update the deliverable status of the unit.*
+* @Author: mailto: annalakshmig@weservetech.com, Annalakshmi G; Date: 18/11/2022
 *
-* Related enhancement: Set First Available Day (UnitFlexDate01)
- *  3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
-* @Inclusion Location	: Incorporated as a code extension of the type GROOVY_JOB_CODE_EXTENSION.groovy
+*  Requirements: This groovy is used to update the deliverable status of the unit.
+*  Related enhancement: Set First Available Day (UnitFlexDate01)
+*  3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
+*
+* @Inclusion Location: Incorporated as a code extension of the type
+*
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: ITSSetUnitDeliverableJob
+*     Code Extension Type: GROOVY_JOB_CODE_EXTENSION
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
+*
+*  @Setup: Add the Groovy Job with ITSSetUnitDeliverableJob code included
+*
+*  S.No    Modified Date   Modified By     Jira      Description
+*
 */
 
 class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
@@ -104,9 +123,6 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                             bayName = getBayNumber(position)
                             if (blockName != null) {
                                 String blockBayId = blockName
-                                /*  if (bayName != null) {
-                                      blockBayId = new StringBuilder().append(blockName).append(":").append(bayName).toString()
-                                  }*/
                                 if (deliverableList.contains(blockBayId)) {
                                     ufv.getUfvUnit()?.setUnitFlexString03(YES)
                                     if (null == ufv.getUfvFlexDate01()) {
@@ -255,7 +271,7 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
 
     }
 
-    private final static Logger LOGGER = Logger.getLogger(this.class)
+    private final static Logger LOGGER = Logger.getLogger(ITSSetUnitDeliverableJob.class)
     private final static String YES = "Y"
     private final static String NO = "N"
     private final static String block_identifier = "DELIVERABLE_BLOCK"
