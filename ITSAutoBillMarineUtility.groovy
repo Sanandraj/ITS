@@ -4,9 +4,9 @@
  */
 
 
-
 import com.navis.argo.ArgoExtractEntity
 import com.navis.argo.ArgoExtractField
+import com.navis.argo.ArgoPropertyKeys
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.extract.ChargeableMarineEvent
 import com.navis.argo.business.extract.billing.ConfigurationProperties
@@ -17,20 +17,23 @@ import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.framework.util.message.MessageCollector
+import com.navis.framework.util.message.MessageLevel
 import com.navis.services.business.event.Event
 import com.navis.services.business.event.EventFieldChange
 import com.navis.www.services.argoservice.ArgoServiceLocator
 import com.navis.www.services.argoservice.ArgoServicePort
 import groovy.xml.MarkupBuilder
+
 import javax.xml.rpc.ServiceException
 import javax.xml.rpc.Stub
 
 /*
      *
-     * @Author : Gopinath Kannappan, 12/Nov/2022
+     * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 12/Nov/2022
      *
      * Requirements : B 5-1 Standardize Marine Invoices -- This groovy is used to request the Marine Billing invoice request to create the invoice in N4 Billing, by passing the eventId and VisitId.
-     *                                                      This class will have all the common method for this operation as utility.
+     *                                                     This class will have all the common method for this operation as utility.
      *
      * @Inclusion Location	: Incorporated as a code extension of the type LIBRARY.
      *
@@ -45,11 +48,12 @@ import javax.xml.rpc.Stub
 
      *  Set up where ever in code call -ExtensionUtils.getLibrary("LIBRARY_NAME");
      *
+     *  S.No    Modified Date   Modified By     Jira      Description
      *
  */
 
 
-class ITSAutoBillMarineUtility  extends AbstractExtensionCallback {
+class ITSAutoBillMarineUtility extends AbstractExtensionCallback {
 
 
     /**
@@ -77,7 +81,7 @@ class ITSAutoBillMarineUtility  extends AbstractExtensionCallback {
      */
     public static List<String> getEventsToRecord(String lineId) {
         GeneralReference inEvntFromGenRef = GeneralReference.findUniqueEntryById("ITS", "VESSEL_READY_TO_BILL", "BILLABLE_EVENT", lineId)
-        if(inEvntFromGenRef == null){
+        if (inEvntFromGenRef == null) {
             inEvntFromGenRef = GeneralReference.findUniqueEntryById("ITS", "VESSEL_READY_TO_BILL", "BILLABLE_EVENT", null)
         }
         List<String> inEvntList = new ArrayList<String>()
@@ -168,7 +172,6 @@ class ITSAutoBillMarineUtility  extends AbstractExtensionCallback {
     }
 
 
-
     /**
      * Get the ScopeCoordinates.
      * @return scopeCoordinates
@@ -189,10 +192,10 @@ class ITSAutoBillMarineUtility  extends AbstractExtensionCallback {
      */
     public ArgoServicePort getWebServiceStub() throws ServiceException {
         ArgoServiceLocator serviceLocator = new ArgoServiceLocator();
-        ArgoServicePort servicePort =serviceLocator != null ?
+        ArgoServicePort servicePort = serviceLocator != null ?
                 serviceLocator.getArgoServicePort(ConfigurationProperties.getBillingServiceURL()) : null;
         Stub stub = (Stub) servicePort;
-        if(stub != null){
+        if (stub != null) {
             stub._setProperty(Stub.USERNAME_PROPERTY, ConfigurationProperties.getBillingWebServiceUserId());
             stub._setProperty(Stub.PASSWORD_PROPERTY, ConfigurationProperties.getBillingWebServicePassWord());
         }
@@ -201,6 +204,18 @@ class ITSAutoBillMarineUtility  extends AbstractExtensionCallback {
     }
 
 
+/**
+ * registerWarning
+ * @param inWarningMessage
+ */
+    public void registerWarning(String inWarningMessage) {
+        MessageCollector ms = getMessageCollector();
+        if (ms != null) {
+            String[] stringArray = [1]
+            stringArray[0] = inWarningMessage
+            ms.appendMessage(MessageLevel.WARNING, ArgoPropertyKeys.GROOVY_GENERIC_MESSAGE, null, stringArray);
+        }
+    }
 
 
     private static final String DRAFT = "DRAFT";

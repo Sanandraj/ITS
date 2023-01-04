@@ -58,10 +58,10 @@ class ITSCustomLOVFactory extends AbstractExtensionLovFactory {
 
                     if (user != null) {
                         String[] userRoles = user.getUserRoleNames();
-                        if (userRoles.contains("SUPER USER")) {
+                        if (userRoles.contains("VesselInvoice_READY_AND_NOT_READY")) {
                             lov.addLovEntry(new AtomLovValue(CarrierVisitReadyToBillEnum.READY, Style.LABEL_ONLY));
                             lov.addLovEntry(new AtomLovValue(CarrierVisitReadyToBillEnum.NOT_READY, Style.LABEL_ONLY));
-                        } else if (userRoles.contains("Vessel Planner")) {
+                        } else if (userRoles.contains("VesselInvoice_READY_ONLY")) {
                             lov.addLovEntry(new AtomLovValue(CarrierVisitReadyToBillEnum.READY, Style.LABEL_ONLY));
                         }
                     }

@@ -1,5 +1,8 @@
+package ITS
+
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.UnitCategoryEnum
+import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.reference.Chassis
 import com.navis.argo.business.reference.Container
 import com.navis.argo.business.reference.LineOperator
@@ -12,6 +15,7 @@ import com.navis.framework.zk.util.JSONBuilder
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.road.RoadEntity
 import com.navis.road.RoadField
+import com.navis.road.business.atoms.TranSubTypeEnum
 import com.navis.road.business.atoms.TruckerFriendlyTranSubTypeEnum
 import com.navis.road.business.model.Document
 import com.navis.road.business.model.DocumentMessage
@@ -59,6 +63,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
             String ctrSizeType;
             String chassisSizeType;
             String gateTransactionFunction = null
+            String ctrSpotNum
             Document document
             if (truckTransaction != null) {
                 if (truckTransaction.getTranDocuments() != null && truckTransaction.getTranDocuments().size() > 0) {
@@ -66,7 +71,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                     Collections.sort(documentList, new Comparator<Document>() {
                         @Override
                         int compare(Document doc1, Document doc2) {
-                            return doc1.getDocCreated().compareTo(doc2.getDocCreated())
+                            return -doc1.getDocCreated().compareTo(doc2.getDocCreated())
                         }
                     });
                     document = documentList.get(0)
@@ -84,47 +89,50 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                     case TruckerFriendlyTranSubTypeEnum.PUE:
                     case TruckerFriendlyTranSubTypeEnum.PUI:
                         gateTransactionFunction = FULL_OUT
+                        ctrSpotNum = getDeliveryCtrSpotNum(truckTransaction)
                         break;
 
                     case TruckerFriendlyTranSubTypeEnum.DOE:
                     case TruckerFriendlyTranSubTypeEnum.DOI:
                         gateTransactionFunction = FULL_IN
+                        ctrSpotNum = getReceivalCtrSpotNum(truckTransaction)
                         break;
 
                     case TruckerFriendlyTranSubTypeEnum.PUM:
                         gateTransactionFunction = EMPTY_OUT
+                        ctrSpotNum = getDeliveryCtrSpotNum(truckTransaction)
                         break;
 
                     case TruckerFriendlyTranSubTypeEnum.DOM:
                         gateTransactionFunction = EMPTY_IN
+                        ctrSpotNum = getReceivalCtrSpotNum(truckTransaction)
                         break;
-
-                /*case TruckerFriendlyTranSubTypeEnum.DOB:
-                    gateTransactionFunction = "RB"
-                    break;
-                case TruckerFriendlyTranSubTypeEnum.PUB:
-                    gateTransactionFunction = "DB"
-                    break;*/
                 }
                 jsonObject.put("ticketNum", truckTransaction.getTranNbr()?.toString() != null ? truckTransaction.getTranNbr().toString() : "")
                 jsonObject.put("gateTransDtTm", truckTransaction.getTranCreated() != null ? ISO_DATE_FORMAT.format(truckTransaction.getTranCreated()) : "")
                 jsonObject.put("printDtTm", document?.getDocCreated() != null ? ISO_DATE_FORMAT.format(document.getDocCreated()) : "")
                 jsonObject.put("terminalCd", ContextHelper.getThreadOperator()?.getOprId() != null ? ContextHelper.getThreadOperator().getOprId() : "")
-                jsonObject.put("terminalFullName", TERMINAL_NAME)
-                jsonObject.put("shippingLineScac", truckTransaction.getTranLineId() != null ? truckTransaction.getTranLineId() : "")
-                jsonObject.put("truckPosName", truckTransaction.getTranTruckVisit()?.getTvdtlsPosition()?.getPosName())
-                jsonObject.put("truckPosId", truckTransaction.getTranTruckVisit()?.getTvdtlsPosition()?.getPosLocId())
-                jsonObject.put("truckPosType", truckTransaction.getTranTruckVisit()?.getTvdtlsNextStageId())
+                GeneralReference generalReference = GeneralReference.findUniqueEntryById("ITS", "TERMINAL_NAME")
+                if (generalReference != null && generalReference.getRefValue1() != null) {
+                    jsonObject.put("terminalFullName", generalReference.getRefValue1())
+                }
+                jsonObject.put("shippingLineCd", truckTransaction.getTranLineId() != null ? truckTransaction.getTranLineId() : "")
+
+
                 String shippingLineName = ""
+                String slScac = ""
                 if (truckTransaction.getTranLine() != null) {
                     shippingLineName = truckTransaction.getTranLine().getBzuName()
+                    slScac = truckTransaction.getTranLine().getBzuScac()
                 } else if (truckTransaction.getTranLineId() != null) {
                     LineOperator lineOperator = LineOperator.findLineOperatorById(truckTransaction.getTranLineId())
                     if (lineOperator != null) {
                         shippingLineName = lineOperator.getBzuName()
+                        slScac = lineOperator.getBzuScac()
                     }
                 }
                 jsonObject.put("shippingLineName", shippingLineName)
+                jsonObject.put("shippingLineScac", slScac)
                 jsonObject.put("laneNum", truckTransaction.getTranTruckVisit()?.getTvdtlsExitLane()?.getLaneId() != null ? truckTransaction.getTranTruckVisit().getTvdtlsExitLane().getLaneId() : truckTransaction.getTranTruckVisit()?.getTvdtlsEntryLane()?.getLaneId())
                 jsonObject.put("gateTransFunctionDsc", gateTransactionFunction)
                 jsonObject.put("ticketTypeDsc", document?.getDocDocType()?.getDoctypeId() != null ? document.getDocDocType().getDoctypeId() : "")
@@ -144,10 +152,11 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                                 .append(container.getEqEquipType().getEqtypNominalHeight().getKey().substring(3, 5)).toString()
                         jsonObject.put("containerSzTpHt", ctrSizeType)
                     }
+                    if (!StringUtils.isEmpty(ctrSpotNum)) {
+                        jsonObject.put("containerSpotNum", ctrSpotNum)
+                    }
                 }
-                if (truckTransaction.getTranUfv() != null && truckTransaction.getTranUfv().isTransitState(UfvTransitStateEnum.S40_YARD)) {
-                    jsonObject.put("containerSpotNum", truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName())
-                }
+
 
                 if (truckTransaction.getTranChsNbr() != null) {
                     jsonObject.put("chassisNumber", truckTransaction.getTranChsNbr())
@@ -157,8 +166,14 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                                 .append(chassis.getEqEquipType().getEqtypIsoGroup().getKey()).toString()
                         jsonObject.put("chassisSzTp", chassisSizeType)
                     }
-                    if (truckTransaction.getTranChsPosition() != null && truckTransaction.getTranChsPosition().getPosName() != null && truckTransaction.getTranChsPosition().getPosName().startsWith(YARD_POS)) {
-                        jsonObject.put("chassisSpotNum", truckTransaction.getTranChsPosition().getPosName())
+                    if (TranSubTypeEnum.RC.equals(truckTransaction.getTranSubType()) || TranSubTypeEnum.DC.equals(truckTransaction.getTranSubType())) {
+                        if (truckTransaction.getTranUfv() != null && truckTransaction.getTranUfv().isTransitState(UfvTransitStateEnum.S40_YARD)) {
+                            jsonObject.put("chassisSpotNum", truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName())
+                        }
+                    } else {
+                        if (truckTransaction.getTranChsPosition() != null && truckTransaction.getTranChsPosition().getPosName() != null && truckTransaction.getTranChsPosition().getPosName().startsWith(YARD_POS)) {
+                            jsonObject.put("chassisSpotNum", truckTransaction.getTranChsPosition().getPosName())
+                        }
                     }
                 }
 
@@ -176,8 +191,6 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
 
                     } else if (UnitCategoryEnum.EXPORT.equals(truckTransaction.getTranUnitCategory())) {
                         jsonObject.put("voyageCall", truckTransaction.getTranCarrierVisit().getCarrierObVoyNbrOrTrainId())
-
-
                     }
 
 
@@ -190,10 +203,36 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
                 }
                 if (document != null) {
                     Set<DocumentMessage> documentMessages = (Set<DocumentMessage>) document.getDocMessages()
-                    Iterator<DocumentMessage> iterator = documentMessages.iterator();
-                    for (int i = 1; i < 6 && iterator.hasNext(); i++) {
-                        DocumentMessage documentMessage = iterator.next()
-                        jsonObject.put("messageTxt${i}", documentMessage != null ? documentMessage.getDocmsgMsgText() : "")
+                    if (documentMessages != null && documentMessages.size() > 0) {
+                        Iterator<DocumentMessage> iterator = documentMessages.iterator();
+                        for (int i = 1; i < 6 && iterator.hasNext(); i++) {
+                            DocumentMessage documentMessage = iterator.next()
+                            jsonObject.put("messageTxt${i}", documentMessage != null ? documentMessage.getDocmsgMsgText() : "")
+
+                        }
+                    } else {
+                        List<DocumentMessage> docMsgs = DocumentMessage.findByTransactionForStageId(truckTransaction, document.getDocStageId())
+                        List<DocumentMessage> docMsg = new ArrayList<>()
+                        if (docMsgs != null && docMsgs.size() > 0) {
+                            Iterator<DocumentMessage> iterator = docMsgs.iterator();
+                            for (int i = 0; i < docMsgs.size() && iterator.hasNext(); i++) {
+                                DocumentMessage docMessage = iterator.next()
+                                if (docMessage != null && document.getDocCreated().format("dd/MM/yyyy HH:mm").equals(docMessage.getDocmsgCreated().format("dd/MM/yyyy HH:mm"))) {
+
+                                    docMsg.add(docMessage)
+                                }
+
+                            }
+                        }
+                        if (docMsg != null && docMsg.size() > 0) {
+                            Iterator<DocumentMessage> docMsgIterator = docMsg.iterator();
+                            for (int i = 1; i < 6 && docMsgIterator.hasNext(); i++) {
+                                DocumentMessage documentMessage = docMsgIterator.next()
+                                jsonObject.put("messageTxt${i}", documentMessage != null ? documentMessage.getDocmsgMsgText() : "")
+
+                            }
+
+                        }
 
                     }
                 }
@@ -201,6 +240,7 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         }
         return jsonObject.toJSONString()
     }
+
 
     private String validateMandatoryFields(String ticketNbr, String tranDate) {
         StringBuilder stringBuilder = new StringBuilder()
@@ -224,6 +264,32 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
         return c1.getTime();
     }
 
+    private String getDeliveryCtrSpotNum(TruckTransaction truckTransaction) {
+        String ctrSpotNumber
+        if (truckTransaction != null && truckTransaction.getTranUfv() != null && truckTransaction.getTranUfv().getUfvLastKnownPosition() != null
+                && truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName() != null) {
+
+            if (truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName().startsWith("Y")) {
+                ctrSpotNumber = StringUtils.substringAfter(truckTransaction.getTranUfv().getUfvLastKnownPosition().getPosName(), "Y-PIERG-")
+            }
+
+        }
+        return ctrSpotNumber
+    }
+
+    private String getReceivalCtrSpotNum(TruckTransaction truckTransaction) {
+        String ctrSpotNumber
+        if (truckTransaction != null && truckTransaction.getTranUfv() != null) {
+            if (truckTransaction.getTranUfv().getFinalPlannedPosition() != null
+                    && truckTransaction.getTranUfv().getFinalPlannedPosition().getPosName() != null
+                    && truckTransaction.getTranUfv().getFinalPlannedPosition().getPosName().startsWith("Y")) {
+                ctrSpotNumber = StringUtils.substringAfter(truckTransaction.getTranUfv().getFinalPlannedPosition().getPosName(), "Y-PIERG-")
+            }
+        }
+        return ctrSpotNumber
+    }
+
+
     private Date getEndDate(String datestr) {
         Date endDate = DST_DATE_FORMAT.parse(DST_DATE_FORMAT.format(SRC_DATE_FORMAT.parse(datestr)))
         Calendar c1 = Calendar.getInstance()
@@ -238,8 +304,8 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
 
     private static DateFormat SRC_DATE_FORMAT = new SimpleDateFormat("MM/dd/yyyy")
     private static DateFormat DST_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd")
-    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss");
-    private static final String TERMINAL_NAME = "International Transportation Service, Inc."
+    private static DateFormat ISO_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    //private static final String TERMINAL_NAME = "International Transportation Service, Inc."
     private static final String BARE_IN = "BARE-IN"
     private static final String BARE_OUT = "BARE-OUT"
     private static final String EMPTY_IN = "EMPTY-IN"
@@ -247,7 +313,20 @@ class ITSGetGateTicketWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String FULL_IN = "FULL-IN"
     private static final String FULL_OUT = "FULL-OUT"
     private static final String YARD_POS = "Y-ITS"
-
+    private static final String EIN_EIR = "EXPORT-IN EIR"
+    private static final String IIN_EIR = "IMPORT-IN EIR"
+    private static final String MIN_EIR = "EMPTY-IN EIR"
+    private static final String BCIN_EIR = "BARE CHASSIS-IN EIR"
+    private static final String EXPORT_PICKUP = "EXPORT PICKUP"
+    private static final String IMPORT_PICKUP = "IMPORT PICKUP"
+    private static final String EMPTY_PICKUP = "EMPTY PICKUP"
+    private static final String BARE_CHASSIS_PICKUP = "BARE CHASSIS PICKUP"
+    private static final String EXPORT_OUT_EIR = "EXPORT-OUT EIR"
+    private static final String IMPORT_OUT_EIR = "IMPORT-OUT EIR"
+    private static final String EMPTY_OUT_EIR = "EMPTY-OUT EIR"
+    private static final String BARE_CHASSIS_OUT_EIR = "BARE CHASSIS-OUT EIR"
+    private static final String TROUBLE_TICKET = "TROUBLE TICKET"
+    private static final String TURN_AROUND_TICKET = "TURN-AROUND TICKET"
     private static Logger LOGGER = Logger.getLogger(this.class);
 
 

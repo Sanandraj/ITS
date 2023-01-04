@@ -72,7 +72,7 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
                     generateSASToken();
                     processIntegrationMessage(serviceMessage);
                 } catch (Exception exception) {
-                    LOGGER.debug("exception log " + exception)
+                    LOGGER.debug("exception log " + exception.printStackTrace())
                     LOGGER.debug("ISM name " + serviceMessage.getIsmIntegrationService().getIntservName())
                     serviceMessage.setIsmUserString1("Failed")
                     serviceMessage.setIsmUserString3("false")
@@ -98,7 +98,7 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
         } else {
             serviceMessage.setIsmUserString1("Failed")
             serviceMessage.setIsmUserString2(errorMessage)
-            serviceMessage.setIsmUserString3("false") //changed from tue to false
+            serviceMessage.setIsmUserString3("true")
         }
 
 
@@ -132,27 +132,7 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
         }
     }
 
-    /* static class TrustManager implements X509TrustManager {
-         public java.security.cert.X509Certificate[] getAcceptedIssuers() { return null; }
 
-         public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
-
-         public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {}
-     }
-
-     // trusting all certificate
-     public static void doTrustToCertificates() throws Exception {
-         TrustManager[] trustAllCerts = new TrustManager[1]
-         trustAllCerts[0] = new TrustManager()
-         SSLContext sc = SSLContext.getInstance("SSL");
-         sc.init(null, trustAllCerts, new java.security.SecureRandom());
-         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-         HostnameVerifier allHostsValid = new HostnameVerifier() {
-             public boolean verify(String hostname, SSLSession session) { return true; }
-         };
-         // Install the all-trusting host verifier
-         HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
-     }*/
 
 
     private
@@ -180,9 +160,11 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
             void handleError(ClientHttpResponse httpResponse) throws IOException {
                 if (httpResponse.getStatusCode()
                         .series() == HttpStatus.Series.SERVER_ERROR) {
+                    LOGGER.debug("server error series" + httpResponse.getStatusText())
                     throw new HttpServerErrorException(httpResponse.getStatusCode(), httpResponse.getStatusText());
                 } else if (httpResponse.getStatusCode()
                         .series() == HttpStatus.Series.CLIENT_ERROR) {
+                    LOGGER.debug("client error series" + httpResponse.getStatusText())
                     if (httpResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
                         errorMessage = IOUtils.toString(httpResponse.getBody(), StandardCharsets.UTF_8.name());
                     } else {
@@ -209,12 +191,16 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
         //disableSslVerification()
         // doTrustToCertificates()
         ResponseEntity<String> response = restTemplate.exchange(endPoint, HttpMethod.POST, httpEntity, String.class);
-        LOGGER.debug("status code " + response.getStatusCode())
+        // LOGGER.debug("status code " + response.getStatusCode())
+        // LOGGER.debug("errorMessage " + errorMessage)
         if (errorMessage == null) {
             String result;
             ObjectMapper om = new ObjectMapper();
             try {
-                return (om.readTree((String) response.getBody()).path("access_token").asText());
+                //LOGGER.debug("response.getBody() " + response.getBody())
+                if(response.getBody() != null){
+                    return (om.readTree((String) response.getBody()).path("access_token").asText());
+                }
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -227,7 +213,7 @@ class ITSEmodalJob extends AbstractGroovyJobCodeExtension {
                 return jsonObject.get("reason");
             }
         }
-        // LOGGER.debug("errorMessage " + errorMessage)
+        //
         return errorMessage;
 
 

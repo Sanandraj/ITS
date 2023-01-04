@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_USER_PURGE">ARG_USER_PURGE</action>
+  </actions>
+  <form id="CUSTOM_UPDATE_YARD_BLOCK">
+    <title>General Reference Entry</title>
+    <entity>
+      <name>GeneralReference</name>
+      <primaryKey>refGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="create" mode="editable" pageId="Create General Reference" />
+      <actionMode action="update" mode="editable" pageId="Update General Reference" />
+      <actionMode action="delete" mode="viewOnly" pageId="Delete General Reference" />
+    </actionsAllowed>
+<formSubmissionCodeExtension name="ITSMailOnDeliverableUpdateFormSubCommand"/>
+    <item fieldId="refValue1" />
+    <item fieldId="refValue2" />
+ <item fieldId="refValue3" />
+  </form>
+</variforms>
+
