@@ -26,7 +26,7 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.apache.xmlbeans.XmlObject
 
-/**
+/*
  * Author: <a href="bgopal@weservetech.com">Gobal B</a>
  *
  * Requirements: This code extension creates or updates or deletes a container from fleet file.
@@ -145,9 +145,14 @@ public class ITSContainerFleetProcessor extends AbstractEdiPostInterceptor {
                 registerError(unit.getUnitId() + " has active unit visit for " + unit.getUnitLineOperator().getBzuId() + ", cannot on-hired with " + inLine + ".")
                 return
             }
+            else if(unit != null && "D".equalsIgnoreCase(action)){
+                registerError(unit.getUnitId() + " has active unit visit for " + unit.getUnitLineOperator().getBzuId() + ", cannot off-hired.")
+                return
+            }
             if (action != null && "A".equalsIgnoreCase(action)) {
                 if (hasDifferentLine) {
                     if (onHireGenRef != null) {
+
                         EquipmentState eqs = EquipmentState.findOrCreateEquipmentState(ctr, ContextHelper.getThreadOperator(), lineOperator);
                         if (eqs != null) {
                             eqs.setEqsEqOperator(lineOperator);
