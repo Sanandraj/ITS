@@ -87,7 +87,8 @@ class ITSHenkenInterfaceJob extends AbstractGroovyJobCodeExtension {
     private List<IntegrationServiceMessage> getIsmListToBeSend() {
         DomainQuery dq = QueryUtils.createDomainQuery(T_INTEGRATION_SERVICE_MESSAGE)
                 .addDqPredicate(nonProcessedDisJunction)
-                .addDqPredicate(PredicateFactory.eq(ISM_SERV_NAME, T_HKI))
+                /*.addDqPredicate(PredicateFactory.eq(ISM_SERV_NAME, T_HKI))*/
+                .addDqPredicate(PredicateFactory.like(ISM_SERV_NAME, T_HKI + T_PERCENTAGE))
                 .addDqOrdering(Ordering.asc(ArgoIntegrationField.ISM_SEQ_NBR))
                 .setDqMaxResults(ISM_MSG_PUSH_LIMIT);
 
@@ -132,6 +133,7 @@ class ITSHenkenInterfaceJob extends AbstractGroovyJobCodeExtension {
     private static final String T_SENT = "Sent";
     private static final String T_FAILED = "Failed";
     private static final String T_INTEGRATION_SERVICE = "IntegrationService";
+    private static final String T_PERCENTAGE = "%";
 
     private static final String T_MESSAGE_EXCHANGE = "MESSAGE_EXCHANGE";
     private static final String T_ALLOWED_UTR = "ALLOWED_UTR";

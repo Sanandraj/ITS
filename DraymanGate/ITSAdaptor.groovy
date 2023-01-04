@@ -689,7 +689,8 @@ class ITSAdaptor {
 
             if (T__DRAYMAN.equals(inIntegrationService.getIntservName())) {
                 integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageDraymanSequenceProvider().getNextSequenceId());
-            } else if (T__HKI.equals(inIntegrationService.getIntservName())) {
+
+            } else if (ArgoUtils.isNotEmpty(inIntegrationService.getIntservName()) && inIntegrationService.getIntservName().startsWith(T__HKI)) {
                 integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageHKISequenceProvider().getNextSequenceId());
             }
 
