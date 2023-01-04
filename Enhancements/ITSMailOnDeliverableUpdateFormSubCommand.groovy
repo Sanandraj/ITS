@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 package ITS
 
 import com.navis.argo.ArgoField
@@ -20,23 +25,27 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * Version #: #BuildNumber#
- * Author: Annalakshmi G - annalakshmig@weservetech.com
- * Work Item #:
- * Date: 21-NOV-2022
- * Called From: Form - CUSTOM_UPDATE_YARD_BLOCK -   <formSubmissionCodeExtension name="ITSMailOnDeliverableUpdateFormSubCommand" />
- * Description: Update to the form will trigger the email.
- * This code extension to be added as FORM_SUBMISSION_INTERCEPTION as ITSMailOnDeliverableUpdateFormSubCommand.
- * PLEASE UPDATE THE BELOW HISTORY WHENEVER THE GROOVY IS MODIFIED
- * History:
- *{Date}:{Author}:{WorkItem#}:{short issue/solution description}*
- * **/
+ * @Author: mailto: annalakshmig@weservetech.com, Annalakshmi G; Date: 21/11/2022
+ *
+ *  Requirements: When Update the block/bay value in setup yard blocks need to trigger the email.
+ *
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSMailOnDeliverableUpdateFormSubCommand
+ *     Code Extension Type: FORM_SUBMISSION_INTERCEPTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ * @Setup: Called From: Form - CUSTOM_UPDATE_YARD_BLOCK -   <formSubmissionCodeExtension name="ITSMailOnDeliverableUpdateFormSubCommand" />
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
+ * */
 class ITSMailOnDeliverableUpdateFormSubCommand extends AbstractFormSubmissionCommand {
-
-    private static Logger LOGGER = Logger.getLogger(this.class);
-
-    /*String emailFrom = "mailerservice@itslb.com"
-    String emailTo = "annalakshmig@weservetech.com"*/
 
     @Override
     void doAfterSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
@@ -51,8 +60,8 @@ class ITSMailOnDeliverableUpdateFormSubCommand extends AbstractFormSubmissionCom
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS","DELIVERABLE_UPDATE_MAIL")
-                if(genRef != null && genRef.getRefValue1() != null && genRef.getRefValue2() != null) {
+                GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_UPDATE_MAIL")
+                if (genRef != null && genRef.getRefValue1() != null && genRef.getRefValue2() != null) {
                     emailFrom = genRef.getRefValue1()
                     emailTo = genRef.getRefValue2()
                     GeneralReference generalReference = (GeneralReference) HibernateApi.getInstance().load(GeneralReference.class, inGkeys[0]);
@@ -124,8 +133,6 @@ class ITSMailOnDeliverableUpdateFormSubCommand extends AbstractFormSubmissionCom
         } else {
             return ContextHelper.getThreadUserContext()
         }
-
-
     }
 
     private static final String deliverable_block = "DELIVERABLE_BLOCK"
@@ -134,6 +141,7 @@ class ITSMailOnDeliverableUpdateFormSubCommand extends AbstractFormSubmissionCom
     private static final String no = "N"
     private static final String block_status = "Block Status changed"
     private static final String bay_status = "Bay Status changed"
+    private static Logger LOGGER = Logger.getLogger(ITSMailOnDeliverableUpdateFormSubCommand.class);
 
 
 }
