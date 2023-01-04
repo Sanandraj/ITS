@@ -1,14 +1,13 @@
-package Enhancements
-
-import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.ArgoUtils
-import com.navis.argo.business.atoms.LocTypeEnum
-
 /*
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
  */
 
+package Enhancements
+
+import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
+import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
 import com.navis.external.road.AbstractGateTaskInterceptor
@@ -30,27 +29,31 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 
 /*
+ * @Author: mailto: annalakshmig@weservetech.com, Annalakshmi G; Date: 21/11/2022
  *
- * @Author <a href="mailto:annalakshmig@weservetech.com">Annalakshmi G</a>, 21/NOV/2022
+ *  Requirements: This groovy is used to reject DI transaction if the unit is in non deliverable bay(configured in General reference).
  *
- * Requirements : This groovy is used to reject DI transaction if the unit is in non deliverable bay(configured in General reference).
+ * @Inclusion Location: Incorporated as a code extension of the type
  *
- * @Inclusion Location	: Incorporated as a code extension of the type GATE_TASK_INTERCEPTOR as mention below.
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSRejectNonDeliverableGateTaskInterceptor
+ *     Code Extension Type: GATE_TASK_INTERCEPTOR
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
  *
- * Deployment Steps:
- *	a) Administration -> System -> Code Extension
- *	b) Click on + (Add) Button
- *	c) Add as GATE_TASK_INTERCEPTOR and code extension name as ITSRejectNonDeliverableGateTaskInterceptor
- *	d) Paste the groovy code and click on save
+ *  @Setup: Customize the Groovy code ITSRejectNonDeliverableGateTaskInterceptor at the Ingate stage in RejectContainerNotInYard business task in transaction type DI
  *
- * @Set up groovy code (ITSRejectNonDeliverableGateTaskInterceptor) in one of the business task
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  *
  */
 
 
 class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterceptor implements EGateTaskInterceptor {
 
-    private static final Logger LOGGER = Logger.getLogger(ITSRejectNonDeliverableGateTaskInterceptor.class);
 
     @Override
     void execute(TransactionAndVisitHolder inWfCtx) {
@@ -87,50 +90,16 @@ class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterce
                         position.getPosSlot().indexOf('.') != -1 ? position.getPosSlot().split('\\.')[0] : null
             }
             boolean isSpotDeliverable = true
-            /*   if (!StringUtils.isEmpty(blockName)) {
-                   if(!isBlockDeliverable(blockName)){
-                       if (!StringUtils.isEmpty(bayName)) {
-                           if(!isBayDeliverable(blockName,bayName)){
-                               isSpotDeliverable = false
-                           }
-                       }
-                       isSpotDeliverable = false
-                   }else{
-                       if (!StringUtils.isEmpty(bayName)) {
-                           if(!isBayDeliverable(blockName,bayName)){
-                               isSpotDeliverable = false
-                           }
-                       }
-                   }
-
-               }*/
-            if(!StringUtils.isEmpty(blockName)){
-                if(!isBlockDeliverable(blockName, bayName)){
-                    this.getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("UNIT_DELIVERABLE_STATUS"), "Unit is in Non Deliverable bay",null);
+            if (!StringUtils.isEmpty(blockName)) {
+                if (!isBlockDeliverable(blockName, bayName)) {
+                    this.getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("UNIT_DELIVERABLE_STATUS"), "Unit is in Non Deliverable bay", null);
                 }
             }
-            /* if(!isSpotDeliverable){
-                 this.getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("UNIT_DELIVERABLE_STATUS"), "Unit is in Non Deliverable bay",null);
-             }*/
-            /* GeneralReference generalReference
-             LOGGER.debug("block id ${blockName} and bay id ${bayName}")
-             if (!StringUtils.isEmpty(blockName) && !StringUtils.isEmpty(bayName)) {
-                  generalReference = GeneralReference.findUniqueEntryById(Type, bay_identifier, blockName, bayName)
-
-             }
-             if(null == generalReference && !StringUtils.isEmpty(blockName)){
-                 generalReference = GeneralReference.findUniqueEntryById(Type, block_identifier, blockName)
-             }
-             if (generalReference != null && No.equalsIgnoreCase(generalReference.getRefValue1())) {
-                 if (isDateWithinRange(generalReference)) {
-                     this.getMessageCollector().appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("UNIT_DELIVERABLE_STATUS"), "Unit is in Non Deliverable bay",null);
-
-                 }
-             }*/
         }
         executeInternal(inWfCtx)
 
     }
+
     boolean isBlockDeliverable(String blkId, String bayId) {
         GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", blkId)
         if (genRef != null && "Y".equalsIgnoreCase(genRef.getRefValue1()) && isDateWithinRange(genRef)) {
@@ -147,7 +116,7 @@ class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterce
         if (!CollectionUtils.isEmpty(genRefList)) {
             List<String> deliverableBayList = new ArrayList<>()
             for (GeneralReference generalReference : genRefList) {
-                if (generalReference.getRefId3() != null && "Y".equalsIgnoreCase(generalReference.getRefValue1()) && isDateWithinRange(generalReference) ) {
+                if (generalReference.getRefId3() != null && "Y".equalsIgnoreCase(generalReference.getRefValue1()) && isDateWithinRange(generalReference)) {
                     String[] bays = StringUtils.split(generalReference.getRefId3(), ",")
                     for (String bay : bays) {
 
@@ -157,7 +126,7 @@ class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterce
 
                 }
             }
-            if(deliverableBayList.contains(blkId.concat(":").concat(bayId))){
+            if (deliverableBayList.contains(blkId.concat(":").concat(bayId))) {
                 return true
             }
 
@@ -183,7 +152,7 @@ class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterce
             } else {
                 return false
             }
-        }catch (ParseException e) {
+        } catch (ParseException e) {
             e.printStackTrace()
         }
 
@@ -233,8 +202,6 @@ class ITSRejectNonDeliverableGateTaskInterceptor extends AbstractGateTaskInterce
     private final static String Type = "ITS"
     private final static String No = "N"
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private static final Logger LOGGER = Logger.getLogger(ITSRejectNonDeliverableGateTaskInterceptor.class);
 
 }
-
-
-
