@@ -111,7 +111,6 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
             EdiCommodity ediCommodity = railWayBillTransaction.getEdiRailWayBillContainer() != null ? railWayBillTransaction.getEdiRailWayBillContainer().getEdiCommodity() : null
             Port originPort = ediCommodity != null ? ediCommodity.getOriginPort() : null
             if (originPort != null && originPort.getPortId() != null && !FACILITY_PORT_CODE.equalsIgnoreCase(originPort.getPortId())) {
-                registerError("EDI data does not match the outbound rail move criteria, cannot process EDI.")
                 return
             }
 
