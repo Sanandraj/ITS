@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 package ITS
 
 import com.navis.argo.ArgoExtractEntity
@@ -21,7 +25,6 @@ import com.navis.framework.portal.query.Junction
 import com.navis.framework.portal.query.PredicateFactory
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.BizViolation
-import com.navis.inventory.business.api.UnitStorageManager
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.www.services.argoservice.ArgoServiceLocator
 import com.navis.www.services.argoservice.ArgoServicePort
@@ -61,6 +64,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
 
     @Override
     void execute(Map<String, Object> inParams) {
+        LOGGER.debug("ITSGenerateDemurrageInvoicesGroovyJob Invoke")
         String action = "DRAFT"
         String eventTypeId = "LINE_STORAGE"
         List statusList = new ArrayList<String>()
@@ -74,7 +78,6 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
         UserContext context = ContextHelper.getThreadUserContext()
         Date timeNow = ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), context.getTimeZone())
         HibernateApi hibernateApi = Roastery.getHibernateApi()
-        StringBuilder result = new StringBuilder("Generating Invoices \n")
         Date today = ArgoUtils.timeNow()
 
         List<ChargeableUnitEvent> cueDataList = getLineIdAndGuaranteePartyToBill(eventTypeId, statuses, context)
@@ -101,8 +104,8 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 lineId = lineIdAndGuranteeParty?.getBexuLineOperatorId()
                 gtd = lineIdAndGuranteeParty?.getBexuGuaranteeThruDay()
                 ufvGkey = lineIdAndGuranteeParty?.getBexuUfvGkey()
-                payee = lineIdAndGuranteeParty?.getBexuPayeeCustomerId()
                 guranteePartyRole = lineIdAndGuranteeParty?.getBexuGuaranteeParty()
+                payee = guranteePartyRole
                 timeOut = lineIdAndGuranteeParty?.getBexuUfvTimeOut()
 
 
@@ -124,7 +127,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
 
 
                 if (eqId == null || lineId == null || date == null || ufvGkey == null) {
-                    LOGGER.debug("Either one is NULL for Unit : $eqId, Line: $lineId, GTD: $gtd, Timeout $timeOut, UfvGkey: $ufvGkey, Timeout: $timeOut ")
+                    LOGGER.debug("Either one is NULL for Unit : $eqId, Line: $lineId, GTD: $gtd, Timeout $timeOut, UfvGkey: $ufvGkey, Timeout: $timeOut")
                     continue
                 }
 
@@ -143,7 +146,7 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                     LOGGER.debug("No UFV founf for Gkey : " + ufvGkey)
                     continue
                 }
-                
+
 
                 Element element
 
@@ -294,8 +297,9 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
             }
         }
     }
+
     private static final String QUEUED = "QUEUED"
     private static final String PARTIAL = "PARTIAL"
     private static String IS_INVOICE_FINAL = "True"
-    private static final Logger LOGGER = Logger.getLogger(ITSGenerateDemurrageInvoicesGroovyJob.class)
+    private static Logger LOGGER = Logger.getLogger(ITSGenerateDemurrageInvoicesGroovyJob.class)
 }
