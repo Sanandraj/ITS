@@ -2,8 +2,8 @@
 <variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
     <actions>
         <!--
-            These are the most common used actions. Please verify needs and edit accordingly.
-        -->
+                These are the most common used actions. Please verify needs and edit accordingly.
+            -->
         <action id="view">view</action>
         <action id="create">create</action>
         <action id="update">update</action>
@@ -12,57 +12,68 @@
     </actions>
     <table id="CUSTOM_TABLE_VIEW_AVAILABILITY">
         <title>Container Availability</title>
-        <customization creationType="CUSTOM_NEW"/>
+        <customization creationType="CUSTOM_NEW" />
         <entity>
             <name>UnitFacilityVisit</name>
             <primaryKey>ufvGkey</primaryKey>
         </entity>
         <tableActions>
-            <tableActionMode action="update" mode="allow"/>
-            <tableActionMode action="create" mode="allow"/>
-            <tableActionMode action="delete" mode="allow"/>
+            <tableActionMode action="update" mode="allow" />
+            <tableActionMode action="create" mode="allow" />
+            <tableActionMode action="delete" mode="allow" />
+
         </tableActions>
         <!--<crudCommand variformId=""/>-->
-        <uiManager ref="customBeanCtrAvailabilityUiTableManager"/>
-  <valueConverter ref="customBeanCtrAvailablityValueConverter" />
+        <doubleClickCommand userActionId="INV_INSPECT_UFV" variformId="INSPECTOR_UNIT" destination="dialog" modal="false" />
+        <uiManager ref="customBeanCtrAvailabilityUiTableManager" />
+        <valueConverter ref="customBeanCtrAvailablityValueConverter" />
+        <menu category="context">
+            <menuItem userActionId="INV_INSPECT_UFV" label="INSPECT_UNIT" variformId="INSPECTOR_UNIT" destination="dialog" modal="false" enable="oneSource" />
+        </menu>
 
-        <column fieldId="ufvUnit.unitId" display="visible" complexQuery="include"/>
+        <column fieldId="ufvUnit.unitId" display="visible" complexQuery="include" />
         <column fieldId="ufvUnit.unitLineOperator.bzuId" display="visible" />
         <column fieldId="ufvUnit.unitGoods.gdsBlNbr" display="visible" />
-  <column fieldId="ufvUnit.unitImpediments" display="visible"  />
-  <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypId" display="visible" complexQuery="include"/>
-  <column fieldId="ufvUnit.unitEquipmentState.eqsEqOperator.bzuId" display="visible" complexQuery="omit" simpleQuery="include"  />
-  <column fieldId="ufvUnit.unitCurrentlyAttachedChassisId" display="visible" complexQuery="omit" simpleQuery="include"  />
-  <column fieldId="ufvActualIbCv.cvId" display="visible" complexQuery="include" groupLabel="3-Routing"  />
-  <column fieldId="ufvUnit.unitRouting.rtgTruckingCompany.bzuId" display="visible" complexQuery="omit" groupLabel="3-Routing"  />
-  <column fieldId="ufvCalculatedLastFreeDay" display="visible" complexQuery="omit" />
-  <column fieldId="ufvUnit.unitRemark" display="visible" complexQuery="include" groupLabel="1-Unit" />
+        <column fieldId="ufvUnit.unitFlexString03" display="visible" complexQuery="include" />
 
-<column fieldId="ufvVesselNameSynthetic" label="UFV IB Vessel Name" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvVesselStatusSynthetic" label="UFV IB Visit Status" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvVesselETASynthetic" label="UFV Visit ETA" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvIBVoySynthetic" label="UFV IB Voy" simpleQuery="omit" complexQuery="omit" />
-<!--column fieldId="ufvIsDeliverableSynthetic" label="UFV Is Deliverable" simpleQuery="omit" complexQuery="omit" /-->
-<column fieldId="ufvDemurrageSynthetic" label="UFV Demurrage" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvExamFeeSynthetic" label="UFV ExamFee" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvDwellFeeSynthetic" label="UFV DwellFee" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvDemurrageNoteSynthetic" label="UFV Demurrage Note" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvExamFeeNoteSynthetic" label="UFV ExamFee Note" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvDwellFeeNoteSynthetic" label="UFV DwellFee Note" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvContainerAvailabilitySynthetic" label="IsCtrAvailable" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvSpotSynthetic" label="UFV Spot" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvCustomsHoldSynthetic" label="UFV Customs" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvFreightHoldSynthetic" label="UFV Freight" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvSpecialHoldSynthetic" label="UFV Special" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvPierPassHoldSynthetic" label="UFV PierPass" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvLineHoldSynthetic" label="UFV Line" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvExamHoldSynthetic" label="UFV Exam" simpleQuery="omit" complexQuery="omit" />
-<column fieldId="ufvDischDateSynthetic" label="UFV Disch Date" simpleQuery="omit" complexQuery="omit" />
-<!--column fieldId="ufvDeliveredDateSynthetic" label="UFV Delivered Date" simpleQuery="omit" complexQuery="omit" /-->
-<column fieldId="ufvUnit.unitFlexString03" display="visible" complexQuery="include" />
-<column fieldId="ufvFlexDate01" display="visible" complexQuery="include" />
 
-  <!--<column fieldId="ufvFlexString" display="visible" complexQuery="include" /> TO DO SURCHARGE -->
+
+        <column fieldId="ufvContainerAvailabilitySynthetic" label="IsCtrAvailable" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvFlexDate01" display="visible" complexQuery="include" />
+        <column fieldId="ufvUnit.unitImpediments" display="visible" />
+        <column fieldId="ufvSpotSynthetic" label="UFV Spot" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvDischDateSynthetic" label="UFV Disch Date" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvCalculatedLastFreeDay" display="visible" complexQuery="omit" />
+        <column fieldId="ufvDemurrageSynthetic" label="UFV Demurrage" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvDwellFeeSynthetic" label="UFV DwellFee" simpleQuery="omit" complexQuery="omit" />
+
+        <column fieldId="ufvExamFeeSynthetic" label="UFV ExamFee" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvExamHoldSynthetic" label="UFV Exam" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvCustomsHoldSynthetic" label="UFV Customs" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvFreightHoldSynthetic" label="UFV Freight" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvPierPassHoldSynthetic" label="UFV PierPass" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvCTFHoldSynthetic" label="UFV CTFHold" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvLineHoldSynthetic" label="UFV Line" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvUnit.unitEquipment.eqEquipType.eqtypId" display="visible" complexQuery="include" />
+        <column fieldId="ufvVesselNameSynthetic" label="UFV IB Vessel Name" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvIBVoySynthetic" label="UFV IB Voy" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvUnit.unitRouting.rtgTruckingCompany.bzuId" display="visible" complexQuery="omit" groupLabel="3-Routing" />
+        <column fieldId="ufvUnit.unitCurrentlyAttachedChassisId" display="visible" complexQuery="omit" simpleQuery="include" />
+        <column fieldId="ufvUnit.unitRemark" display="visible" complexQuery="include" groupLabel="1-Unit" />
+
+        <column fieldId="ufvUnit.unitEquipmentState.eqsEqOperator.bzuId" display="visible" complexQuery="omit" simpleQuery="include" />
+
+        <column fieldId="ufvActualIbCv.cvId" display="visible" complexQuery="include" groupLabel="3-Routing" />
+        <column fieldId="ufvVesselStatusSynthetic" label="UFV IB Visit Status" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvVesselETASynthetic" label="UFV Visit ETA" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvDemurrageNoteSynthetic" label="UFV Demurrage Note" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvExamFeeNoteSynthetic" label="UFV ExamFee Note" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvDwellFeeNoteSynthetic" label="UFV DwellFee Note" simpleQuery="omit" complexQuery="omit" />
+        <column fieldId="ufvSpecialHoldSynthetic" label="UFV Special" simpleQuery="omit" complexQuery="omit" />
+        <!--column fieldId="ufvDeliveredDateSynthetic" label="UFV Delivered Date" simpleQuery="omit" complexQuery="omit" /-->
+        <column fieldId="ufvIsDeliverableSynthetic" label="UFV Is Deliverable" simpleQuery="omit" complexQuery="omit" />
+
+        <!--<column fieldId="ufvFlexString" display="visible" complexQuery="include" /> TO DO SURCHARGE -->
     </table>
-
 </variforms>
+
