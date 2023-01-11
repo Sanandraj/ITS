@@ -10,6 +10,7 @@ import com.navis.framework.presentation.ui.FormController
 import com.navis.framework.presentation.ui.ICarinaWidget
 import com.navis.framework.presentation.ui.event.CarinaUIEvent
 import com.navis.framework.presentation.ui.event.listener.AbstractCarinaEventListener
+import com.navis.framework.presentation.util.FrameworkUserActions
 import com.navis.inventory.business.api.UnitField
 import org.apache.log4j.Logger
 
@@ -74,6 +75,15 @@ class customBeanITSContainerAvailabilityFormController extends FormController im
         });
     }
 
+    protected void configureButtonPane() {
+        super.configureButtonPane();
+        CarinaButton excButton = this.getButton(FrameworkUserActions.EXECUTE);
+        String FixButton = "OK";
+        excButton.setLabel(FixButton);
+        excButton.setEnabled(true)
+        excButton.setInoperable(false)
+
+    }
 
     private void displaySelectedUnits() {
         VariformUiCommand command = new VariformUiCommand("CUSTOM_TABLE_VIEW_AVAILABILITY");
