@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
 package ITS
 
 import com.navis.argo.business.api.ArgoUtils
@@ -19,44 +24,57 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <ahref="mailto:annalakshmig@weservetech.com"  >
- * @Inclusion Location    : Incorporated as a code extension of the type GENERAL_NOTICES_CODE_EXTENSION -->
- * Record an event in associated units of the BL if any one of the holds ['1H', '7H', '2H', '71', '72', '73'] is released/applied.
+ * @Author: mailto:annalakshmig@weservetech.com, Annalakshmi G; Date: 14/11/2022
+ *
+ *  Requirements: Record an event in associated units of the BL if any one of the holds ['1H', '7H', '2H', '71', '72', '73'] is released/applied.
+ *
+ *  @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSRecordBlReleaseOnUnitGenNotice
+ *     Code Extension Type: GENERAL_NOTICES_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *  @Setup Edit the Received event type General Notice with ITSRecordBlReleaseOnUnitGenNotice code
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
  *
  */
 
 class ITSRecordBlReleaseOnUnitGenNotice extends AbstractGeneralNoticeCodeExtension {
-    private static final Logger LOGGER = Logger.getLogger(ITSRecordBlReleaseOnUnitGenNotice.class);
 
     @Override
     public void execute(GroovyEvent inGroovyEvent) {
-        LOGGER.info("ITSRecordBlReleaseOnUnitGenNotice: Started execution")
         LOGGER.setLevel(Level.DEBUG)
+        LOGGER.info("ITSRecordBlReleaseOnUnitGenNotice: Started execution")
         BillOfLading billOfLading = (BillOfLading) inGroovyEvent.getEntity()
-        EventType eventType = EventType.findEventType("BL_HOLD_CHECK")
         Unit unit = null
         if (billOfLading != null) {
             Set<BlGoodsBl> blBlGoodsBls = (Set<BlGoodsBl>) billOfLading.getBlBlGoodsBls()
-
             if (!CollectionUtils.isEmpty(blBlGoodsBls)) {
                 for (BlGoodsBl blGoodsBl : blBlGoodsBls) {
                     unit = blGoodsBl.getBlgdsblGoodsBl().getGdsUnit()
                     UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
-                    LOG.warn("ufv " + ufv)
+                    LOGGER.warn("ufv " + ufv)
                     if (unit && isDeliverableHoldsReleased(unit.getUnitGoods())) {
 
                         if(ufv){
                             LocPosition position = ufv.getUfvLastKnownPosition()
                             if (position != null && position.getBlockName() != null && isBlockDeliverable(position.getBlockName())) {
-                               /* if( eventType != null)
-                                unit.recordEvent(eventType, null, "Recorded by Groovy", ArgoUtils.timeNow())*/
+
                                 unit.setUnitFlexString03("Y")
                                 ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                                unit.setUnitFlexString06("Y")
                             }
                         }
                     } else {
                         unit.setUnitFlexString03("N")
                         if(ufv) ufv.setUfvFlexDate01(null)
+                        unit.setUnitFlexString06("N")
                     }
                 }
             }
@@ -69,14 +87,14 @@ class ITSRecordBlReleaseOnUnitGenNotice extends AbstractGeneralNoticeCodeExtensi
         Set<BillOfLading> blSet = goodsBl?.getGdsblBillsOfLading()
 
         boolean flagReleased = Boolean.TRUE
-         blSet.each {
-             bl ->
-                 holdMap.each {
-                     if (isFlagActive(bl, it)) {
-                         flagReleased =  Boolean.FALSE
-                     }
-                 }
-         }
+        blSet.each {
+            bl ->
+                holdMap.each {
+                    if (isFlagActive(bl, it)) {
+                        flagReleased =  Boolean.FALSE
+                    }
+                }
+        }
 
         return flagReleased
     }
@@ -85,7 +103,7 @@ class ITSRecordBlReleaseOnUnitGenNotice extends AbstractGeneralNoticeCodeExtensi
         GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", blkId)
 
         if (genRef != null && genRef.getRefValue1().equalsIgnoreCase("Y")) {
-            LOG.warn("Block deliverable " + blkId)
+            LOGGER.warn("Block deliverable " + blkId)
             return true
         }
         return false
@@ -98,8 +116,6 @@ class ITSRecordBlReleaseOnUnitGenNotice extends AbstractGeneralNoticeCodeExtensi
         }
         return false
     }
-
-    private static final Logger LOG = Logger.getLogger(this.class)
-
+    private static final Logger LOGGER = Logger.getLogger(ITSRecordBlReleaseOnUnitGenNotice.class);
 
 }
