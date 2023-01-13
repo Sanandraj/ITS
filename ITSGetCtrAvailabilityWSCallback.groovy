@@ -188,13 +188,14 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                         GoodsBase goodsBase = unitFacilityVisit.getUfvUnit()?.getUnitGoods()
                         boolean isHoldReleased = true
                         if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
+                        // send amount details only if FDD && FAD are not null, job also will set that field, hence checking deliverable status here without depending on the FDD & FAD
 
                         if ((unitFacilityVisit.getUfvFlexDate03() != null && unitFacilityVisit.getUfvFlexDate01() != null) || (null == spotParms.get("SPOT_STATUS_NOTE") && isHoldReleased)) {
                             if(unitFacilityVisit.getUfvFlexDate03() == null){
-                                unitFacilityVisit.setUfvFlexDate03(ArgoUtils.timeNow())
+                                unitFacilityVisit.setUfvFlexDate03(ArgoUtils.timeNow()) // setting FDD
                             }
                             if (unitFacilityVisit.getUfvFlexDate01() == null) {
-                                unitFacilityVisit.setUfvFlexDate01(ArgoUtils.timeNow())
+                                unitFacilityVisit.setUfvFlexDate01(ArgoUtils.timeNow()) //setting FAD
                                 unit.setUnitFlexString03("Y")
 
                             }
@@ -403,6 +404,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                             isContainerAvailable = false
                         }*/
                         jsonEventObject.put(IS_CONTAINER_AVAILABLE, spotParms.get("SPOT_STATUS_NOTE") == null && isContainerAvailable)
+                        jsonEventObject.put(IS_CONTAINER_ACCESSIBLE,spotParms.get("SPOT_STATUS_NOTE") == null)
                         jsonArray.add(jsonEventObject)
                     }
                 }
@@ -710,6 +712,8 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
     private static final String CTR_SPOT_SPOTTING = "SPOTTING"
     private static final String UNABLE_TO_LOCATE = "UNABLE TO LOCATE"
     private static final String BL_TYPE = "BL"
+    private static final String IS_CONTAINER_ACCESSIBLE = "isContainerAccessible"
+
     private static final String TMF_START = "TMF HOLD"
     private static final String CUSTOMS_START = "CUSTOMS"
     private static final String FREIGHT_START = "FREIGHT"
