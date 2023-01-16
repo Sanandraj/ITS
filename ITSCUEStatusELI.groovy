@@ -6,6 +6,7 @@
 
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.atoms.DataSourceEnum
 import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.model.GeneralReference
@@ -25,7 +26,7 @@ import java.time.ZoneId
 
 /**
  *
- * @Author <ahref="mailto:annalakshmig@weservetech.com"  >  AnnaLakshmi G</a>, 16/SEP/2022
+ * @Author <ahref="mailto:annalakshmig@weservetech.com"   >   AnnaLakshmi G</a>, 16/SEP/2022
  *
  * Requirements : Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
  This groovy will check the out time of the unit and then update the status.
@@ -80,11 +81,6 @@ class ITSCUEStatusELI extends AbstractEntityLifecycleInterceptor {
                 possibleOutTime = lcPTDDate.withHour(23).withMinute(59).withSecond(59)
 
             }
-
-            /*   if ("INVOICED".equals(cue.getBexuStatus()) && (lcUnitOut == null || lcUnitOut.isAfter(possibleOutTime))) {
-                   updateStatus(inMoreFieldChanges, "QUEUED")
-
-               }*/
             if (IServiceExtract.QUEUED.equals(cue.getBexuStatus()) && (lcUnitOut != null && lcUnitOut.isBefore(possibleOutTime))) {
                 updateStatus(inMoreFieldChanges, "INVOICED")
             }

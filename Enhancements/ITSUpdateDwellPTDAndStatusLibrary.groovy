@@ -1,6 +1,7 @@
 package ITS.Enhancements
 
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.services.IServiceExtract
@@ -34,24 +35,28 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
         Set<InvoiceItem> invoiceItems = invoice.getInvoiceInvoiceItems();
 
         Set<Serializable> unitDwellEventCUEGkey = new HashSet<>()
+        Set<Serializable> vacisAndTailGateExamsCUEGkey = new HashSet<>()
 
 
         for (InvoiceItem invItem : invoiceItems) {
             if (dwell_event.equals(invItem.getItemEventTypeId())) {
                 unitDwellEventCUEGkey.add(invItem.getItemServiceExtractGkey());
-
+            }else if(vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())){
+                vacisAndTailGateExamsCUEGkey.add(invItem.getItemServiceExtractGkey())
             }
         }
 
         LOG.debug("unitDwellEventCUEGkey : " + unitDwellEventCUEGkey);
-        if (CollectionUtils.isEmpty(unitDwellEventCUEGkey)) {
-            LOG.debug("No item for this event!")
-            return;
+        if (!CollectionUtils.isEmpty(unitDwellEventCUEGkey)) {
+            Map<Serializable, Date> dwellPTDMap = createDwellPTDMap(unitDwellEventCUEGkey, invoice);
+
+            updateDwellPTDAndStatus(dwellPTDMap, isUpdatePtd)
+        }
+        if (!CollectionUtils.isEmpty(vacisAndTailGateExamsCUEGkey)) {
+            updateVacisAndTailGateExamPTD(vacisAndTailGateExamsCUEGkey)
         }
 
-        Map<Serializable, Date> dwellPTDMap = createDwellPTDMap(unitDwellEventCUEGkey, invoice);
 
-        updateDwellPTDAndStatus(dwellPTDMap, isUpdatePtd)
         LOG.debug("updateExtractPTDAndStatus end")
 
     }
@@ -69,7 +74,41 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 //LOG.debug("dwellPTDMap"+dwellPTDMap.toMapString())
         return dwellPTDMap;
     }
+void updateVacisAndTailGateExamPTD(Set <Serializable> examsCueGkeySet){
+    if (examsCueGkeySet != null && examsCueGkeySet.size() > 0) {
 
+        Session extractSession = null;
+        ChargeableUnitEvent vacisOrTailGateExamCUE = null
+        try {
+            LOG.debug("begin session try")
+            extractSession = ExtractHibernateApi.getInstance().beginExtractSession();
+            LOG.debug("begin session")
+            for (Serializable bexuGkey : examsCueGkeySet) {
+                LOG.debug("bexuGkey Lib" + examsCueGkeySet)
+                vacisOrTailGateExamCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
+
+                if (vacisOrTailGateExamCUE != null && IServiceExtract.INVOICED.equals(vacisOrTailGateExamCUE.getBexuStatus())) {
+                    vacisOrTailGateExamCUE.setBexuPaidThruDay(ArgoUtils.timeNow());
+                }
+            }
+
+            if (extractSession != null) {
+                extractSession.getTransaction().commit();
+                //  ExtractHibernateApi.getInstance().endExtractSession(extractSession);
+            }
+        } catch (Exception ex) {
+            LOG.debug("Exception" + ex)
+            if (extractSession != null) {
+                ExtractHibernateApi.getInstance().rollbackTransaction(extractSession, ex);
+            }
+        } finally {
+            LOG.debug("finally in LIBRARY")
+            if (extractSession != null) {
+                ExtractHibernateApi.getInstance().endExtractSession(extractSession)
+            }
+        }
+    }
+}
     void updateDwellPTDAndStatus(Map<Serializable, Date> dwellPTDMap, Boolean isUpdatePtd) {
 
         if (dwellPTDMap != null && dwellPTDMap.size() > 0) {
@@ -183,4 +222,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
     private static final Logger LOG = Logger.getLogger(this.class)
     private static final String dwell_event = "UNIT_EXTENDED_DWELL"
+    private static final String tailGateExam = "TAILGATE_EXAM_REQUIRED"
+    private static final String vacisInspectionRequired = "VACIS_INSPECTION_REQUIRED"
+
 }
