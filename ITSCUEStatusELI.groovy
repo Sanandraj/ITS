@@ -6,7 +6,6 @@
 
 import com.navis.argo.ArgoExtractField
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.atoms.DataSourceEnum
 import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.model.GeneralReference
@@ -25,25 +24,25 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 /**
- *
- * @Author <ahref="mailto:annalakshmig@weservetech.com"   >   AnnaLakshmi G</a>, 16/SEP/2022
+ * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 16/SEP/2022
  *
  * Requirements : Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
- This groovy will check the out time of the unit and then update the status.
+ *                This groovy will check the out time of the unit and then update the status.
  *
- * @Inclusion Location    : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
+ * @Inclusion Location : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
  *
  *  Load Code Extension to N4:
- 1. Go to Administration --> System -->  Code Extension
- 2. Click Add (+)
- 3. Enter the values as below:
- Code Extension Name:  ITSCUEStatusELI
- Code Extension Type:  ENTITY_LIFECYCLE_INTERCEPTION
- Groovy Code: Copy and paste the contents of groovy code.
- 4. Click Save button
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name:ITSCUEStatusELI
+ *     Code Extension Type:ENTITY_LIFECYCLE_INTERCEPTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
  *
- *  S.No      Modified Date                          Modified By               Jira      Description
- * @Author <ahref="mailto:mnaresh@weservetech.com"   >   Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
+ *
+ *  S.No    Modified Date        Modified By                                              Jira      Description
+ *  1       25/OCT/2022          mailto:mnaresh@weservetech.com Naresh Kumar M.R.        IP-407     update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
  */
 
 

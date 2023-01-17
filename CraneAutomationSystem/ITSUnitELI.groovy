@@ -32,7 +32,7 @@ import java.time.*
  *
  * Requirements :For CAS - OnBoardUnitUpdate
  *
- * @Inclusion Location: Incorporated as a code extension of the type
+ * @Inclusion Location    : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
  *
  *  Load Code Extension to N4:
  *  1. Go to Administration --> System --> Code Extensions
