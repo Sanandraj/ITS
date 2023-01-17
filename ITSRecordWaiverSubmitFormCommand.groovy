@@ -28,26 +28,27 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
- * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 29/Dec/2022
+ * @Author: mailto:kgopinath@weservetech.com, Gopinath Kannappan; Date: 29/12/2022
  *
- * Requirements : 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the waiver for multiple units.
+ *  Requirements: 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the waiver for multiple units.
  *
  * @Inclusion Location: Incorporated as a code extension of the type
  *
  *  Load Code Extension to N4:
- *   1. Go to Administration --> System -->  Code Extension
- *   2. Click Add (+)
- *   3. Enter the values as below:
- Code Extension Name:  ITSRecordWaiverSubmitFormCommand
- Code Extension Type:  FORM_SUBMISSION_INTERCEPTOR
- Groovy Code: Copy and paste the contents of groovy code.
- *   4. Click Save button
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSRecordWaiverSubmitFormCommand
+ *     Code Extension Type: FORM_SUBMISSION_INTERCEPTOR
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
  *
- * @Set up in the database backed variform - INV_FORM_RECORD_WAIVER- adding action link to call this command and execute it.
- * <formSubmissionCodeExtension name="ITSRecordWaiverSubmitFormCommand"/>
+ * @Setup in the database backed variform - INV_FORM_RECORD_WAIVER- adding action link to call this command and execute it.
+ *         <formSubmissionCodeExtension name="ITSRecordWaiverSubmitFormCommand"/>
  *
  *
  *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 class ITSRecordWaiverSubmitFormCommand extends AbstractFormSubmissionCommand {
