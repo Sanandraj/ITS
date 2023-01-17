@@ -5,6 +5,8 @@ import com.navis.argo.ArgoExtractField
 import com.navis.argo.EdiInvoice
 import com.navis.argo.InvoiceCharge
 import com.navis.argo.business.api.IImpediment
+import com.navis.argo.business.api.LogicalEntity
+import com.navis.argo.business.api.Serviceable
 import com.navis.argo.business.api.ServicesManager
 import com.navis.argo.business.atoms.ChargeableUnitEventTypeEnum
 import com.navis.argo.business.atoms.EventEnum
@@ -12,6 +14,8 @@ import com.navis.argo.business.atoms.FlagStatusEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.reference.ScopedBizUnit
+import com.navis.cargo.business.model.BillOfLading
+import com.navis.cargo.business.model.GoodsBl
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.framework.business.Roastery
 import com.navis.framework.persistence.HibernateApi
@@ -28,6 +32,7 @@ import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.api.UnitStorageManager
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
+import com.navis.inventory.business.units.GoodsBase
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.inventory.business.units.UnitStorageManagerPea
@@ -35,6 +40,7 @@ import com.navis.services.business.api.EventManager
 import com.navis.services.business.event.Event
 import com.navis.services.business.rules.EventType
 import com.navis.services.business.rules.Flag
+import com.navis.services.business.rules.FlagType
 import com.navis.services.business.rules.Veto
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang.StringUtils
@@ -83,14 +89,14 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
             String[] unitNumbers = unitNbrs?.split(",")*.trim()
             if (unitNumbers != null && unitNumbers.size() > 0) {
                 List<Long> unitGkeyList = new ArrayList<>()
-               // int i = 0;
+                // int i = 0;
                 for (String str : unitNumbers) {
                     if (!StringUtils.isEmpty(str) && str.matches("[0-9]+")) {
                         unitGkeyList.add(Long.parseLong(str));
                     }
                 }
                 Serializable[] gkeyList
-                if(!CollectionUtils.isEmpty(unitGkeyList)){
+                if (!CollectionUtils.isEmpty(unitGkeyList)) {
                     DomainQuery dq = QueryUtils.createDomainQuery(InvEntity.UNIT_FACILITY_VISIT)
                             .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
                             .addDqPredicate(PredicateFactory.eq(InvField.UFV_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
@@ -106,6 +112,9 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
                                 Unit unit = unitFacilityVisit.getUfvUnit()
                                 LOGGER.debug("unit ID " + unit.getUnitId())
                                 if (unit != null) {
+                                    GoodsBase goodsBase = unitFacilityVisit.getUfvUnit()?.getUnitGoods()
+                                    boolean isHoldReleased = true
+                                    if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
                                     Date dwellLastPtd
                                     DomainQuery cueDQ = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT)
                                             .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UNIT_GKEY, unit.getUnitGkey()))
@@ -203,12 +212,12 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
                                         custHoldReleaseDateFinal = getGreatestOfDates(dateList)
                                     }
 
-                                    if (custHoldReleaseDateFinal) {
+                                    if (isHoldReleased && custHoldReleaseDateFinal) {
                                         jsonUnitObject.put(CUSTOMS_HOLD_REL_DT_TM, ISO_DATE_FORMAT.format(custHoldReleaseDateFinal))
                                     }
                                     if (unitFacilityVisit.getUfvFlexDate03() != null) {
                                         jsonUnitObject.put(FIRST_DELIVERABLE_DT_TM, ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvFlexDate03()))
-                                        if (custHoldReleaseDateFinal && custHoldReleaseDateFinal.after(unitFacilityVisit.getUfvFlexDate03())) {
+                                        if (isHoldReleased && custHoldReleaseDateFinal && custHoldReleaseDateFinal.after(unitFacilityVisit.getUfvFlexDate03())) {
                                             jsonUnitObject.put(AVAILABLE_DT_TM, ISO_DATE_FORMAT.format(custHoldReleaseDateFinal))
                                         } else {
                                             jsonUnitObject.put(AVAILABLE_DT_TM, ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvFlexDate03()))
@@ -253,7 +262,7 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
                             }
                         }
                     }
-                        }
+                }
                 mainObj.put(PAY_ONLINE_HEADERS, jsonArray)
 
 
@@ -262,6 +271,30 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
         return mainObj.toJSONString()
     }
 
+    boolean isDeliverableHoldsReleased(goodsBase) {
+        List<String> holdMap = ['1H', '7H', '2H', '71', '72', '73']
+        GoodsBl goodsBl = GoodsBl.resolveGoodsBlFromGoodsBase(goodsBase)
+        Set<BillOfLading> blSet = goodsBl?.getGdsblBillsOfLading()
+
+        boolean flagReleased = Boolean.TRUE
+        blSet.each {
+            bl ->
+                holdMap.each {
+                    if (isFlagActive(bl, it)) {
+                        flagReleased = Boolean.FALSE
+                    }
+                }
+        }
+        return flagReleased
+    }
+
+    private boolean isFlagActive(LogicalEntity logicalEntity, String holdId) {
+        FlagType type = FlagType.findFlagType(holdId)
+        if (type != null) {
+            return type.isActiveFlagPresent(logicalEntity, null, (Serviceable) logicalEntity)
+        }
+        return false
+    }
 
     private static Date getGreatestOfDates(@NotNull List<Date> dateList) {
 

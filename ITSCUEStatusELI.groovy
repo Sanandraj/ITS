@@ -43,7 +43,7 @@ import java.time.ZoneId
  4. Click Save button
  *
  *  S.No      Modified Date                          Modified By               Jira      Description
- * @Author <ahref="mailto:mnaresh@weservetech.com"  >  Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
+ * @Author <ahref="mailto:mnaresh@weservetech.com"   >   Naresh Kumar M.R.</a>, 25/OCT/2022  The groovy will update  the CUE status as NON_BILLABLE for the LIne and ISO configured in the general reference
  */
 
 
