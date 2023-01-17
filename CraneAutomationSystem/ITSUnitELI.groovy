@@ -145,6 +145,6 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
 
     private ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
     private static final String LIBRARY = "ITSAdaptor";
-    private static final Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
+    private static  Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
 
 }
