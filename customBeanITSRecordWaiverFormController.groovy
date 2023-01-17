@@ -13,25 +13,25 @@ import com.navis.framework.presentation.ui.event.listener.AbstractCarinaFormValu
 import com.navis.inventory.presentation.controller.RecordWaiverFormController
 
 /*
-     *
-     * @Author : Gopinath Kannappan, 29/Dec/2022
-     *
-     * Requirements : 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the waiver for multiple units.
-     *
-     * @Inclusion Location	: Incorporated as a code extension of the type BEAN_PROTOTYPE.
-     *
-     *  Load Code Extension to N4:
-            1. Go to Administration --> System -->  Code Extension
-            2. Click Add (+)
-            3. Enter the values as below:
-                Code Extension Name:  customBeanITSRecordWaiverFormController
-                Code Extension Type:  BEAN_PROTOTYPE
-               Groovy Code: Copy and paste the contents of groovy code.
-            4. Click Save button
-
-     *  Set up in Guarantee form as : <controller ref="customBeanITSRecordWaiverFormController" />
-     *
-     *
+ * @Author: mailto:kgopinath@weservetech.com, Gopinath Kannappan, Gopinath Kannappan; Date: 29/12/2022
+ *
+ *  Requirements: 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the waiver for multiple units.
+ *
+ *  @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: customBeanITSRecordWaiverFormController
+ *     Code Extension Type: BEAN_PROTOTYPE
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *	@Setup in Guarantee form as : <controller ref="customBeanITSRecordWaiverFormController" />
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 
