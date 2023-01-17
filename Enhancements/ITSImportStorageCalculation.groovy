@@ -103,12 +103,27 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
         } else {
             lastFreeDay = addDays(thisStartDate, initialFreeDaysAllowed);
         }
-        int exemptDays = 0;
-        //populate exempt days
-        exemptDays = this.getCalendarExemptDays(unitStorageCalculation, thisStartDate, lastFreeDay);
-        initialFreeDaysAllowed = initialFreeDaysAllowed + exemptDays;
-        logMsg("initialFreeDaysAllowed after exempt: " + initialFreeDaysAllowed + ", savedInitFreeDaysAllowed= " + savedInitFreeDaysAllowed);
+        int exemptDays = 0
+        Map<Date,String> exemptDatesMap = new HashMap<>()
+        exemptDatesMap = this.getCalendarExemptDays(unitStorageCalculation, thisStartDate, lastFreeDay)
+        exemptDays = exemptDatesMap != null ? exemptDatesMap.size() : 0
+        int exemptDaysRecalculated = 0
+               if(exemptDays > 0) {
+                    lastFreeDay = addDays(thisStartDate, (initialFreeDaysAllowed + exemptDays))
+                    exemptDatesMap = this.getCalendarExemptDays(unitStorageCalculation, thisStartDate, lastFreeDay)
+                    exemptDaysRecalculated = exemptDatesMap != null ? exemptDatesMap.size() : 0
+                    while (exemptDays != exemptDaysRecalculated) {
+                        lastFreeDay = addDays(thisStartDate, (initialFreeDaysAllowed + exemptDaysRecalculated))
+                        exemptDays = exemptDaysRecalculated
+                        exemptDatesMap = this.getCalendarExemptDays(unitStorageCalculation, thisStartDate, lastFreeDay)
+                        exemptDaysRecalculated = exemptDatesMap != null ? exemptDatesMap.size() : 0
 
+                    }
+                }
+
+
+
+        logMsg("initialFreeDaysAllowed after exempt: " + initialFreeDaysAllowed + ", savedInitFreeDaysAllowed= " + savedInitFreeDaysAllowed);
 
         boolean freeDaysRecalculated = false;
         int freeDaysDueToPlacementOfUnitInNDB = 0
@@ -122,9 +137,9 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
                 for (Guarantee guarantee : guaranteeList) {
                     if (guarantee.isWavier() && "Waived for NDB".equals(guarantee.getGnteNotes())) {
                         testDate = guarantee.getGnteGuaranteeStartDay()
-                        // increment the free days if waived day falls with in calculation Start date and Line LFD
+                        // increment the free days if waived day is not an exempt day and it it falls with in calculation Start date and Line LFD
                         while (guarantee.getGnteGuaranteeEndDay() != null && testDate <= guarantee.getGnteGuaranteeEndDay()) {
-                            if (ArgoUtils.datesInRange(testDate, testDate, thisStartDate, lastFreeDay, threadUserTimeZone)) {
+                            if (!isExemptDay(testDate, exemptDatesMap) && ArgoUtils.datesInRange(testDate, testDate, thisStartDate, lastFreeDay, threadUserTimeZone)) {
                                 freeDaysDueToPlacementOfUnitInNDB++
                                 freeDaysRecalculated = true
                             }
@@ -146,6 +161,23 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
         logMsg("ITSImportStorageCalculation - beforeUnitStorageCalculationExtension - ends: " + ArgoUtils.timeNow());
     }
 
+    boolean isExemptDay(Date testDate, Map<Date, String> exemptDatesMap) {
+
+        Calendar calendar = getCalendar(testDate)
+        if (exemptDatesMap!= null && exemptDatesMap.size() > 0 && exemptDatesMap.get(calendar.getTime()) != null) {
+            return true
+        }
+        return false
+    }
+    Calendar getCalendar(Date testDate) {
+        Calendar calendar = Calendar.getInstance(ContextHelper.getThreadUserTimezone());
+        calendar.setTime(testDate);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar
+    }
     private Date getCalculationStartDate(Date firstDeliverableDate, Unit unit) {
 
         LocalDateTime lcDate = firstDeliverableDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -174,10 +206,10 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
         return HibernateApi.getInstance().getUniqueEntityByDomainQuery(dq)
     }
 
-    private int getCalendarExemptDays(UnitStorageCalculation inUsc, Date inStartDate, Date inEndDate) {
-
+    private Map<Date, String> getCalendarExemptDays(UnitStorageCalculation inUsc, Date inStartDate, Date inEndDate) {
+        Map<Date, String> exemptDates = new HashMap<>()
         if (inUsc == null) {
-            return 0;
+            return exemptDates;
         }
 
         StorageRule storageRule = StorageRule.getStorageRule(inUsc.getStorageRuleTableKey());
@@ -188,7 +220,7 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
 
         if (argoCalndr == null) {
             logMsg("getCalendarExemptDays: No Storage Calendar found");
-            return 0;
+            return exemptDates;
         }
 
         ArgoCalendarEventType[] calEventTypes = new ArgoCalendarEventType[1];
@@ -224,6 +256,7 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
             while ((eStartDate.getTime().before(inEndDate)) || (eStartDate.getTime().equals(inEndDate))) {
                 if (eStartDate.getTime().equals(inStartDate) || eStartDate.getTime().after(inStartDate)) {
                     exemptDays++;
+                    exemptDates.put(eStartDate.getTime(), calEvent.getArgocalevtName())
                 }
 
                 if (calEvent.getArgocalevtInterval().equals(AppCalendarIntervalEnum.ONCE)) {
@@ -243,8 +276,8 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
         }
 
         logMsg("getCalendarExemptDays: Total Exempt days = " + exemptDays);
-        logMsg("getCalendarExemptDays: Final inEndDate = " + addDays(inEndDate, exemptDays));
-        return exemptDays;
+
+        return exemptDates;
     }
 
     private Date addDays(Date inDate, int inDays) {
