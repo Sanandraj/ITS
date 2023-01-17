@@ -1,4 +1,7 @@
-package ITS.Enhancements
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
 
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
@@ -24,6 +27,26 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.hibernate.classic.Session
 
+/**
+ * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 12/DEC/2022
+ *
+ * Requirements :IP-407, 7-10 Waiver or Guarantee Extended Dwell Fee
+ *
+ * @Inclusion Location : Incorporated as a code extension of the type LIBRARY
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name:ITSUpdateDwellPTDAndStatusLibrary
+ *     Code Extension Type:LIBRARY
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *
+ *  S.No    Modified Date        Modified By       Jira      Description
+ */
+
 class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
     void updateExtendedDwellStatusAndPTD(EEntityView entity, Boolean isUpdatePtd) {
@@ -41,7 +64,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
         for (InvoiceItem invItem : invoiceItems) {
             if (dwell_event.equals(invItem.getItemEventTypeId())) {
                 unitDwellEventCUEGkey.add(invItem.getItemServiceExtractGkey());
-            }else if(vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())){
+            } else if (vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())) {
                 vacisAndTailGateExamsCUEGkey.add(invItem.getItemServiceExtractGkey())
             }
         }
@@ -74,41 +97,43 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 //LOG.debug("dwellPTDMap"+dwellPTDMap.toMapString())
         return dwellPTDMap;
     }
-void updateVacisAndTailGateExamPTD(Set <Serializable> examsCueGkeySet){
-    if (examsCueGkeySet != null && examsCueGkeySet.size() > 0) {
 
-        Session extractSession = null;
-        ChargeableUnitEvent vacisOrTailGateExamCUE = null
-        try {
-            LOG.debug("begin session try")
-            extractSession = ExtractHibernateApi.getInstance().beginExtractSession();
-            LOG.debug("begin session")
-            for (Serializable bexuGkey : examsCueGkeySet) {
-                LOG.debug("bexuGkey Lib" + examsCueGkeySet)
-                vacisOrTailGateExamCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
+    void updateVacisAndTailGateExamPTD(Set<Serializable> examsCueGkeySet) {
+        if (examsCueGkeySet != null && examsCueGkeySet.size() > 0) {
 
-                if (vacisOrTailGateExamCUE != null && IServiceExtract.INVOICED.equals(vacisOrTailGateExamCUE.getBexuStatus())) {
-                    vacisOrTailGateExamCUE.setBexuPaidThruDay(ArgoUtils.timeNow());
+            Session extractSession = null;
+            ChargeableUnitEvent vacisOrTailGateExamCUE = null
+            try {
+                LOG.debug("begin session try")
+                extractSession = ExtractHibernateApi.getInstance().beginExtractSession();
+                LOG.debug("begin session")
+                for (Serializable bexuGkey : examsCueGkeySet) {
+                    LOG.debug("bexuGkey Lib" + examsCueGkeySet)
+                    vacisOrTailGateExamCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
+
+                    if (vacisOrTailGateExamCUE != null && IServiceExtract.INVOICED.equals(vacisOrTailGateExamCUE.getBexuStatus())) {
+                        vacisOrTailGateExamCUE.setBexuPaidThruDay(ArgoUtils.timeNow());
+                    }
                 }
-            }
 
-            if (extractSession != null) {
-                extractSession.getTransaction().commit();
-                //  ExtractHibernateApi.getInstance().endExtractSession(extractSession);
-            }
-        } catch (Exception ex) {
-            LOG.debug("Exception" + ex)
-            if (extractSession != null) {
-                ExtractHibernateApi.getInstance().rollbackTransaction(extractSession, ex);
-            }
-        } finally {
-            LOG.debug("finally in LIBRARY")
-            if (extractSession != null) {
-                ExtractHibernateApi.getInstance().endExtractSession(extractSession)
+                if (extractSession != null) {
+                    extractSession.getTransaction().commit();
+                    //  ExtractHibernateApi.getInstance().endExtractSession(extractSession);
+                }
+            } catch (Exception ex) {
+                LOG.debug("Exception" + ex)
+                if (extractSession != null) {
+                    ExtractHibernateApi.getInstance().rollbackTransaction(extractSession, ex);
+                }
+            } finally {
+                LOG.debug("finally in LIBRARY")
+                if (extractSession != null) {
+                    ExtractHibernateApi.getInstance().endExtractSession(extractSession)
+                }
             }
         }
     }
-}
+
     void updateDwellPTDAndStatus(Map<Serializable, Date> dwellPTDMap, Boolean isUpdatePtd) {
 
         if (dwellPTDMap != null && dwellPTDMap.size() > 0) {
@@ -220,7 +245,7 @@ void updateVacisAndTailGateExamPTD(Set <Serializable> examsCueGkeySet){
     }
 
 
-    private static final Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(this.class)
     private static final String dwell_event = "UNIT_EXTENDED_DWELL"
     private static final String tailGateExam = "TAILGATE_EXAM_REQUIRED"
     private static final String vacisInspectionRequired = "VACIS_INSPECTION_REQUIRED"

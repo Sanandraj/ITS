@@ -1,4 +1,7 @@
-package ITS.Enhancements
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+ */
 
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
@@ -36,6 +39,26 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.ZoneId
+
+/**
+ * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 16/SEP/2022
+ *
+ * Requirements :IP-407, 7-10 Waiver or Guarantee Extended Dwell Fee
+ *
+ * @Inclusion Location : Incorporated as a code extension of the type TARIFF_RATE_CALCULATOR
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name:ITSExtendedDwellCalculator
+ *     Code Extension Type:TARIFF_RATE_CALCULATOR
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *
+ *  S.No    Modified Date        Modified By       Jira      Description
+ */
 
 class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor {
 
@@ -75,9 +98,9 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
             invoiceItem.setFieldValue(BillingField.ITEM_SERVICE_EXTRACT_GKEY, null);
 
             HibernateApi hibernateApi = Roastery.getHibernateApi();
-            hibernateApi.update(invoiceItem);
-           hibernateApi.delete(invoiceItem);
-           // hibernateApi.flush(); //
+            hibernateApi.save(invoiceItem)
+            //hibernateApi.update(invoiceItem);
+            hibernateApi.delete(invoiceItem);
         }
     }
 
@@ -257,13 +280,13 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
                 return null;
             }
             StringBuilder stringBuilder = new StringBuilder()
-            if(gratisDaysWithinTier > 0){
+            if (gratisDaysWithinTier > 0) {
                 stringBuilder.append("GratisDays: ").append(gratisDaysWithinTier).append(".")
             }
-            if(waivedDaysWithinTier > 0){
+            if (waivedDaysWithinTier > 0) {
                 stringBuilder.append("WaivedDays: ").append(waivedDaysWithinTier).append(".")
             }
-            if(guaranteeDaysWithinTier > 0){
+            if (guaranteeDaysWithinTier > 0) {
                 stringBuilder.append("GuaranteeDays: ").append(guaranteeDaysWithinTier).append(".")
             }
             String notes = stringBuilder.length() > 0 ? stringBuilder.toString() : "Recorded by Groovy"
@@ -414,14 +437,6 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
 
             }
             Element ctvResponseElement = wsResponseDoc.getRootElement().getChild("messages");
-            /*if (ctvResponseElement) {
-                Iterator iterator = ctvResponseElement.getChildren().iterator();
-                while (iterator.hasNext()) {
-                    Element currentMessageElement = (Element) iterator.next();
-                    String textElement = currentMessageElement.getAttribute("message-text").getValue()
-                    return textElement
-                }
-            }*/
 
             if (rootElement.getChildren() != null) {
                 Element resultElement = wsResponseDoc.getRootElement().getChild(RESULT);
@@ -584,7 +599,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
         calendar2.set(Calendar.MILLISECOND, 999);
         return Math.ceil((double) (calendar2.getTimeInMillis() - calendar.getTimeInMillis()) / MILLIS_PER_DAY);
     }
-    private static final Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(this.class)
     private static final String dwell_event = "UNIT_EXTENDED_DWELL"
     public static final String scopeCoOrdinatesString = 'ITS/USLGB/PIERG/PIERG'
     private ServiceLocator _externalServiceLocator = new ServiceLocator();
