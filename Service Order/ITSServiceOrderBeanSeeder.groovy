@@ -1,4 +1,7 @@
-
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 
 import com.navis.external.framework.beans.ui.AbstractCustomUiBeanSeeder
 
