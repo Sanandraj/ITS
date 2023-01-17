@@ -21,30 +21,31 @@ import com.navis.services.business.rules.EventType
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+
 import java.text.DateFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.time.*
 
 /**
- *
- * @Author <ahref="mailto:sramasamy@weservetech.com"   >   Ramasamy Sathappan</a>, 13/MAY/2022
+ * @Author: mailto:mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/MAY/2022
  *
  * Requirements :For CAS - OnBoardUnitUpdate
  *
- * @Inclusion Location    : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
+ * @Inclusion Location: Incorporated as a code extension of the type
  *
  *  Load Code Extension to N4:
- 1. Go to Administration --> System -->  Code Extension
- 2. Click Add (+)
- 3. Enter the values as below:
- Code Extension Name:  ITSUnitELI
- Code Extension Type:  ENTITY_LIFECYCLE_INTERCEPTION
- Groovy Code: Copy and paste the contents of groovy code.
- 4. Click Save button
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name:ITSUnitELI
+ *     Code Extension Type:ENTITY_LIFECYCLE_INTERCEPTION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
  *
- *  S.No      Modified Date        Modified By                                              Jira      Description
- *   1        25/OCT/2022          mailto:annalakshmig@weservetech.com AnnaLakshmi G        IP-14     update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
+ *
+ *  S.No    Modified Date        Modified By                                              Jira      Description
+ 1       25/OCT/2022          mailto:annalakshmig@weservetech.com AnnaLakshmi G        IP-14     update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
  */
 
 class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
