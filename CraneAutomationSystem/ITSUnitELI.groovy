@@ -28,7 +28,7 @@ import java.text.SimpleDateFormat
 import java.time.*
 
 /**
- * @Author: mailto:mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/MAY/2022
+ * @Author: mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/MAY/2022
  *
  * Requirements :For CAS - OnBoardUnitUpdate
  *
