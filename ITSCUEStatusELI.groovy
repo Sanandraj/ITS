@@ -41,8 +41,9 @@ import java.time.ZoneId
  *  4. Click Save button
  *
  *
- *  S.No    Modified Date        Modified By                                              Jira      Description
- *  1       25/OCT/2022          mailto:mnaresh@weservetech.com Naresh Kumar M.R.        IP-407     update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
+ *  S.No    Modified Date        Modified By                                             Jira       Description
+ *  1       10/11/2022           Balaji Palani                                                      Changed and included the additonal method validateSrvOrderFC on the groovy code to identify the Service Order space issue.
+ *  2       25/OCT/2022          mailto:mnaresh@weservetech.com Naresh Kumar M.R.        IP-8       update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD.
  */
 
 
