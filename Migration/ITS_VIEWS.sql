@@ -1,4 +1,4 @@
-CREATE OR ALTER VIEW DM_LINEOPERATORS
+CREATE OR ALTER VIEW LT_LineOperator_VW
  AS
 SELECT ShippingLineCd AS ID, ShippingLineDsc AS NAME, SCACCd AS SCAC, NULL AS BIC, NULL AS ADR1, NULL AS ADR2, NULL AS ADR3, NULL AS CITY, NULL AS STATE, NULL AS COUNTRY, NULL AS ZIPCODE, NULL AS FAX, NULL
                   AS TELNBR, NULL AS EMAIL, NULL AS CONTACT, NULL AS NOTES, NULL AS CREATED, 'MIGRATION' AS CREATOR, 'MIGRATION' AS CHANGER
@@ -7,7 +7,7 @@ WHERE  (ActiveFlg = 'Y')
 
 
 
-  CREATE OR ALTER VIEW DM_TRUCKING_COMPANIES
+  CREATE OR ALTER VIEW LT_TruckingCompany_VW
      AS
 SELECT rtt.TruckerCd AS ID, rtt.TruckerDsc AS NAME, rtt.TruckerCd AS SCAC, rta.ContactNm AS CONTACT, rta.AddrLine_1 AS ADR1, rta.AddrLine_2 AS ADR2, rta.CityNm AS CITY, rta.StateCd AS STATE, CASE WHEN rta.StateCd IS NOT NULL
                   AND rta.CountryCd IS NULL THEN 'US' ELSE rta.CountryCd END AS COUNTRY, rta.ZipCd AS ZIPCODE, rta.FaxNum AS FAX, rta.TelephoneNum_1 AS TELNBR, rta.EMailAddr AS EMAIL, CAST(rta.RemarksTxt AS varchar(100)) AS NOTES,
@@ -17,7 +17,7 @@ FROM     dbo.LRef_TerminalTrucker AS rtt INNER JOIN
 WHERE  (rta.AddrTypeCd = 'O') AND (LEN(rtt.TruckerCd) = 4) AND (rtt.StatusCd = 'A')
 
 
-CREATE OR ALTER VIEW DM_USERS
+CREATE OR ALTER VIEW LT_Users_VW
      AS
 SELECT LoginNm AS ID, 'N4User' AS ROLE, LastNm AS LAST_NAME, FirstNm AS FIRST_NAME, TelephoneNum AS PHONENBR, 'TERM' AS EMPLOYER_CLASS, 'ITS' AS EMPLOYER_ID, EMailAddr AS EMAIL, TelephoneNum AS FAX, NULL
                   AS CREATED, 'MIGRATION' AS CREATOR, 'MIGRATION' AS CHANGER
@@ -25,7 +25,7 @@ FROM     centraldb.dbo.GRef_User AS ru
 WHERE  (DisableFlg = 'N') AND (UserTypeCd IN ('D', 'L'))
 
 
- CREATE OR ALTER VIEW DM_SHIPCLASSES
+ CREATE OR ALTER VIEW LT_ShipClass_VW
   AS
  SELECT VslClassCd AS ID, VslClassDsc AS NAME, 'X' AS ACTIVE, 'X' AS ACTIVE_SPARCS, NULL AS SELF_SUSTAINING, NULL AS LOA, 'M' AS LOA_UNITS, NULL AS BEAM, 'M' AS BEAM_UNITS, NULL AS BAYS_FORWARD, NULL
                    AS BAYS_AFT, NULL AS BOW_OVERHANG, NULL AS BOW_UNITS, NULL AS STERN_OVERHANG, NULL AS STERN_UNITS, NULL AS NOTES, NULL AS CREATED, 'MIGRATION' AS CREATOR, NULL AS CHANGED,
@@ -33,14 +33,14 @@ WHERE  (DisableFlg = 'N') AND (UserTypeCd IN ('D', 'L'))
  FROM     centraldb.dbo.GRef_VslClass
 
 
-CREATE OR ALTER VIEW DM_SERVICE_CALLS
+CREATE OR ALTER VIEW LT_ServiceCalls_VW
  AS
 SELECT vs.VslSvcCd AS SRVC_ID, vs.VslSvcDsc AS SRVC_NAME, vpr.PortCd AS POINT_ID, vpr.RotationSeq AS SEQ, 'MIGRATION' AS CREATOR, 'MIGRATION' AS CHANGER
 FROM     dbo.LT_VslSvc AS vs CROSS JOIN
                   dbo.LT_PortRotation AS vpr
 
 
-  CREATE OR ALTER VIEW DM_SHIPS
+  CREATE OR ALTER VIEW LT_Ships_VW
    AS
  SELECT VslCd AS ID, LloydsCd AS LLOYDS_ID, VslDsc AS NAME,
                        (SELECT VM.VslClassCd
@@ -53,7 +53,7 @@ FROM     dbo.LT_VslSvc AS vs CROSS JOIN
  FROM     centraldb.dbo.GRef_VslMaster AS VM
  WHERE  (ActiveFlg = 'Y')
 
-CREATE OR ALTER VIEW DM_SHIP_VISITS
+CREATE OR ALTER VIEW LT_ShipVisit_VW
  AS
  SELECT DISTINCT
                    vs.VslCd + vs.VoyNum AS VESSEL_VISIT_ID, sl.ShippingLineCd AS LINE_ID, vsr.VslSvcCd AS SERVICE_ID, vm.VslCd AS SHIP_ID, vs.InboundVoyNum AS IN_VOY_NBR, vs.CallSeq AS IN_CALL_NBR,
@@ -72,57 +72,52 @@ CREATE OR ALTER VIEW DM_SHIP_VISITS
                    centraldb.dbo.GRef_VslMaster AS vm ON vs.VslCd = vm.VslCd
  WHERE  (vs.VslStatusCd <> 'X') AND (vs.VslCd + vs.VoyNum <> 'GOVT21') AND (vs.VslCd + vs.VoyNum <> 'HOLD21')
 
-CREATE OR ALTER VIEW DM_VESSEL_VISIT_LINES
+CREATE OR ALTER VIEW LT_VesselVisitLine_VW
      AS
 SELECT sl.ShippingLineCd AS LINE_ID, NULL AS CARGO_CUTOFF, NULL AS REEFER_CUTOFF, NULL AS HAZARDOUS_CUTOFF, NULL AS EMPTY_PICKUP, vsc.InboundVoyNum AS LINE_IN_VOY_NBR,
                   vsc.OutboundVoyNum AS LINE_OUT_VOY_NBR, NULL AS CREATED, 'MIGRATION' AS CREATOR, NULL AS CHANGED, 'MIGRATION' AS CHANGER, vm.VslCd AS VSL_CD, vs.VoyNum AS CALL_YEAR, vs.CallSeq AS CALL_SEQ
 FROM     dbo.LT_VslScheduleCustomer AS vsc INNER JOIN
-                  dbo.DM_SHIP_VISITS AS vs ON vsc.VslScheduleId = vs.VslScheduleId INNER JOIN
+                  dbo.LT_ShipVisit_VW AS vs ON vsc.VslScheduleId = vs.VslScheduleId INNER JOIN
                   centraldb.dbo.GRef_ShippingLine AS sl ON vsc.CustomerLineId = sl.ShippingLineId INNER JOIN
                   centraldb.dbo.GRef_VslMaster AS vm ON vs.VslCd = vm.VslCd
 
 
-CREATE  or alter view DM_BILLS_OF_LADING
+CREATE  or alter view LT_BillOfLading_VW
 AS
 SELECT lbl.BLId AS GKEY, lbl.BLNum AS NBR, gsl.ShippingLineCd AS LINE_ID, lvs.SHIP_ID, lvs.VoyNum AS VOY_NBR, lvs.VESSEL_VISIT_ID, 'I' AS CATEGORY, lbl.POLCd AS LOAD_POINT_ID, lbl.PODCd AS DISCHARGE_POINT_ID,
                   lbl.PORCd AS ORIGIN, lbl.FDSTCd AS DESTINATION, lbl.CustomsRelStatusCd AS RELEASE_STATUS, lbl.FrtRelStatusCd AS LINE_STATUS, NULL AS USDA_STATUS, NULL AS RELEASE_NBR, NULL AS RELEASE_DATE,
                   lbl.LadingQty AS MANIFEST_QTY, NULL AS CREATED, 'MIGRATION' AS CREATOR, NULL AS CHANGED, 'MIGRATION' AS CHANGER
 FROM     dbo.LT_BL AS lbl INNER JOIN
-                  dbo.DM_SHIP_VISITS AS lvs ON lbl.VslScheduleId = lvs.VslScheduleId CROSS JOIN
-                  centraldb.dbo.GRef_ShippingLine AS gsl
-WHERE  (gsl.ShippingLineId = lbl.ShippingLineId) AND (lbl.BLStatusCd = 'A') AND (gsl.ActiveFlg = 'Y') AND (lbl.DeletedFlg = 'N')
-AND (lvs.ETA is null OR lvs.ETA > getdate()-30 OR lbl.blid in (select distinct ltbl.blid FROM LT_BLContainer ltbl, DM_CONTAINER_USES dmu
-WHERE ltbl.ContainerVisitId = dmu.gkey));
+                  dbo.LT_ShipVisit_VW AS lvs ON lbl.VslScheduleId = lvs.VslScheduleId INNER JOIN
+                  centraldb.dbo.GRef_ShippingLine AS gsl ON lbl.ShippingLineId = gsl.ShippingLineId
+WHERE  (lbl.BLStatusCd = 'A') AND (gsl.ActiveFlg = 'Y') AND (lbl.DeletedFlg = 'N') AND (lvs.ETA IS NULL OR
+                  lvs.ETA > GETDATE() - 30) OR
+                  (lbl.BLStatusCd = 'A') AND (gsl.ActiveFlg = 'Y') AND (lbl.DeletedFlg = 'N') AND (lbl.BLId IN
+                      (SELECT DISTINCT ltbl.BLId
+                       FROM      dbo.LT_BLContainer AS ltbl INNER JOIN
+                                         dbo.LT_ContainerUses_VW AS dmu ON ltbl.ContainerVisitId = dmu.gkey))
 
-
-CREATE OR ALTER VIEW DM_BILLS_OF_LADING_ITEMS
+CREATE OR ALTER VIEW LT_BillOfLadingItems_VW
 AS
-SELECT lbc.BLCmdtyId AS GKEY, lbl.BLNum AS NBR, gsl.ShippingLineCd AS LINE_ID, lbc.CmdtyItemNbr as ITEMNBR, lbc.CmdtyCd as CMDTYCD, lbc.CmdtyQty as QTY,lbc.PkgTypeTxt as PKGTYPE,
-  lbc.CmdtyWgt as CMDT_WT, NULL AS CREATED, 'MIGRATION' AS CREATOR, NULL AS CHANGED, 'MIGRATION' AS CHANGER
+SELECT lbc.BLCmdtyId AS GKEY, lbl.BLNum AS NBR, gsl.ShippingLineCd AS LINE_ID, lbc.CmdtyItemNbr AS ITEMNBR, lbc.CmdtyCd, lbc.CmdtyQty AS QTY, lbc.PkgTypeTxt AS PKGTYPE, lbc.CmdtyWgt AS CMDT_WT, NULL AS CREATED,
+                  'MIGRATION' AS CREATOR, NULL AS CHANGED, 'MIGRATION' AS CHANGER
 FROM     dbo.LT_BLCmdty AS lbc INNER JOIN
-                  dbo.LT_BL as lbl ON lbc.BLId = lbl.BLId INNER JOIN
-                  dbo.DM_SHIP_VISITS AS lvs ON lbl.VslScheduleId = lvs.VslScheduleId CROSS JOIN
-                  centraldb.dbo.GRef_ShippingLine AS gsl WHERE
-(gsl.ShippingLineId = lbl.ShippingLineId) AND (lbl.BLStatusCd = 'A') AND (gsl.ActiveFlg = 'Y') AND (lbl.DeletedFlg = 'N')
+                  dbo.LT_BL AS lbl ON lbc.BLId = lbl.BLId INNER JOIN
+                  dbo.LT_ShipVisit_VW AS lvs ON lbl.VslScheduleId = lvs.VslScheduleId INNER JOIN
+                  centraldb.dbo.GRef_ShippingLine AS gsl ON lbl.ShippingLineId = gsl.ShippingLineId
+WHERE  (lbl.BLStatusCd = 'A') AND (gsl.ActiveFlg = 'Y') AND (lbl.DeletedFlg = 'N')
 
 
 
-CREATE OR ALTER VIEW DM_BILLS_OF_LADING_EVENTS
+CREATE OR ALTER VIEW LT_BillOfLadingEvents_VW
 AS
 SELECT lbl.BLNum AS bl_no, lcm.CustomsDispositionCd AS disp_code, lcm.AssocQty AS quantity_provided, CAST(lcm.CustomsRemarksTxt AS nvarchar(MAX)) AS notes, lcm.CustomsActionDtTm AS performed
 FROM     dbo.LT_BL AS lbl INNER JOIN
                   dbo.LT_CustomsBillStatus AS lcb ON lcb.BLId = lbl.BLId AND lcb.BLNum = lbl.BLNum INNER JOIN
                   dbo.LT_CustomsMsg AS lcm ON lcm.CustomsBillStatusId = lcb.CustomsBillStatusId AND lcm.PlaceOfTransaction IN ('USLGB', 'USLAX')
 
-CREATE or alter   VIEW [dbo].[DM_BILLS_OF_LADING_EVENTS]
-AS
-SELECT lbl.BLNum AS bl_no, lcm.CustomsDispositionCd AS disp_code, lcm.AssocQty AS quantity_provided, CAST(lcm.CustomsRemarksTxt AS nvarchar(MAX)) AS notes, lcm.CustomsActionDtTm AS performed
-FROM     dbo.LT_BL AS lbl INNER JOIN
-                  dbo.LT_CustomsBillStatus AS lcb ON lcb.BLId = lbl.BLId AND lcb.BLNum = lbl.BLNum INNER JOIN
-                  dbo.LT_CustomsMsg AS lcm ON lcm.CustomsBillStatusId = lcb.CustomsBillStatusId AND (lcm.PlaceOfTransaction IN ('USLGB', 'USLAX') or lcm.CustomsDispositionCd ='CR')
-GO
 
-CREATE OR ALTER VIEW DM_CHASSIS_USES
+CREATE OR ALTER VIEW LT_ChassisUses_VW
 AS
 SELECT lcv.ChassisVisitId AS GKEY, 'CHS' AS EQ_CLASS, 'X' AS ACTIVE_SPARCS, 'M' AS CATEGORY, lcv.ChassisPrefixCd + lcv.ChassisNum + CAST(ISNULL(lcv.ChassisChkDigit, '') AS varchar) AS EQUIPMENT_ID, 'E' AS STATUS, NULL
                   AS EQUIPMENT_LENGTH, NULL AS EQUIPMENT_TYPE, 'NA' AS EQUIPMENT_HEIGHT, lcv.ChassisSzCd + lcv.ChassisTypeCd AS iso_code, gsl.ShippingLineCd AS owner_id, 'Y' AS loc_type, 'T' AS ARR_LOC_TYPE, NULL
@@ -143,14 +138,14 @@ WHERE  (lcv.ChassisPrefixCd IS NOT NULL) AND (lcv.VisitStatusCd = 'O') AND (NOT 
                        WHERE   (LCA.ChassisVisitId = lcv.ChassisVisitId)))
 
 
-CREATE OR ALTER VIEW DM_RAILCARS
+CREATE OR ALTER VIEW LT_RailCars_VW
  AS
 SELECT RailcarTypeCd AS TYPE_ID, RailcarNum AS NBR, NULL AS OWNER_ID, CarLoadLimit AS SAFE_WEIGHT, CASE WHEN lrrm.CarLoadLimitUOM = 2 THEN 'LB' ELSE 'KG' END AS SAFE_UNIT, NULL AS STATUS, NULL AS LENGTH, NULL
                   AS LENGTH_UNIT, NULL AS CREATED, NULL AS CHANGED
 FROM     dbo.LRef_RailcarMaster AS LRRM
 
 
-CREATE OR ALTER VIEW DM_RailcarTypes
+CREATE OR ALTER VIEW LT_RailcarTypes_VW
  AS
 SELECT RailcarTypeCd AS ID, RailcarTypeCd AS NAME, 'A' AS STATUS, RailcarTypeCd AS DESCRIPTION, NULL AS CAR_TYPE, 4 AS MAX_20S, 2 AS MAX_TIER, NULL AS FLOOR_HEIGHT, NULL AS HEIGHT_UNIT, NULL AS FLOOR_LENGTH, NULL
                   AS LENGTH_UNIT, NULL AS TARE_WEIGHT, NULL AS TARE_UNIT, CarLoadLimit AS SAFE_WEIGHT, CASE WHEN lrrc.CarLoadLimitUOM = 2 THEN 'LB' ELSE 'KG' END AS SAFE_UNIT, NULL AS HIGH_SIDE, NULL AS CREATED,
@@ -158,7 +153,7 @@ SELECT RailcarTypeCd AS ID, RailcarTypeCd AS NAME, 'A' AS STATUS, RailcarTypeCd 
 FROM     dbo.LRef_RailcarType AS lrrc
 
 
-CREATE OR ALTER VIEW DM_RCAR_VISITS
+CREATE OR ALTER VIEW LT_RailcarVisits_VW
  AS
 SELECT lrc.RailcarNum AS RCAR_NBR, grr.RRCompanyCd AS IN_RR_ID, lrc.RailcarOrderNbr AS IN_SEQ, lrc.OriginHubCd AS LOAD_POINT, lrc.DestHubCd AS DISCHARGE_POINT, NULL AS POINT_ID, NULL AS CREATED, NULL
                   AS CREATOR, NULL AS CHANGED, NULL AS CHANGER, lts.TrainScheduleId AS GKEY, NULL AS SEAL_NBR1, NULL AS SEAL_NBR2
@@ -167,7 +162,7 @@ FROM     dbo.LT_Railcar AS lrc INNER JOIN
                   dbo.LT_TrainSvc AS ltsvc ON ltsvc.TrainSvcId = lts.TrainSvcId INNER JOIN
                   centraldb.dbo.GRef_RRCompany AS grr ON grr.RRCompanyId = ltsvc.RRCompanyId
 
-  CREATE OR ALTER VIEW DM_TRAIN_VISITS
+  CREATE OR ALTER VIEW LT_TrainVisits_VW
     AS
  SELECT ts.TrainNum + '_' + CAST(ts.TrainScheduleId AS varchar) AS TRAIN_ID, 'Y' AS ACTIVE, 'Y' AS ACTIVE_SPARCS, grr.RRCompanyCd AS RR_ID, NULL AS TRACK, CASE WHEN tsvc.BoundInd = 'I' THEN 'IN' ELSE 'OUT' END AS DIRECTION,
                    tar.StartDtTm AS ETA, tar.EndDtTm AS ETD, CASE WHEN ts .ArrRelDtTmTypeCd = 'A' THEN tar.StartDtTm ELSE NULL END AS ATA, CASE WHEN ts .ArrRelDtTmTypeCd = 'A' THEN tar.EndDtTm ELSE NULL END AS ATD,
@@ -185,7 +180,7 @@ FROM     dbo.LT_Railcar AS lrc INNER JOIN
  WHERE  (ts.TrainStatusCd <> 'X')
 
 
-CREATE OR ALTER VIEW DM_EQUIPMENT
+CREATE OR ALTER VIEW LT_Equipment_VW
 AS
 SELECT 'CTR' AS EQ_CLASS, lcm.ContainerPrefixCd + lcm.ContainerNum + lcm.ContainerChkDigit AS EQ_NUMBER, gsl.ShippingLineCd AS OWNER, gsl.ShippingLineCd AS OPERATOR, gcc.ISOCd AS ISO_CODE, gcc.ContainerSzCd AS EQSZ_ID,
                   gcc.ContainerTypeCd AS EQTP_ID, CASE WHEN lcm.MaxGrossWgtUOM = 1 THEN lcm.MaxGrossWgt WHEN lcm.MaxGrossWgtUOM = 2 THEN lcm.MaxGrossWgt / 2.2046 ELSE NULL END AS SAFE_WEIGHT, 'KG' AS SAFE_UNITS,
@@ -197,7 +192,7 @@ FROM     dbo.LRef_ContainerMaster AS lcm INNER JOIN
                   centraldb.dbo.GRef_ContainerCode AS gcc ON gcc.ContainerSzCd = lcv.ContainerSzCd AND gcc.ContainerTypeCd = lcv.ContainerTypeCd AND gcc.ContainerHgtCd = lcv.ContainerHgtCd
 WHERE  (lcv.VisitStatusCd = 'O')
 
-CREATE OR ALTER VIEW DM_CONTAINER_USE_HAZ
+CREATE OR ALTER VIEW LT_ContainerUseHaz_VW
 AS
 SELECT lcv.ContainerPrefixCd + lcv.ContainerNum + lcv.ContainerChkDigit AS ContainerNum, lcv.ContainerVisitId, NULL AS SEQ, LTCH.EmergencyContactNum AS CONTACT_PHONE, LTCH.IMOClassCd AS IMDG_ID, NULL AS DESCRIPTION,
                   LTCH.EmergencyContactNm AS EMERGENCY_CONTACT, LTCH.EMSNum AS EMS_NBR, LTCH.FlashPoint AS FLASH_POINT, CASE WHEN FlashPointUOM = 6 THEN 'C' WHEN FlashPointUOM = 5 THEN 'F' ELSE NULL
@@ -209,7 +204,7 @@ FROM     dbo.LT_ContainerHazmat AS LTCH LEFT OUTER JOIN
 WHERE  (lcv.VisitStatusCd IN ('O', 'P'))
 
 
-CREATE OR ALTER VIEW DM_CONTAINER_USES
+CREATE OR ALTER VIEW LT_ContainerUses_VW
 AS
 SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                   CASE WHEN lcs.ContainerStatusCd = 'S' THEN 'T'
@@ -231,7 +226,7 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                                               FROM      LT_VslSchedule LTVS
                                               WHERE   LTVS.VslScheduleId = lcp.VslScheduleId) WHEN lcp.CarrierTypeCd = 'R' THEN
                                              (SELECT LTVS.TRAIN_ID
-                                              FROM      DM_TRAIN_VISITS LTVS
+                                              FROM      LT_TrainVisits_VW LTVS
                                               WHERE   LTVS.TrainScheduleId = lcp.TrainScheduleId) ELSE NULL END AS Expr1
                        FROM      dbo.LT_ContainerPos AS lcp
                        WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'D')) AS dep_loc_id,
@@ -273,13 +268,18 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                                               FROM      LRef_TerminalTrucker LRTT
                                               WHERE   LRTT.TerminalTruckerId = lcp.TerminalTruckerId) WHEN lcp.CarrierTypeCd = 'R' THEN
                                              (SELECT LTVS.TRAIN_ID
-                                              FROM      DM_TRAIN_VISITS LTVS
+                                              FROM      LT_TrainVisits_VW LTVS
                                               WHERE   LTVS.TrainScheduleId = lcp.TrainScheduleId) ELSE NULL END AS Expr1
                        FROM      dbo.LT_ContainerPos AS lcp
                        WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) AS in_loc_id, CASE WHEN lcp.CarrierTypeCd = 'R' THEN
                       (SELECT LTRC.RailcarNum + '-' + lcp.SlotNum
                        FROM      LT_Railcar LTRC
-                       WHERE   LTRC.RailcarId = lcp.RailcarId AND lcp.ContainerPosTypeCd = 'A') ELSE lcp.SlotNum END AS in_pos_id,
+                       WHERE   LTRC.RailcarId = lcp.RailcarId AND lcp.ContainerPosTypeCd = 'A')
+                        WHEN lcp.ContainerPosTypeCd = 'Y' then
+                        						(SELECT SlotNum
+                                               FROM      dbo.LT_ContainerPos AS lcp
+                                               WHERE   (lcp.ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A'))
+                                               ELSE lcp.SlotNum END AS in_pos_id,
                       (SELECT CASE WHEN lcp.CarrierTypeCd = 'V' THEN
                                              (SELECT LTVS.VslCd + LTVS.VoyNum
                                               FROM      LT_VslSchedule LTVS
@@ -288,7 +288,7 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                                               FROM      LRef_TerminalTrucker LRTT
                                               WHERE   LRTT.TerminalTruckerId = lcp.TerminalTruckerId) WHEN lcp.CarrierTypeCd = 'R' THEN
                                              (SELECT LTVS.TRAIN_ID
-                                              FROM      DM_TRAIN_VISITS LTVS
+                                              FROM      LT_TrainVisits_VW LTVS
                                               WHERE   LTVS.TrainScheduleId = lcp.TrainScheduleId) ELSE NULL END AS Expr1
                        FROM      dbo.LT_ContainerPos AS lcp
                        WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) AS in_visit_id, CASE WHEN lcp.ContainerPosTypeCd = 'A' THEN NULL ELSE lcp.ContainerPosStatusDtTm END AS in_time, NULL AS out_time, NULL
@@ -320,7 +320,7 @@ FROM     dbo.LT_ContainerVisit AS lcv LEFT OUTER JOIN
 WHERE  (lcv.VisitStatusCd IN ('O', 'P')) AND (lcp.ContainerPosTypeCd IN ('Y', 'A'))
 
 
-CREATE OR ALTER   VIEW [dbo].[DM_EQUIPMENT_ORDER_HAZ]
+CREATE OR ALTER   VIEW [dbo].[LT_EquipmentOrderHaz_VW]
 AS
 SELECT LTB.BookingNum AS NBR, NULL AS SEQ, LTBH.EmergencyContactNum AS CONTACT_PHONE, LTBH.IMOClassCd AS IMDG_ID, NULL AS DESCRIPTION, LTBH.EmergencyContactNm AS EMERGENCY_CONTACT, LTBH.EMSNum AS EMS_NBR,
                   LTBH.FlashPoint AS FLASH_POINT, CASE WHEN FlashPointUOM = 6 THEN 'C' WHEN FlashPointUOM = 5 THEN 'F' ELSE NULL END AS FLASH_POINT_UNITS, LTBH.IMDGCdPageNum AS IMDG_PAGE, NULL AS INHALATION_ZONE,
@@ -330,26 +330,59 @@ SELECT LTB.BookingNum AS NBR, NULL AS SEQ, LTBH.EmergencyContactNum AS CONTACT_P
 FROM     dbo.LT_BookingCmdtyHazmat AS LTBH INNER JOIN
                   dbo.LT_BookingCmdty AS LTBC ON LTBC.BookingCmdtyId = LTBH.BookingCmdtyId INNER JOIN
                   dbo.LT_Booking AS LTB ON LTB.BookingId = LTBC.BookingId INNER JOIN
-                  dbo.DM_SHIP_VISITS AS lvs ON lvs.VslScheduleId = LTB.VslScheduleId
+                  dbo.LT_ShipVisit_VW AS lvs ON lvs.VslScheduleId = LTB.VslScheduleId
 WHERE  (ltb.BookingStatusCd = 'A' OR
-                  ltb.BookingStatusCd = 'S') AND (ltb.DeletedFlg = 'N')
+                  ltb.BookingStatusCd = 'S') AND (ltb.DeletedFlg = 'N') and (lvs.eta > getdate()-30)
 
 
 
+CREATE OR ALTER VIEW [dbo].[LT_EquipmentOrderPortFeeFlag_VW]
+AS
+SELECT LTP.BookingId AS BookingID, LTP.PortFeeRelStatusCd as ReleaseCode, LTP.BookingNum AS BkgNum,LTP.PortFeeActionDtTm AS performed, LTP.PortFeeCd as port_fee_cd, LTP.PortFeeUpdateDtTm as updated_on
+FROM LT_BookingPortFee AS LTP INNER JOIN
+dbo.LT_Booking AS LTB ON LTB.BookingId = LTP.BookingId INNER JOIN
+                  dbo.LT_ShipVisit_VW AS lvs ON lvs.VslScheduleId = LTB.VslScheduleId
+WHERE  (ltb.BookingStatusCd = 'A' OR
+                  ltb.BookingStatusCd = 'S') AND (ltb.DeletedFlg = 'N') and (lvs.eta > getdate()-30) and LTP.BookingId is not null
 
- CREATE OR ALTER VIEW DM_EQUIPMENT_ORDERS
+
+CREATE OR ALTER VIEW [dbo].[LT_EquipmentOrderTmfFlag_VW]
+AS
+SELECT LTH.BookingId, LTH.TMFRelStatusCd as ReleaseCode, LTH.BookingNum AS BkgNum,LTH.TMFActionDtTm AS performed, LTH.TMFUpdateDtTm as updated_on
+FROM LT_BookingTMFHold AS LTH INNER JOIN
+dbo.LT_Booking AS LTB ON LTB.BookingId = LTH.BookingId INNER JOIN
+                  dbo.LT_ShipVisit_VW AS lvs ON lvs.VslScheduleId = LTB.VslScheduleId
+WHERE  (ltb.BookingStatusCd = 'A' OR
+                  ltb.BookingStatusCd = 'S') AND (ltb.DeletedFlg = 'N') and (lvs.eta > getdate()-30) and LTH.BookingId is not null
+
+
+
+CREATE  or alter view LT_EquipmentOrder_VW
  AS
 SELECT lvs.VESSEL_VISIT_ID, NULL AS CHANGED, NULL AS CHANGEID, 'MIGRATION' AS CHANGER, NULL AS CREATED, 'MIGRATION' AS CREATOR, 0 AS CUTOFF_OVERRIDE, lb.FDSTCd AS DESTINATION,
-                  lb.PODCd AS DISCHARGE_POINT_ID1, NULL AS DISCHARGE_POINT_ID2, NULL AS END_DATE, NULL AS FLEX1, NULL AS GKEY, gsl.ShippingLineCd AS LINE_ID, lb.POLCd AS LOAD_POINT_ID, lb.BookingNum AS NBR,
+                  lb.PODCd AS DISCHARGE_POINT_ID1, NULL AS DISCHARGE_POINT_ID2, NULL AS END_DATE, NULL AS FLEX1, lb.BookingId AS GKEY, gsl.ShippingLineCd AS LINE_ID, lb.POLCd AS LOAD_POINT_ID, lb.BookingNum AS NBR,
                   CAST(lb.RemarksTxt AS varchar(180)) AS NOTES, lb.PORCd AS ORIGIN, lb.ShipperNm AS SHIPPER, lb.VslCd AS SHIP_ID, lb.SpecialStowCd AS SPECIAL_STOW, NULL AS START_DATE, 'F' AS STATUS, 'BOOK' AS SUB_TYPE, NULL
                   AS TRUCKER_ID, lvs.OutboundVoyNum AS VOY_NBR
 FROM     dbo.LT_Booking AS lb INNER JOIN
-                  dbo.DM_SHIP_VISITS AS lvs ON lb.VslScheduleId = lvs.VslScheduleId INNER JOIN
+                  dbo.LT_ShipVisit_VW AS lvs ON lb.VslScheduleId = lvs.VslScheduleId INNER JOIN
                   centraldb.dbo.GRef_ShippingLine AS gsl ON lb.ShippingLineId = gsl.ShippingLineId
 WHERE  (lb.BookingStatusCd = 'A' OR
                   lb.BookingStatusCd = 'S') AND (lb.DeletedFlg = 'N')
+and (lvs.eta > getdate()-30 or lvs.VESSEL_VISIT_ID in ('GOVT22','HOLD22'))
+union
+SELECT lvs.VESSEL_VISIT_ID, NULL AS CHANGED, NULL AS CHANGEID, 'MIGRATION' AS CHANGER, NULL AS CREATED, 'MIGRATION' AS CREATOR, 0 AS CUTOFF_OVERRIDE, lb.FDSTCd AS DESTINATION,
+                  lb.PODCd AS DISCHARGE_POINT_ID1, NULL AS DISCHARGE_POINT_ID2, NULL AS END_DATE, NULL AS FLEX1, lb.BookingId AS GKEY, gsl.ShippingLineCd AS LINE_ID, lb.POLCd AS LOAD_POINT_ID, lb.BookingNum AS NBR,
+                  CAST(lb.RemarksTxt AS varchar(180)) AS NOTES, lb.PORCd AS ORIGIN, lb.ShipperNm AS SHIPPER, lb.VslCd AS SHIP_ID, lb.SpecialStowCd AS SPECIAL_STOW, NULL AS START_DATE, 'F' AS STATUS, 'BOOK' AS SUB_TYPE, NULL
+                  AS TRUCKER_ID, lvs.OutboundVoyNum AS VOY_NBR
+FROM     dbo.LT_Booking AS lb INNER JOIN
+                  dbo.LT_ShipVisit_VW AS lvs ON lb.VslScheduleId = lvs.VslScheduleId INNER JOIN
+                  centraldb.dbo.GRef_ShippingLine AS gsl ON lb.ShippingLineId = gsl.ShippingLineId
+WHERE  (lb.BookingStatusCd = 'A' OR
+                  lb.BookingStatusCd = 'S') AND (lb.DeletedFlg = 'N')
+and lb.BookingNum in (select distinct eqo_nbr from LT_ContainerUses_VW where eqo_nbr is not null);
 
-CREATE OR ALTER  VIEW [dbo].[DM_EQUIPMENT_ORDER_ITEMS]
+
+CREATE OR ALTER  VIEW [dbo].[LT_EquipmentOrderItem_VW]
 AS
 SELECT lft.ContainerSzCd AS EQSZ_ID, lft.ContainerTypeCd AS EQTP_ID, lft.ContainerHgtCd AS EQHT_ID,
                       (SELECT ISOCd
@@ -364,13 +397,13 @@ FROM     dbo.LT_FCLTally AS lft INNER JOIN
                   dbo.LT_Booking AS lb LEFT OUTER JOIN
                   dbo.LT_ReeferSettings AS ltrf ON ltrf.BookingId = lb.BookingId AND ltrf.ReeferTemperature IS NOT NULL LEFT OUTER JOIN
                   dbo.LT_BookingCmdty AS Lbc ON Lbc.BookingId = lb.BookingId AND Lbc.CmdtyItemNbr = 1 ON lft.BookingId = lb.BookingId INNER JOIN
-                  dbo.DM_SHIP_VISITS AS lvs ON lb.VslScheduleId = lvs.VslScheduleId
+                  dbo.LT_ShipVisit_VW AS lvs ON lb.VslScheduleId = lvs.VslScheduleId
 WHERE  (lb.BookingStatusCd = 'A' OR
                   lb.BookingStatusCd = 'S') AND (lb.DeletedFlg = 'N')
 
 
 
-CREATE OR ALTER VIEW DM_EQUIPMENT_DELIVERY_ORDERS
+CREATE OR ALTER VIEW LT_EquipmentDeliveryOrder_VW
  AS
 SELECT svo.SvcOrderId AS GKEY,svo.SvcOrderId AS SERVICE_ORDER_ID, gsl.ShippingLineCd AS LINE_ID, svo.SvcOrderNum as NBR,
 'EDO' as SUB_TYPE,
@@ -379,7 +412,7 @@ from LT_SvcOrder svo
 INNER JOIN centraldb.dbo.GRef_ShippingLine AS gsl ON svo.ShippingLineId = gsl.ShippingLineId
 where svo.SvcOrderCatCd = 'MTYREPO'
 
-CREATE OR ALTER VIEW DM_EQUIPMENT_DELIVERY_ORDER_ITEMS
+CREATE OR ALTER VIEW LT_EquipmentDeliveryOrderItems_VW
  AS
 SELECT let.EmptyTallyId as GKEY, let.SvcOrderId AS SERVICE_ORDER_ID,let.EquipSzCd AS EQSZ_ID, let.EquipTypeCd AS EQTP_ID, let.EquipHgtCd AS EQHT_ID,
 (SELECT ISOCd FROM centraldb.dbo.GRef_ContainerCode AS gcc

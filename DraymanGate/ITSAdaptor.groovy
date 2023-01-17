@@ -41,7 +41,7 @@ import java.util.concurrent.*
  * library class for processing and sending the drayman gate message
  *
  * */
-class ITSDraymanGateAdaptor {
+class ITSAdaptor {
 
     // On cancelling transaction - call from TruckTransaction ELI
     public void prepareAndPushMessage(TruckTransaction inTruckTran, String inMessageType) {
@@ -207,7 +207,7 @@ class ITSDraymanGateAdaptor {
             //genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruckLicenseNbr());
             genericMap.put(T__TRUCK_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckId() : T_EMPTY);
             genericMap.put(T__TRUCK_TYPE, T__DRAYMAN);
-            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck() ? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY);
+            genericMap.put(T__TAG_ID, inTv.getTvdtlsTruck()? (inTv.getTvdtlsTruck().getTruckAeiTagId()? inTv.getTvdtlsTruck().getTruckAeiTagId() : T_EMPTY) : T_EMPTY);
             genericMap.put(T__LICENCE_NBR, inTv.getTvdtlsTruckLicenseNbr());
             genericMap.put(T__LICENCE_STATE, truckLicenceState);
             genericMap.put(T__EX_ERR_REASON, T_EMPTY);
@@ -496,7 +496,8 @@ class ITSDraymanGateAdaptor {
 
     private Map getValueFromPosition(LocPosition locPosition, String eqLength) {
         Map posValues = new HashMap();
-        logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
+        if (locPosition)
+            logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
 
         //loc PosSlot: E130032, PosLocId: PIERG, BlockName: null, posBin: null, posName: Y-PIERG-E130032
         //AbstractYardBlock
@@ -536,8 +537,12 @@ class ITSDraymanGateAdaptor {
 
                     if (slotArray.size() > 0)
                         posValues.put(T__ROW, slotArray[0]);
-                    if (slotArray.size() > 1)
-                        posValues.put(T__BAY, slotArray[1]);
+                    if (slotArray.size() > 1) {
+                        if (slotArray[1].length() == 1)
+                            posValues.put(T__BAY, T_ZERO + slotArray[1]);
+                        else
+                            posValues.put(T__BAY, slotArray[1]);
+                    }
                     if (slotArray.size() > 2)
                         posValues.put(T__CELL, slotArray[2]);
                     if (slotArray.size() > 3)
@@ -592,6 +597,11 @@ class ITSDraymanGateAdaptor {
                             posValues.put(T__BAY, String.valueOf(Integer.parseInt(rowVal) + 1));
                         else
                             posValues.put(T__BAY, rowVal);
+
+                        if (posValues.get(T__BAY) != null && ((String)posValues.get(T__BAY)).length() == 1) {
+                            posValues.put(T__BAY, T_ZERO + (String)posValues.get(T__BAY))
+                        }
+                        logMsg("--bayval: "+posValues.get(T__BAY));
                     }
                     posValues.put(T__CELL, slotVal);
                 }
@@ -656,9 +666,13 @@ class ITSDraymanGateAdaptor {
                 integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow());
             }
 
-            integrationServiceMessage.setIsmUserString1(truckTagId);
-            integrationServiceMessage.setIsmUserString2(messageType);
-            integrationServiceMessage.setIsmUserString5(T__SUCCESS);
+            if (truckTagId)
+                integrationServiceMessage.setIsmUserString1(truckTagId);
+            if (messageType)
+                integrationServiceMessage.setIsmUserString2(messageType);
+
+            if (T__DRAYMAN.equals(inIntegrationService.getIntservName()))
+                integrationServiceMessage.setIsmUserString5(T__SUCCESS);
 
             if (responseMessage) {
                 integrationServiceMessage.setIsmUserString4(responseMessage);
@@ -675,7 +689,8 @@ class ITSDraymanGateAdaptor {
 
             if (T__DRAYMAN.equals(inIntegrationService.getIntservName())) {
                 integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageDraymanSequenceProvider().getNextSequenceId());
-            } else if (T__HKI.equals(inIntegrationService.getIntservName())) {
+
+            } else if (ArgoUtils.isNotEmpty(inIntegrationService.getIntservName()) && inIntegrationService.getIntservName().startsWith(T__HKI)) {
                 integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageHKISequenceProvider().getNextSequenceId());
             }
 
@@ -796,6 +811,7 @@ class ITSDraymanGateAdaptor {
     private static final String ABM_BLOCK = "ABM_BLOCK";
     private static final String T_20 = "20";
     private static final String T_40 = "40";
+    private static final String T_ZERO = "0";
 
     private static final String T__TIP = "TIP";
     private static final String T__DRAYMAN = "Drayman";
@@ -822,5 +838,5 @@ class ITSDraymanGateAdaptor {
 
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyyMMddHHmmss");
 
-    private static final Logger LOGGER = Logger.getLogger(ITSDraymanGateAdaptor.class);
+    private static final Logger LOGGER = Logger.getLogger(ITSAdaptor.class);
 }

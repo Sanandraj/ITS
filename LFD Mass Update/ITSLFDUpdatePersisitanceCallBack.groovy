@@ -63,7 +63,8 @@ class ITSLFDUpdatePersisitanceCallBack extends AbstractExtensionPersistenceCallb
                             isError = Boolean.TRUE
                             continue
                         }
-                        if (ufv.isTransitState(UfvTransitStateEnum.S70_DEPARTED) || ufv.isTransitState(UfvTransitStateEnum.S99_RETIRED)) {
+                        if (ufv.isTransitState(UfvTransitStateEnum.S10_ADVISED) || ufv.isTransitState(UfvTransitStateEnum.S20_INBOUND) ||
+                            ufv.isTransitState(UfvTransitStateEnum.S70_DEPARTED) || ufv.isTransitState(UfvTransitStateEnum.S99_RETIRED)) {
                             builder.append("Unit with ID ${unit.getUnitId()} not in yard.").append("\n")
                             isError = Boolean.TRUE
                             continue

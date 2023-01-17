@@ -1,6 +1,6 @@
 package ITS
 
-import com.navis.argo.ArgoPropertyKeys
+
 import com.navis.argo.ContextHelper
 import com.navis.argo.EdiInvoice
 import com.navis.argo.InvoiceCharge
@@ -66,6 +66,7 @@ import org.apache.log4j.Logger
 import wslite.json.JSONObject
 
 import java.text.DateFormat
+import java.text.ParseException
 import java.text.SimpleDateFormat
 
 /**
@@ -143,7 +144,7 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
                 eventcd = VESSEL_DISCHARGE
                 eventDtTm = ISO_DATE_FORMAT.format(event.getEvntAppliedDate())
                 break
-            case UNIT_FD_MOVE:
+            case "UNIT_DELIVERABLE_DISCHARGE":
                 eventcd = FIRST_DELIVERABLE
                 eventDtTm = ISO_DATE_FORMAT.format(event.getEvntAppliedDate())
                 break
@@ -639,19 +640,22 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
                         }
                     }
             }
+
             JSONBuilder feeinfoObj = JSONBuilder.createObject();
             feeinfoObj.put(FEETYPE_CD, "4I")
             feeinfoObj.put(FEETYPE_DESC, "DEMURRAGE")
-            if (demmurrageCharge > 0) {
-                feeinfoObj.put(FEE_AMT, demmurrageCharge.toString())
-                feeinfoObj.put(FEEUNTIL_DTTM, ISO_DATE_FORMAT.format(now))
-                feeinfoObj.put(FEE_DTTM, ISO_DATE_FORMAT.format(now))
+            // if (demmurrageCharge > 0) {
+            feeinfoObj.put(FEE_AMT, demmurrageCharge.toString())
+            feeinfoObj.put(FEEUNTIL_DTTM, ISO_DATE_FORMAT.format(now))
+            feeinfoObj.put(FEE_DTTM, ufv.getUfvLinePaidThruDay() != null ? ISO_DATE_FORMAT.format(ufv.getUfvLinePaidThruDay()) : (getLfdDatePlusOne(ufv) != null ? ISO_DATE_FORMAT.format(getLfdDatePlusOne(ufv)) : ISO_DATE_FORMAT.format(now)))
 
-            } else {
-                feeinfoObj.put(FEE_AMT, demmurrageCharge.toString())
-                feeinfoObj.put(FEEUNTIL_DTTM, ufv.getUfvLineLastFreeDay() != null ? ISO_DATE_FORMAT.format(ufv.getUfvLineLastFreeDay()) : ISO_DATE_FORMAT.format(ufv.getUfvCalculatedLastFreeDayDate()))
-                feeinfoObj.put(FEE_DTTM, ufv.getUfvLineLastFreeDay() != null ? ISO_DATE_FORMAT.format(ufv.getUfvLineLastFreeDay()) : ISO_DATE_FORMAT.format(ufv.getUfvCalculatedLastFreeDayDate()))
-            }
+            //} /*else {
+            /* feeinfoObj.put(FEE_AMT, demmurrageCharge.toString())
+             if (ufv.getUfvLineLastFreeDay() != null || llfd != null) {
+                 feeinfoObj.put(FEEUNTIL_DTTM, ufv.getUfvLineLastFreeDay() != null ? ISO_DATE_FORMAT.format(ufv.getUfvLineLastFreeDay()) : ISO_DATE_FORMAT.format(llfd))
+             }
+             feeinfoObj.put(FEE_DTTM, ufv.getUfvLineLastFreeDay() != null ? ISO_DATE_FORMAT.format(ufv.getUfvLineLastFreeDay()) : ISO_DATE_FORMAT.format(ufv.getUfvCalculatedLastFreeDayDate()))
+         */
             if (examAmount > 0) {
                 JSONBuilder examfeeinfoObj = JSONBuilder.createObject();
                 examfeeinfoObj.put(FEETYPE_CD, "4IE")
@@ -797,6 +801,23 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
         return departureinfoObj;
     }
 
+    private static Date getLfdDatePlusOne(UnitFacilityVisit ufv) throws ParseException {
+        if(ufv.getUfvLineLastFreeDay() != null){
+            return ufv.getUfvLineLastFreeDay().plus(1)
+        }
+        String dt = ufv.ufvCalculatedLineStorageLastFreeDay
+        Calendar cal = Calendar.getInstance()
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
+        if (dt.endsWith("!")) {
+            dt = dt.replaceAll("!", "")
+        }
+        if (dt.contains("no")) {
+            return null
+        }
+        cal.setTime(dateFormat.parse(dt))
+        return cal.getTime().plus(1)
+    }
+
     public List getMapShipmentStatus(Collection flagsOnUnitEntity, Unit unit, boolean isActiveHold, boolean isTMFHoldOnly, BillOfLading billOfLading) {
         EventManager eventManager = (EventManager) Roastery.getBean(EventManager.BEAN_ID)
         List list = new ArrayList()
@@ -885,25 +906,28 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
         if (isPAHold) {
             list.add(setStatus("PA", "Customs Hold, Intensive Examination", SHIPMENT, paHoldDate ? ISO_DATE_FORMAT.format(paHoldDate) : ISO_DATE_FORMAT.format(now)))
         }
-        UnitFacilityVisit ufv = unit.getUfvForFacilityLiveOnly(ContextHelper.getThreadFacility())
+
+        UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
         boolean isCtrAV = false
         if (ufv != null && ufv.isTransitStateBeyond(UfvTransitStateEnum.S20_INBOUND)) {
-            // list.add(setStatus("A", "Arrived", SHIPMENT, ISO_DATE_FORMAT.format(ufv.getUfvTimeIn())))
+
             list.add(setStatus("A", "Arrived", SHIPMENT, ufv.getUfvTimeIn() != null ? ufv.getUfvTimeIn().format("yyyy-MM-dd'T'HH:mm:ss") : ""))
-            if (unit.isUnitInYard() && (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory()) /*|| UnitCategoryEnum.STORAGE.equals(unit.getUnitCategory())*/) && (!isActiveHold || isTMFHoldOnly) && !isHeldForTC) {
+
+            if (ufv.isTransitState(UfvTransitStateEnum.S40_YARD) && (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory())) && (!isActiveHold || isTMFHoldOnly) && !isHeldForTC) {
                 isCtrAV = true
                 list.add(setStatus("AV", "Available For Delivery", SHIPMENT, ISO_DATE_FORMAT.format(now)))
-            } /*else if ((ufv.isTransitStatePriorTo(UfvTransitStateEnum.S40_YARD) || ufv.isTransitStateBeyond(UfvTransitStateEnum.S40_YARD)) || (UnitCategoryEnum.TRANSSHIP.equals(unit.getUnitCategory()) || UnitCategoryEnum.EXPORT.equals(unit.getUnitCategory()))) {
-                list.add(setStatus("DN", "Container Not Available for pickup", SHIPMENT, ISO_DATE_FORMAT.format(now)))
-            }*/
+            }
+
         }
         if (!isCtrAV || (UnitCategoryEnum.TRANSSHIP.equals(unit.getUnitCategory()) || UnitCategoryEnum.EXPORT.equals(unit.getUnitCategory()))) {
             list.add(setStatus("DN", "Container Not Available for pickup", SHIPMENT, ISO_DATE_FORMAT.format(now)))
         }
         UnitFacilityVisit unitFacilityVisit = unit.getUnitActiveUfvNowActive()
         if (unitFacilityVisit != null) {
-            if (unitFacilityVisit.getUfvLineLastFreeDay() != null) {
-                list.add(setStatus("NF", "FREE TIME TO EXPIRE", SHIPMENT, ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvLineLastFreeDay())))
+
+            if (getLfdDatePlusOne(unitFacilityVisit) != null) {
+                Date nfDate = getLfdDatePlusOne(unitFacilityVisit).minus(1)
+                list.add(setStatus("NF", "FREE TIME TO EXPIRE", SHIPMENT, ISO_DATE_FORMAT.format(nfDate)))
             }
 
             UnitStorageManager storageManager = (UnitStorageManager) Roastery.getBean(UnitStorageManager.BEAN_ID)
@@ -1063,11 +1087,11 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
                 //integrationServiceMessage.setIsmLastSendTime(ArgoUtils.timeNow());
             }
             integrationServiceMessage.setIsmMessagePayload(inMessagePayload);
-           if(seqNbr == null) {
+            if (seqNbr == null) {
                 integrationServiceMessage.setIsmSeqNbr(new IntegrationServMessageSequenceProvider().getNextSequenceId());
-            }else{
-               integrationServiceMessage.setIsmSeqNbr(seqNbr)
-           }
+            } else {
+                integrationServiceMessage.setIsmSeqNbr(seqNbr)
+            }
             ScopeCoordinates scopeCoordinates = ContextHelper.getThreadUserContext().getScopeCoordinate();
             integrationServiceMessage.setIsmScopeGkey((String) scopeCoordinates.getScopeLevelCoord(scopeCoordinates.getDepth()));
             integrationServiceMessage.setIsmScopeLevel(scopeCoordinates.getDepth());
@@ -1309,8 +1333,7 @@ class ITSEmodalLibrary extends AbstractExtensionCallback {
     private static final String FIRST_AVAILABLE_FOR_RAIL = "RA"
     private static final String OUT_GATED = "OA"
     private static final String RAIL_LOAD = "AL"
-    private static final String UNIT_FD_MOVE = "UNIT_DELIVERABLE_DISCHARGE"
-
+    private static final String UNIT_FD_MOVE = "UNIT_DELIVERABLE_FIRST_MOVE"
 
 
     private static final String EQUIPMENT_TYPE = "equipmentType"

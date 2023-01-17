@@ -130,7 +130,7 @@ class ITSWorkInstructionELI extends AbstractEntityLifecycleInterceptor {
     private static final String T__ON_DELETE = "onDelete";
     private final String T__CRANE_WORK_LIST_UPDATE = "CraneWorkListUpdate";
 
-    private static final String LIBRARY = "ITSDraymanGateAdaptor";
+    private static final String LIBRARY = "ITSAdaptor";
 
     private static final Logger LOGGER = Logger.getLogger(ITSWorkInstructionELI.class);
 }

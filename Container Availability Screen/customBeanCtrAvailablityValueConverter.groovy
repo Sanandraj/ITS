@@ -2,7 +2,6 @@
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
 */
-
 import com.navis.argo.*
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.IImpediment
@@ -43,11 +42,13 @@ import com.navis.services.business.rules.EventType
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang.StringUtils
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
+
 /**
- * @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 03/11/2022
+ * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>, 03/11/2022
  *
  *  Requirements: To update the container availability details based on the impediments fees/storage charges owing for the units.
  *
@@ -62,8 +63,7 @@ import org.jetbrains.annotations.Nullable
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- * @Setup Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
- *
+ * @SetUp Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
  *  S.No    Modified Date   Modified By     Jira      Description
  *
  */
@@ -213,6 +213,15 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
                                 String pierpassStatus = getImpedimentForUnit(unit, "PIERPASS")
                                 if (pierpassStatus) {
                                     valueToReturn = NG + pierpassStatus
+                                } else {
+                                    valueToReturn = OK
+                                }
+                                break;
+
+                            case "ufvCTFHoldSynthetic":
+                                String CTFStatus = getImpedimentForUnit(unit,"PORTFEE")
+                                if(CTFStatus){
+                                    valueToReturn =NG + CTFStatus
                                 } else {
                                     valueToReturn = OK
                                 }
@@ -407,7 +416,7 @@ class customBeanCtrAvailablityValueConverter extends DefaultValueConverter imple
         String flagActive = null
         String[] flags = null
         if (flagView == null) {
-            flags = ["CUSTOMS", "LINE", "EXAM", "SPECIAL", "PIERPASS", "LINEFEE"]
+            flags = ["CUSTOMS", "LINE", "EXAM", "SPECIAL", "PIERPASS", "LINEFEE","PORTFEE"]
         } else {
             flags = [flagView]
         }

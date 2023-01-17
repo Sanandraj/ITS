@@ -1,7 +1,9 @@
 package henken
 
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.atoms.CheKindEnum
 import com.navis.argo.business.integration.IntegrationServiceMessage
+import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
 import com.navis.argo.business.xps.model.Che
 import com.navis.argo.business.xps.model.EcEvent
@@ -28,38 +30,43 @@ import org.apache.log4j.Logger
 /**
  * @author <a href="mailto:sramasamy@weservetech.com"> Ramasamy Sathappan</a>
  * @since 08-Aug-2022
+ * Create ISM for ITV operations
+ *
  * */
 class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
 
     @Override
     void onCreate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
-        notifyHKI(inEntity, inOriginalFieldChanges, inMoreFieldChanges);
+        generateIsmForHKI(inEntity, inOriginalFieldChanges, inMoreFieldChanges);
     }
 
-    private void notifyHKI(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
+    private void generateIsmForHKI(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         try {
             LOGGER.setLevel(Level.DEBUG);
-            logMsg("notifyHKI - inEntity:: " + inEntity + ", inOriginalFieldChanges: " + inOriginalFieldChanges + ", inMoreFieldChanges: " + inMoreFieldChanges);
+            logMsg("generateIsmForHKI - inEntity:: " + inEntity + ", inOriginalFieldChanges: " + inOriginalFieldChanges + ", inMoreFieldChanges: " + inMoreFieldChanges);
             String ecEventTypeDesc = (String) getNewFieldValue(inOriginalFieldChanges, ArgoGuiMetafield.ECEVENT_TYPE_DESCRIPTION);
             logMsg("ecEventTypeDesc: " + ecEventTypeDesc);
             Thread.sleep(2000);
 
-            String cheId, cheStatus, chePowName, transactionNumber, message;
+            //String transactionNumber
+            String cheId, cheStatus, chePowName, message;
             double MsgHighlight = 26;
             EcEvent ecEvent = (EcEvent) inEntity._entity;
-            if (ecEvent) {
-                cheId = ecEvent.getEceventCheName();
-                chePowName = ecEvent.getEceventPowName();
-                transactionNumber = ecEvent.getEceventGkey();
-                transactionNumber = transactionNumber != null? transactionNumber : DEFAULT_TRANSACTION_NBR;
-            }
+            if (ecEvent == null)
+                return;
 
-            logMsg("cheId: " + cheId + ", cheStatus: " + cheStatus + ", chePowName: " + chePowName + ", transactionNumber: " + transactionNumber);
+            cheId = ecEvent.getEceventCheName();
+            logMsg("cheId: "+cheId)
+            Che che = Che.findCheByShortName(cheId, ContextHelper.getThreadYard())
+            logMsg("che: "+che)
+            if (CheKindEnum.ITV != che.getCheKindEnum())
+                return
+
+            chePowName = ecEvent.getEceventPowName();
+            logMsg("cheId: " + cheId + ", cheStatus: " + cheStatus + ", chePowName: " + chePowName);
+
             // On LogOff the Che
             if (T_LGOF == ecEventTypeDesc) { // Logout
-                //cheId = "T998";
-                //chePool = "YARDB";
-                //transactionNumber = "1234567890";
                 message = frameMessage(buildFirstLine(cheId, T_UNAVAILABLE, chePowName), LINE_EMPTY, LINE_EMPTY, LINE_LOGGED_OUT, LINE_EMPTY, LINE_CALL_CLERK, LINE_EMPTY, LINE_EMPTY);
 
             } else if (T_UNAV == ecEventTypeDesc) { // Not available
@@ -82,7 +89,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String fetchCheId, wiCarrierLocId, unitType;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 for (WorkInstruction wi : wiList) {
                     counter++;
@@ -169,7 +175,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String fetchCheId, wiCarrierLocId, unitType, powName;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 for (WorkInstruction wi : wiList) {
                     counter++;
@@ -182,16 +187,10 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                         powName = T_EMPTY;
                     }
 
-                    /*Che fetchChe = wi.getMvhsFetchChe();
-                    logMsg("fetchChe: "+fetchChe);
-                    fetchCheId = fetchChe? fetchChe.getCheShortName() : T_FOUR_SPACE;*/
                     unitType = getEquipmentFeetType(wi);
-
                     if (counter == 1) {
-                        //line3 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
                         line3 = String.format(LINE_WAIT_AT_FOR, powName, unitType);
                     } else {
-                        //line5 = String.format(LINE_WAIT_AT_FOR, fetchCheId, unitType);
                         line5 = String.format(LINE_WAIT_AT_FOR, powName, unitType);
                     }
                 }
@@ -214,7 +213,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String line4 = LINE_EMPTY;
                 String line6 = LINE_EMPTY;
                 String line7 = LINE_EMPTY;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 for (WorkInstruction wi : wiList) {
                     counter++;
@@ -265,7 +263,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String putCheId, wiCarrierLocId, unitType;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 for (WorkInstruction wi : wiList) {
                     counter++;
@@ -302,7 +299,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String line4 = LINE_EMPTY;
                 String line6 = LINE_EMPTY;
                 String line7 = LINE_EMPTY;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 Unit unit;
                 for (WorkInstruction wi : wiList) {
@@ -347,7 +343,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 List<WorkInstruction> wiList = WorkInstruction.findAssociatedWorkInstruction(ecEvent.getEceventWorkAssignmentGkey());
                 logMsg("WI list: "+wiList);
                 String putCheId, wiContainerId, wiCarrierLocId, unitType;
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 String line3 = LINE_EMPTY;
                 String line5 = LINE_EMPTY;
 
@@ -389,7 +384,6 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                 String line8 = LINE_EMPTY;
                 Unit unit;
 
-                //WorkInstruction wi = !wiList.isEmpty()? wiList.get(0) : null;
                 int counter = 0;
                 for (WorkInstruction wi : wiList) {
                     counter++;
@@ -436,52 +430,30 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
                         wrapSpace(line8, false));
             }
 
-            logMsg("message:\n"+message);
+            logMsg("message:\n"+message)
             if (message != null) {
-                // Used for any parameters to send to XML-RPC Data
-                Vector params = new Vector();
-                params.addElement(message);
-                params.addElement(MsgHighlight);
-                params.addElement(cheId);
-                params.addElement(transactionNumber);
-                params.addElement(T_5000);
-
-                XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
-                config.setServerURL(new URL(SERVER_URL));
-
-                XmlRpcClient client = new XmlRpcClient();
-                client.setConfig(config);
-
-                logMsg("params: "+params);
-
-                def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), LIBRARY);
-                logMsg("library: "+library);
-                IntegrationServiceMessage ism;
+                def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), LIBRARY)
+                logMsg("library: "+library)
+                IntegrationServiceMessage ism
                 if (library) {
-                    IntegrationService iServ = library.getUriFromIntegrationService(T__HKI, IntegrationServiceDirectionEnum.OUTBOUND);
+                    IntegrationService iServ
+                    GeneralReference reference = GeneralReference.findUniqueEntryById(T_HKI, T_MESSAGE_EXCHANGE, T_SPECIAL_UTR);
+                    if (reference != null && reference.getRefValue1() != null) {
+                        String roles = reference.getRefValue1()
+                        String[] specialUTRs = roles?.split(T_COMMA)
+                        logMsg("specialUTRs: "+specialUTRs)
+                        if (specialUTRs.contains(cheId))
+                            iServ = library.getUriFromIntegrationService(T_HKI_SPECIAL, IntegrationServiceDirectionEnum.OUTBOUND)
+                        else
+                            iServ = library.getUriFromIntegrationService(T_HKI, IntegrationServiceDirectionEnum.OUTBOUND)
+                    }
+
                     if (iServ) {
-                        ism = library.createIntegrationSrcMsg(iServ, params.toString(), cheId, ecEventTypeDesc, null);
+                        ism = library.createIntegrationSrcMsg(iServ, message, cheId, ecEventTypeDesc, null)
+                        HibernateApi.getInstance().save(ism)
+                        HibernateApi.getInstance().flush()
                     }
                 }
-
-                Object result;
-                try {
-                    result = client.execute(HKI_API, params);
-                } catch (Exception e) {
-                    //result = "Connection timeout error occurred";
-                    result = e.getMessage();
-                    LOGGER.error("Exception while pushing the request : "+result);
-                }
-                logMsg("result: "+ (String)result);
-
-                if (ism) {
-                    String resultMessage = result? (String) result : T_EMPTY;
-                    logMsg("resultMessage: "+resultMessage);
-                    ism.setIsmUserString4(resultMessage);
-                    HibernateApi.getInstance().save(ism);
-                    HibernateApi.getInstance().flush();
-                }
-                logMsg("Result from Client : " + result);
             }
 
         } catch (Exception e) {
@@ -531,18 +503,18 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
             StringBuilder sbFirstLine = new StringBuilder();
             if (!inCheId.isEmpty()) {
                 sbFirstLine.append(inCheId); // 4 chars
-                sbFirstLine.append(T_SPACE); // 5 chars
+                sbFirstLine.append(T_SPACE); // 1 chars
                 if (inCheStatus != null) {
                     if (inCheStatus.length()>4) {
                         inCheStatus = inCheStatus.substring(0, 4);
                     } else {
                         inCheStatus = inCheStatus;
                     }
-                    sbFirstLine.append(inCheStatus); // 11 chars
+                    sbFirstLine.append(inCheStatus); // 4 chars
                 } else
                     sbFirstLine.append(T_SPACE);
 
-                sbFirstLine.append(T_SPACE); // 5 chars
+                sbFirstLine.append(T_SPACE); // 1 chars
                 if (inChePowName != null)
                     sbFirstLine.append(inChePowName); // 5 chars
             }
@@ -551,43 +523,20 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
         } catch (Exception e) {
             LOGGER.error("Exception in buildFirstLine : "+e.getMessage());
         }
-        //return LINE_EMPTY;
         return FIRST_LINE_EMPTY;
-        //return "123456789012345678901234567890"
     }
 
     private String frameMessage(String inLine1, String inLine2, String inLine3, String inLine4, String inLine5, String inLine6, String inLine7, String inLine8) {
         try {
-            logMsg("frameMessage BEGIN : inLine1 : " + inLine1 + "::");
+            /*logMsg("frameMessage BEGIN : inLine1 : " + inLine1 + "::");
             logMsg("Line2: " + inLine2 + "::");
             logMsg("Line3: " + inLine3 + "::");
             logMsg("Line4: " + inLine4 + "::");
             logMsg("Line5: " + inLine5 + "::");
             logMsg("Line6: " + inLine6 + "::");
             logMsg("Line7: " + inLine7 + "::");
-            logMsg("Line8: " + inLine8 + "::");
+            logMsg("Line8: " + inLine8 + "::");*/
 
-            /*StringBuilder sb = new StringBuilder();
-            if (!inCheId.isEmpty()) {
-                sb.append(inCheId); // 4 chars
-                sb.append(T_FIVE_SPACE); // 5 chars
-                if (inCheStatus != null)
-                    sb.append(inCheStatus); // 11 chars
-                else
-                    sb.append(T_ELEVEN_SPACE);
-
-                sb.append(T_FIVE_SPACE); // 5 chars
-                if (inChePowName.length() > POW_SPACE_LIMIT) {
-                    inChePowName = inChePowName.substring(0, POW_SPACE_LIMIT);
-                }
-                sb.append(inChePowName); // 5 chars
-
-                if (inChePowName.length() < POW_SPACE_LIMIT) {
-                    for (int i=POW_SPACE_LIMIT; i >= inChePowName.length(); i--) {
-                        sb.append(T_SPACE);
-                    }
-                }
-            }*/
             StringBuilder sb = new StringBuilder();
             sb.append(inLine1);
             sb.append(inLine2);
@@ -643,15 +592,9 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
         LOGGER.debug(inMsg);
     }
 
-    private static final String DEFAULT_TRANSACTION_NBR = "1234567890";
     private static final String T_FT = "ft";
     private static final String T_EMPTY = "";
-    //private static final String T_UNKNOWN   = "UNKNOWN";
     private static final String T_UNKNOWN   = "XXXX";
-    private static final String T_FOUR_SPACE   = "    ";
-    private static final String T_FIVE_SPACE   = "     ";
-    private static final String T_TWO_SPACE   = "  ";
-    private static final String T_ELEVEN_SPACE = "           ";
     private static final String T_SPACE = " ";
     private static final String T_DOT = ".";
     private static final String T_DOT_SPLITTER = "\\.";
@@ -675,21 +618,15 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private String LINE_GOTO_SLOT = "GOTO %s FOR %s";
     private String LINE_GOTO_SLOT_WHEELED = "GOTO %s FOR %s";
     private String LINE_GOTO_WITH = "GO TO %s WITH %s";
-    //private String LINE_TAKE           = "TAKE %s TO %s.%s";
     private String LINE_TAKE           = "TAKE %s TO %s %s";
     private String LINE_VESSEL = "        VESSEL %s";
     private String LINE_RAIL   = "        RAIL %s";
 
 
-    private static final String T_5000 = "5000";
-    private static final String HKI_API = "ECN4XMLtoHKIMDT";
-
     private final int COLUMN_COUNT_LIMIT = 30;
     private final int FIRSTLINE_COUNT_LIMIT = 19;
-    private final int ROW_COUNT_LIMIT = 8;
-    private final int POW_SPACE_LIMIT = 5;
 
-    private static final String SERVER_URL = "http://192.168.94.8:9003";
+    //private static final String SERVER_URL = "http://192.168.94.8:9003";
     private static final String T_LGOF = "LGOF";
     private static final String T_UNAV = "UNAV";
     private static final String T_IDLE = "IDLE";
@@ -707,8 +644,12 @@ class ITSEcEventELI extends AbstractEntityLifecycleInterceptor {
     private static final String T_AYCO = "AYCO";
     private static final String T_ARCO = "ARCO";
 
-    private static final String T__HKI = "HKI";
-    private static final String LIBRARY = "ITSDraymanGateAdaptor";
+    private static final String T_COMMA = ",";
+    private static final String T_HKI = "HKI";
+    private static final String T_HKI_SPECIAL = "HKI_SPECIAL";
+    private static final String T_MESSAGE_EXCHANGE = "MESSAGE_EXCHANGE";
+    private static final String T_SPECIAL_UTR = "SPECIAL_UTR";
+    private static final String LIBRARY = "ITSAdaptor";
 
     private static final Logger LOGGER = Logger.getLogger(ITSEcEventELI.class);
 

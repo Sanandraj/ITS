@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="SHOW_ALL">SHOW_ALL</action>
+    <action id="SHOW_ACTIVE">SHOW_ACTIVE</action>
+    <action id="RECOVER_OBSOLETE">RECOVER_OBSOLETE</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_USER_PURGE">ARG_USER_PURGE</action>
+  </actions>
+  <table id="CUSTOM_YARD_BLOCK_SETUP">
+    <title>General Reference</title>
+    <entity>
+      <name>GeneralReference</name>
+      <primaryKey>refGkey</primaryKey>
+    </entity>
+    <crudCommand variformId="ARG157" />
+    <uiManager ref="customBeanYardBlockTableManager" />
+    <menu category="context">
+      <menuItem userActionId="UPDATE_BLOCK" label="Update Block" variformId="CUSTOM_UPDATE_YARD_BLOCK" destination="dialog" enable="oneOrMoreSources" />
+    </menu>
+    <column fieldId="refType" />
+    <column fieldId="refId1" />
+    <column fieldId="refId2" />
+    <column fieldId="refId3" />
+    <column fieldId="refValue1" />
+    <column fieldId="refValue2" />
+ <column fieldId="refValue3" />
+    <column fieldId="refCreator" display="viewable" />
+    <column fieldId="refCreated" display="viewable" />
+    <column fieldId="refChanger" display="viewable" />
+    <column fieldId="refChanged" display="viewable" />
+  </table>
+</variforms>
+

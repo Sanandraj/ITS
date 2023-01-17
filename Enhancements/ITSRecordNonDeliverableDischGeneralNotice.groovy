@@ -57,7 +57,7 @@ class ITSRecordNonDeliverableDischGeneralNotice extends AbstractGeneralNoticeCod
                 if (yardRehandle != null) {
                     FieldChanges fc = new FieldChanges()
                     fc.setFieldChange(UnitField.POS_SLOT, position.getPosSlot())
-                    unit.recordEvent(yardRehandle, fc, "Unit discharged to Deliverable location", ArgoUtils.timeNow())
+                    unit.recordEvent(yardRehandle, fc, "Unit discharged to non-deliverable location", ArgoUtils.timeNow())
 
                 }
             }

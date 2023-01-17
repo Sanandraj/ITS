@@ -17,6 +17,7 @@ import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.inventory.business.units.EqBaseOrderItem
 import com.navis.orders.business.eqorders.Booking
 import com.navis.orders.business.eqorders.EquipmentOrderItem
+import com.navis.services.business.rules.EventType
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -69,6 +70,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                         }
                         VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
+                        EventType event = EventType.findEventTypeProxy("TO_BE_DETERMINED")
                         if (vvd != null && vvd.getVvdTimeCargoCutoff() == null) {
                             OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"), PropertyKeyFactory.valueOf("Booking Reduction"))
                             return
@@ -78,8 +80,9 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                         } else if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
                                 vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))) {
                             Long totalItemQuantity = 0
+                            boolean bkgQtyUpdate = false
                             if (booking.getEqboNbr() != null) {
-                                if (booking.eqoTallyReceive > 0) {
+                                if (booking.eqoTallyReceive >= 0) {
                                     Set bkgItems = booking.getEqboOrderItems()
                                     if (bkgItems != null && !bkgItems.isEmpty() && bkgItems.size() >= 1) {
                                         Iterator iterator = bkgItems.iterator()
@@ -88,26 +91,34 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                             Long eqoiQty = eqoItem.getEqoiQty()
                                             Long eqoiTallyOut = eqoItem.getEqoiTally()
                                             Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
-                                            if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
+                                            if (eqoiTallyIn >= 0 || eqoiTallyOut >= 0) {
                                                 if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
                                                     eqoItem.setEqoiQty(eqoiTallyIn)
                                                     count = count + 1
                                                     bkgReduce = true
+                                                    bkgQtyUpdate = true
+                                                    if (event != null) {
+                                                        vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+                                                    }
                                                 }
-                                                if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                                                else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
                                                     eqoItem.setEqoiQty(eqoiTallyOut)
                                                     count = count + 1
                                                     bkgReduce = true
+                                                    bkgQtyUpdate = true
+                                                    if (event != null) {
+                                                        vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+                                                    }
                                                 }
                                             }
                                             totalItemQuantity += eqoItem.getEqoiQty()
                                         }
                                     }
                                 }
-
                             }
-
-                            booking.setEqoQuantity(totalItemQuantity)
+                            if (bkgQtyUpdate){
+                                booking.setEqoQuantity(totalItemQuantity)
+                            }
 
                         } else {
                             errorCount = errorCount + 1

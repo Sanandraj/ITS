@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <action id="create">create</action>
+    <action id="query">query</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="view">view</action>
+    <action id="FILTER_SEARCH">FILTER_SEARCH</action>
+    <action id="QUICK_SEARCH">QUICK_SEARCH</action>
+    <action id="ARG_PURGE">ARG_PURGE</action>
+    <action id="ARG_EXPORT_SNX">ARG_EXPORT_SNX</action>
+  </actions>
+  <form id="INV_FORM_RECORD_WAIVER">
+    <title>{Record Waiver}</title>
+    <entity>
+      <name>UnitFacilityVisit</name>
+      <primaryKey>ufvGkey</primaryKey>
+    </entity>
+    <actionsAllowed>
+      <actionMode action="update" mode="editable" pageId="" />
+    </actionsAllowed>
+  <controller ref="customBeanITSRecordWaiverFormController" />
+<formSubmissionCodeExtension name="ITSRecordWaiverSubmitFormCommand"/>
+   <!--<submitFormCommand ref="recordWaiverFormCommand" />-->
+    <borderLayout>
+      <northPanel>
+        <grid name="SELECT_EXTRACT_EVENT_TITLE" title="SELECT_EXTRACT_EVENT_TITLE">
+          <row>
+            <cell>
+              <item fieldId="extractEventType" required="true" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteGuaranteeCustomer" required="true" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteOverrideValueType" required="true" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteGuaranteeStartDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteGuaranteeEndDay" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <!--2009-04-27 psethuraman ARGO-25497: set GNTE_WAIVER_EXPIRATION_DATE as mandatory-->
+              <item fieldId="gnteWaiverExpirationDate" required="true" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteQuantity" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteGuaranteeAmount" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteNotes" />
+            </cell>
+          </row>
+          <row>
+            <cell>
+              <item fieldId="gnteCustomerReferenceId" />
+            </cell>
+          </row>
+        </grid>
+      </northPanel>
+    </borderLayout>
+  </form>
+</variforms>
+

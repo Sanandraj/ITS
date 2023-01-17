@@ -28,7 +28,7 @@ class ITSTruckVisitELI extends AbstractEntityLifecycleInterceptor {
             LOGGER.setLevel(Level.DEBUG);
             logMsg("inOriginalFieldChanges: " + inOriginalFieldChanges);
 
-            def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSDraymanGateAdaptor");
+            def library = ExtensionUtils.getLibrary(ContextHelper.getThreadUserContext(), "ITSAdaptor");
             if (library) {
 
                 TruckVisitDetails truckVisitDetails = inEntity._entity;

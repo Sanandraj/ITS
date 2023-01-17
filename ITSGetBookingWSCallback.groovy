@@ -1,3 +1,5 @@
+package ITS
+
 import com.navis.argo.ArgoRefField
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.FreightKindEnum
@@ -44,7 +46,7 @@ import java.text.SimpleDateFormat
  * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
  * Date: 08/01/2022
  * Requirements:-  Receives one or more Booking Number(s) via Http Get and returns a list of Booking details in JSON format.
- *  @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION --> Paste this code (ITSGetGateTransactionsWSCallback.groovy)
+ *  @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION --> Paste this code (ITSGetBookingWSCallback.groovy)
  *
  */
 
@@ -58,6 +60,7 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
         String refNumber = inMap.containsKey(REF_NUMS) ? inMap.get(REF_NUMS) : null
         outMap.put("RESPONSE", prepareBookingMessageToITS(refType, refNumber))
     }
+
     String prepareBookingMessageToITS(String refType, String refNumber) {
         String[] refNumbers = refNumber?.toUpperCase()?.split(",")*.trim()
         String errorMessage = validateMandatoryFields(refType, refNumber)
@@ -69,11 +72,11 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
 
             DomainQuery dq = QueryUtils.createDomainQuery(OrdersEntity.BOOKING)
                     .addDqPredicate(PredicateFactory.in(InvField.EQBO_NBR, refNumbers))
-            if (EMPTY.equalsIgnoreCase(refType)) {
-                dq.addDqPredicate(PredicateFactory.eq(OrdersField.EQO_EQ_STATUS, FreightKindEnum.MTY))
-            } else {
-                dq.addDqPredicate(PredicateFactory.ne(OrdersField.EQO_EQ_STATUS, FreightKindEnum.MTY))
-            }
+            /*      if (EMPTY.equalsIgnoreCase(refType)) {
+                      dq.addDqPredicate(PredicateFactory.eq(OrdersField.EQO_EQ_STATUS, FreightKindEnum.MTY))
+                  } else {
+                      dq.addDqPredicate(PredicateFactory.ne(OrdersField.EQO_EQ_STATUS, FreightKindEnum.MTY))
+                  }*/
             LOGGER.debug("ITSGetBookingWSCallback :: dq" + dq)
             Serializable[] bookingGkeys = HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
             if (bookingGkeys != null && bookingGkeys.size() > 0) {
@@ -83,8 +86,10 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                     booking = Booking.hydrate((bkgGkey))
                     if (booking != null) {
                         JSONBuilder jsonObject = JSONBuilder.createObject();
+                        jsonObject.put(BOOKING_ID, booking.getEqboGkey());
                         jsonObject.put(BOOKING_NUM, booking.getEqboNbr() ?: EMPTY_STR)
-                        jsonObject.put(SHIPPING_LINE_SCAC, booking.getEqoLine()?.getBzuId() ?: EMPTY_STR)
+                        jsonObject.put(SHIPPING_LINE_CD, booking.getEqoLine()?.getBzuId() ?: EMPTY_STR)
+                        jsonObject.put(SHIPPING_LINE_SCAC, booking.getEqoLine()?.getBzuScac() ?: EMPTY_STR)
                         jsonObject.put(VESSEL_NAME, booking.getEqoVesselVisit()?.getCarrierVehicleName() ?: EMPTY_STR)
                         jsonObject.put(VOYAGE_NUM, booking.getEqoVesselVisit()?.getCarrierObVoyNbrOrTrainId() ?: EMPTY_STR)
                         jsonObject.put(POD_CD, booking.getEqoPod1()?.getPointUnlocId() ?: EMPTY_STR)
@@ -102,9 +107,10 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                         jsonObject.put(CMDTY_CD, cmdtyStr.length() > 0 ? cmdtyStr.substring(0, cmdtyStr.length() - 1) : EMPTY_STR)
                         jsonObject.put(BOOKED_QTY, booking.getEqoQuantity())
 
-                        if (refType.equals(EXP)) {
-                            jsonObject.put(RECEIVED_QTY, booking.getEqoTallyReceive())
+                        if (refType.equalsIgnoreCase(EXP)) {
+                            //jsonObject.put(RECEIVED_QTY, booking.getEqoTallyReceive())
                             boolean isTMFHold = false
+                            boolean isPortFeeHold = false
                             Collection flagsOnEntity = FlagType.findActiveFlagsOnEntity(booking);
                             if (flagsOnEntity != null && flagsOnEntity.size() > 0) {
                                 for (Flag flag : flagsOnEntity) {
@@ -113,20 +119,24 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                                         if (TMF_HOLD.equalsIgnoreCase(flagId)) {
                                             isTMFHold = true
                                         }
+                                        if (PORT_FEE_HOLD_BKG.equalsIgnoreCase(flagId)) {
+                                            isPortFeeHold = true
+                                        }
                                     }
                                 }
                             }
-                            jsonObject.put(IS_TMF_STATUS_RELEASED, isTMFHold)
+                            jsonObject.put(IS_TMF_STATUS_RELEASED, !isTMFHold)
+                            jsonObject.put(IS_PORT_FEE_STATUS_RELEASED, !isPortFeeHold)
                         } else {
-                            jsonObject.put(DELIVERED_QTY, booking.getEqoTally())
+                            jsonObject.put(DELIVERED_QTY, "0")
                             if (!StringUtils.isEmpty(booking.getEqoNotes())) {
+
                                 jsonObject.put(REMARKS_TXT, booking.getEqoNotes())
                             }
                         }
 
                         DomainQuery containerDomainQuery = QueryUtils.createDomainQuery(InvEntity.UNIT_FACILITY_VISIT)
-                                .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("ufvUnit.unitDepartureOrderItem.eqboiOrder.eqboNbr"), booking.getEqboNbr()))
-                                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.EXPORT))
+                                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_DEPARTURE_ORDER,booking.getEqboGkey()))
                                 .addDqField(UnitField.UFV_DECLARED_IB_MODE)
                                 .addDqField(UnitField.UFV_TRANSIT_STATE)
                                 .addDqField(UnitField.UFV_UNIT_ID)
@@ -136,75 +146,96 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                                 .addDqField(InvField.UFV_GAPPT_NBR)
                                 .addDqField(InvField.UFV_TIME_IN)
                                 .addDqField(InvField.UFV_TIME_OUT)
-                                .addDqField(UnitField.UFV_EQ)
-                        if (booking.getEqoLine()?.getBzuId() != null) {
-                            containerDomainQuery.addDqPredicate(PredicateFactory.eq(UnitField.UFV_LINE_OPERATOR_ID, booking.getEqoLine().getBzuId()))
-                            // same booking nbr will exists for diff line also
+                                .addDqField(UnitField.UFV_EQ);
+                        if (EMPTY.equalsIgnoreCase(refType)) {
+                            containerDomainQuery.addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.STORAGE));
+                        } else  {
+                            containerDomainQuery.addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.EXPORT));
                         }
+
                         QueryResult ufvQueryResult = HibernateApi.getInstance().findValuesByDomainQuery(containerDomainQuery)
                         LOGGER.debug("ITSGetBookingWSCallback :: containerDomainQuery count" + ufvQueryResult.getTotalResultCount())
                         JSONBuilder fclTalliesArray = JSONBuilder.createArray()
+                        int totalToComeQty = 0;
+                        int totalDeliveredQty = 0;
+
+
                         if (bkgItems != null && bkgItems.size() > 0) {
                             Iterator bkgIterator = bkgItems.iterator();
                             while (bkgIterator.hasNext()) {
                                 EquipmentOrderItem item = (EquipmentOrderItem) bkgIterator.next();
+
                                 if (item != null) {
                                     JSONBuilder fclTallyObject = JSONBuilder.createObject();
                                     fclTallyObject.put(CONTAINER_SZ_TP_HT, new StringBuilder().append(item.getEqoiEqSize()?.getKey()?.substring(3))
                                             .append(item.getEqoiEqIsoGroup()?.getKey())
                                             .append(item.getEqoiEqHeight()?.getKey()?.substring(3)).toString())
                                     fclTallyObject.put(BOOKED_QTY, item.getEqoiQty())
-                                    if (refType.equals(EXP)) {
+                                    if (refType.equalsIgnoreCase(EXP)) {
                                         fclTallyObject.put(RECEIVED_QTY, item.getEqoiTallyReceive())
-                                        int truckQty = 0; // no.of. to come ctrs (for an item) on truck = advised/inbound count without appt + appt count
+                                        int truckQty = 0;
+                                        // no.of. to come ctrs (for an item) on truck = advised/inbound count without appt + appt count
                                         int trainQty = 0;
                                         int vesselQty = 0;
                                         Equipment equipment = null
                                         int truckqtyFromGA = 0
+                                        LOGGER.debug("ITSGetBookingWSCallback :: item.getEqoiSampleEquipType()" + item.getEqoiSampleEquipType())
                                         if (item.getEqoiSampleEquipType() != null) {
+
                                             truckqtyFromGA = getCtrCountFromGateAppt(booking, item.getEqoiSampleEquipType())
+
+
                                         }
                                         for (int i = 0; i < ufvQueryResult.getTotalResultCount(); i++) {
                                             if (ufvQueryResult.getValue(i, UnitField.UFV_EQ) != null) {
                                                 equipment = (Equipment) HibernateApi.getInstance().load(Equipment.class, (Serializable) ufvQueryResult.getValue(i, UnitField.UFV_EQ));
                                             }
-
-                                            if (item.getEqoiSampleEquipType() != null && item.getEqoiSampleEquipType().equals(equipment.getEqEquipType())) {
+                                            LOGGER.debug("ITSGetBookingWSCallback :: equipment.getEqEquipType()" + equipment.getEqEquipType())
+                                            if (equipment!= null && item.getEqoiSampleEquipType() != null && item.getEqoiSampleEquipType().isEqualSizeTypeHeight(equipment.getEqEquipType())) {
+                                                LOGGER.debug("item.getEqoiSampleEquipType()"+item.getEqoiSampleEquipType())
 
                                                 if ((UfvTransitStateEnum.S10_ADVISED.equals((UfvTransitStateEnum) ufvQueryResult.getValue(i, UnitField.UFV_TRANSIT_STATE))
-                                                        || UfvTransitStateEnum.S20_INBOUND.equals((UfvTransitStateEnum) ufvQueryResult.getValue(i, UnitField.UFV_TRANSIT_STATE)))
-                                                        ) {
+                                                        || UfvTransitStateEnum.S20_INBOUND.equals((UfvTransitStateEnum) ufvQueryResult.getValue(i, UnitField.UFV_TRANSIT_STATE)))){
+
                                                     GateAppointment gateAppointment = GateAppointment.findGateAppointment((Long) ufvQueryResult.getValue(i, InvField.UFV_GAPPT_NBR))
                                                     if (gateAppointment == null || (gateAppointment != null && !AppointmentStateEnum.CREATED.equals(gateAppointment.getApptState()))) {
                                                         if (LocTypeEnum.TRUCK.equals((LocTypeEnum) ufvQueryResult.getValue(i, UnitField.UFV_DECLARED_IB_MODE))) {
                                                             truckQty += 1
                                                         }
+                                                        if (LocTypeEnum.TRAIN.equals((LocTypeEnum) ufvQueryResult.getValue(i, UnitField.UFV_DECLARED_IB_MODE))) {
+                                                            trainQty += 1
+                                                        }
+                                                        if (LocTypeEnum.VESSEL.equals((LocTypeEnum) ufvQueryResult.getValue(i, UnitField.UFV_DECLARED_IB_MODE))) {
+                                                            vesselQty += 1
+                                                        }
                                                     }
-                                                     if (LocTypeEnum.TRAIN.equals((LocTypeEnum) ufvQueryResult.getValue(i, UnitField.UFV_DECLARED_IB_MODE))) {
-                                                        trainQty += 1
-                                                    } else if (LocTypeEnum.VESSEL.equals((LocTypeEnum) ufvQueryResult.getValue(i, UnitField.UFV_DECLARED_IB_MODE))) {
-                                                        vesselQty += 1
-                                                    }
+
                                                 }
                                             }
                                         }
                                         truckQty = truckQty + truckqtyFromGA
+                                        totalToComeQty = truckQty + trainQty + vesselQty + totalToComeQty
                                         fclTallyObject.put(TOCOME_ON_TRUCK_QTY, truckQty)
                                         fclTallyObject.put(TOCOME_ON_RAIL_QTY, trainQty)
                                         fclTallyObject.put(TOCOME_ON_VESSEL_QTY, vesselQty)
                                     } else {
-                                        fclTallyObject.put(DELIVERED_QTY, item.getEqoiTally())
-                                        fclTallyObject.put(PRE_ASSIGNED_QTY,"")
+                                        int itemDelQty = item.getOrderItemDeliveredUnits().size();
+                                        totalDeliveredQty +=itemDelQty;
+                                        fclTallyObject.put(DELIVERED_QTY, itemDelQty);
+                                        fclTallyObject.put(PRE_ASSIGNED_QTY, item.getOrderItemReservedUnits().size())
                                     }
 
                                     fclTalliesArray.add(fclTallyObject)
                                 }
                             }
-                            if (refType.equals(EXP)) {
-                                jsonObject.put(FCL_TALLIES, fclTalliesArray)
-                            } else {
-                                jsonObject.put(EMPTY_TALLIES, fclTalliesArray)
-                            }
+
+                        }
+                        if (refType.equalsIgnoreCase(EXP)) {
+                            jsonObject.put(RECEIVED_QTY, (booking.getEqoTallyReceive() + totalToComeQty))
+                            jsonObject.put(FCL_TALLIES, fclTalliesArray)
+                        } else {
+                            jsonObject.put(EMPTY_TALLIES, fclTalliesArray)
+                            jsonObject.put(DELIVERED_QTY, totalDeliveredQty)
                         }
 
                         JSONBuilder bkgCtrsArray = JSONBuilder.createArray()
@@ -227,41 +258,16 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                             if (ufvQueryResult.getValue(i, InvField.UFV_ACTUAL_IB_CV) != null) {
                                 ibCV = CarrierVisit.hydrate((Serializable) ufvQueryResult.getValue(i, InvField.UFV_ACTUAL_IB_CV))
                             }
-                            if (refType.equals(EXP)) {
+                            if (refType.equalsIgnoreCase(EXP)) {
 
-
-                                String carrierTypeCd = EMPTY_STR
-                                String carrierCd = EMPTY_STR
-                                String currentPos = EMPTY_STR
                                 String receivedTime = null;
                                 if (ufvQueryResult.getValue(i, InvField.UFV_TIME_IN) != null) {
                                     receivedTime = ISO_DATE_FORMAT.format((Date) ufvQueryResult.getValue(i, InvField.UFV_TIME_IN))
                                 }
-                                if (ufvPosition != null && ufvPosition.getPosLocType() != null) {
-                                    if (LocTypeEnum.TRUCK.equals(ufvPosition.getPosLocType())) {
-                                        carrierTypeCd = TRUCK
-                                        carrierCd = ibCV?.getCvOperator()?.getBzuId()
-                                        currentPos = ibCV?.getCvOperator()?.getBzuId()
-                                    } else if (LocTypeEnum.YARD.equals(ufvPosition.getPosLocType())) {
-                                        carrierTypeCd = YARD
-                                        carrierCd = ContextHelper.getThreadYard().getId()
-                                        currentPos = ufvPosition?.getPosSlot()
 
-                                    } else if (LocTypeEnum.VESSEL.equals(ufvPosition.getPosLocType())) {
-                                        carrierTypeCd = VESSEL
-                                        carrierCd = obCV?.getCarrierVehicleId()
-                                        currentPos = ufvPosition?.getPosSlot()
-                                    } else if (LocTypeEnum.TRAIN.equals(ufvPosition.getPosLocType())) {
-                                        carrierTypeCd = RAIL
-                                        carrierCd = ibCV?.getCarrierVehicleId()
-                                        currentPos = ufvPosition?.getPosSlot()
-                                    }
-
-                                }
                                 bkgCtrObject.put(FULL_EMPTY_CD, "F")
-                                bkgCtrObject.put(CARRIER_TYPE_CD, carrierTypeCd)
-                                bkgCtrObject.put(CARRIER_CD, carrierCd)
-                                bkgCtrObject.put(CURRENT_POSITION, currentPos)
+
+                                bkgCtrObject.put(CURRENT_POSITION, ufvPosition.getPosName())
                                 if (receivedTime != null) {
                                     bkgCtrObject.put(RECEIVED_DT_TM, receivedTime)
                                 }
@@ -278,19 +284,19 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
                                 }
                             }
                             bkgCtrsArray.add(bkgCtrObject)
+                            if (refType.equalsIgnoreCase(EXP)) {
+                                jsonObject.put(BOOKING_CONTAINERS, bkgCtrsArray)
+                            } else {
+                                jsonObject.put(EMPTY_BOOKING_CONTAINERS, bkgCtrsArray)
+                            }
                         }
-                        if (refType.equals(EXP)){
-                            jsonObject.put(BOOKING_CONTAINERS, bkgCtrsArray)
-                        }
-                        else{
-                            jsonObject.put(EMPTY_BOOKING_CONTAINERS, bkgCtrsArray)
-                        }
+
                         jsonArray.add(jsonObject)
 
                     }
-                    if (refType.equals(EXP)){
+                    if (refType.equalsIgnoreCase(EXP)) {
                         bookingsObj.put(BOOKINGS, jsonArray)
-                    }else{
+                    } else {
                         bookingsObj.put(EMPTY_BOOKINGS, jsonArray)
                     }
                 }
@@ -341,6 +347,8 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String EMPTY = "MTY"
     private static final String BOOKING_NUM = "bookingNum"
     private static final String SHIPPING_LINE_SCAC = "shippingLineScac"
+    private static final String SHIPPING_LINE_CD = "shippingLineCd"
+
     private static final String VESSEL_NAME = "vesselName"
     private static final String VOYAGE_NUM = "voyageNum"
     private static final String POD_CD = "podCd"
@@ -348,6 +356,8 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String BOOKED_QTY = "bookedQty"
     private static final String RECEIVED_QTY = "receivedQty"
     private static final String IS_TMF_STATUS_RELEASED = "isTmfStatusReleased"
+    private static final String IS_PORT_FEE_STATUS_RELEASED = "isPortFeeStatusReleased"
+
     private static final String CONTAINER_SZ_TP_HT = "containerSzTpHt"
     private static final String TOCOME_ON_TRUCK_QTY = "tocomeOnTruckQty"
     private static final String TOCOME_ON_RAIL_QTY = "tocomeOnRailQty"
@@ -358,14 +368,11 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String CARRIER_CD = "carrierCd"
     private static final String CURRENT_POSITION = "currentPosition"
     private static final String RECEIVED_DT_TM = "receivedDtTm"
-    private static final String TRUCK = "T"
-    private static final String RAIL = "RAIL"
-    private static final String YARD = "Y"
-    private static final String VESSEL = "V"
     private static final String BOOKINGS = "bookings"
     private static final String FCL_TALLIES = "fclTallies"
     private static final String BOOKING_CONTAINERS = "bookingContainers"
     private static final String TMF_HOLD = "TMF BKG"
+    private static final String PORT_FEE_HOLD_BKG = "PORT FEE HOLD EXP"
     private static final String EMPTY_BOOKINGS = "emptyBookings"
     private static final String DELIVERED_QTY = "deliveredQty"
     private static final String REMARKS_TXT = "remarksTxt"
@@ -374,6 +381,8 @@ class ITSGetBookingWSCallback extends AbstractExtensionPersistenceCallback {
     private static final String EMPTY_BOOKING_CONTAINERS = "emptyBookingContainers"
     private static final String DELIVERED_DT_TM = "deliveredDtTm"
     private static final String TRUCKING_CO_SCAC = "truckingCoScac"
+    private static final String BOOKING_ID = "bookingId"
+
 
 
     private static final String ERROR_MESSAGE = "errorMessage"

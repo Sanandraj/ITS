@@ -53,7 +53,7 @@ class ITSTruckTransactionELI extends AbstractEntityLifecycleInterceptor {
 
 
     private static final String T__CANCEL = "Cancel";
-    private static final String LIBRARY = "ITSDraymanGateAdaptor";
+    private static final String LIBRARY = "ITSAdaptor";
 
     private static final Logger LOGGER = Logger.getLogger(ITSTruckTransactionELI.class);
 
