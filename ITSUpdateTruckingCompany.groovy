@@ -18,8 +18,9 @@ class ITSUpdateTruckingCompany extends AbstractGateTaskInterceptor{
     void execute(TransactionAndVisitHolder inWfCtx) {
         TruckTransaction tran = inWfCtx.getTran()
         TruckVisitDetails tvd = inWfCtx.getTv()
+        String tvApptNbr = inWfCtx.getTVAppointmentNbr()
         _logger.setLevel(Level.DEBUG)
-        _logger.debug("TV appointment number - " + tvd.getTvdtlsTvAppointmentNbr().toString())
+        _logger.debug("TV appointment number - " + tvApptNbr)
         _logger.debug("TV GOS number - " + tvd.getTvdtlsGosTvKey().toString())
 
         if (tvd != null){
@@ -27,7 +28,7 @@ class ITSUpdateTruckingCompany extends AbstractGateTaskInterceptor{
             _logger.debug("Trucking Company - " + (StringUtils.isBlank(tvd.getTvdtlsTruckingCoId())  ? "" : tvd.getTvdtlsTruckingCoId()))
             if(StringUtils.isBlank(tvd.getTvdtlsTruckingCoId())){
                 _logger.debug("Inside trucking company blank")
-                TruckVisitAppointment tvAppt = tvd.getTvdtlsTruckVisitAppointment()
+                TruckVisitAppointment tvAppt = inWfCtx.getTruckVisitAppointment()
                 if(tvAppt != null && tvAppt.getTruckingCompany() != null){
                     //tvd.setTvdtlsTruckingCoId(tvAppt.getTruckingCompany().getBzuId())
                     tvd.setTvdtlsTrkCompany(tvAppt.getTruckingCompany())

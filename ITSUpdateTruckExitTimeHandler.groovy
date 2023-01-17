@@ -18,6 +18,19 @@ import org.jdom.Namespace
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+/*
+     *
+     * @Author : Mohan Babu, 29/06/2022
+     *
+     * Requirements : Complete Open Truck Visit at Security Exit stage.
+     *
+     * @Inclusion Location : Incorporated as a code extension of the type WS_ARGO_CUSTOM_HANDLER.
+     *
+     *
+     * S.No Modified Date   Modified By     Jira Id     SFDC        Change Description
+        1     29/06/2022      Mohan         IP-324
+        2     11/01/2023      Mohan         IP-458                  Set next stage to empty for truck visit
+ */
 
 class ITSUpdateTruckExitTimeHandler extends AbstractArgoCustomWSHandler{
     @Override
@@ -37,6 +50,9 @@ class ITSUpdateTruckExitTimeHandler extends AbstractArgoCustomWSHandler{
                 tvDetails.setTvdtlsFlexDate01(format.parse(exitTimeElement.getValue()))
                 if(tvDetails.hasStatus(TruckVisitStatusEnum.OK)){
                     tvDetails.setTvdtlsStatus(TruckVisitStatusEnum.COMPLETE)
+                }
+                if(StringUtils.isNotBlank(tvDetails.getTvdtlsNextStageId())){
+                    tvDetails.setNextStageId(null)
                 }
                 HibernateApi.getInstance().save(tvDetails)
             }
