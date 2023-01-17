@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
+
+
 import com.navis.argo.business.atoms.ServiceOrderStatusEnum
 import com.navis.argo.business.atoms.ServiceOrderUnitStatusEnum
 import com.navis.argo.business.reference.ScopedBizUnit
@@ -20,17 +26,14 @@ import com.navis.framework.presentation.ui.message.ButtonTypes
 import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.ulc.server.application.view.form.widget.CheckBoxFormWidget
-import com.navis.framework.ulc.server.application.view.form.widget.LookupFormWidget
 import com.navis.framework.util.ValueObject
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.message.MessageCollector
 import com.navis.framework.util.message.MessageCollectorFactory
 import com.navis.framework.util.message.MessageLevel
 import com.navis.inventory.InventoryBizMetafield
-import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.inventory.presentation.command.DefaultShowUnitDigitSubmitFormCommand
 import com.navis.inventory.presentation.controller.ShowCreateServiceOrderFormController
-import com.navis.orders.OrdersField
 import com.navis.orders.business.serviceorders.ItemServiceType
 import com.navis.orders.business.serviceorders.ItemServiceTypeUnit
 import com.navis.orders.business.serviceorders.ServiceOrder
@@ -39,7 +42,7 @@ import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Logger
 
 /**
- * @Author: uaarthi@weservetech.com; Date: 21-12-2022
+ * @Author: mailto:uaarthi@weservetech.com, Aarthi U; Date: 21/12/2022
  *
  *  Requirements: Override Create Service Order Form to handle Auto Completion of Service Orders
  *
@@ -50,15 +53,14 @@ import org.apache.log4j.Logger
  *  2. Click Add (+)
  *  3. Enter the values as below:
  *     Code Extension Name: customBeanITSShowCreateServiceOrderFormController
- *     Code Extension Type:  BEAN_PROTOTYPE
+ *     Code Extension Type: BEAN_PROTOTYPE
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- *
+ *  S.No    Modified Date   Modified By     Jira      Description
  *
  */
 class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServiceOrderFormController implements EBean {
-    private static final Logger logger = Logger.getLogger(this.class)
     private ValueObject currentValues;
     private Serializable _ufvGkeys;
 
@@ -69,38 +71,6 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
 
 
     //TODO Configure method - To handle Multiple Billing Parties - Pending confirmation, if this requirement is valid
-   /* @Override
-    protected void configure() {
-        logger.warn("get current values configure " + getCurrentValues())
-        PersistenceTemplate pt = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
-        Serializable line = null
-        String lineId = null
-        boolean isSameOp = Boolean.FALSE
-        pt.invoke(new CarinaPersistenceCallback() {
-            protected void doInTransaction() {
-                for (Serializable gkey : getPrimaryKeys()) {
-                    UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(gkey)
-                    if (line == null || lineId == null) {
-                        line = ufv.getUfvUnit().getUnitLineOperator().getPrimaryKey()
-                        lineId = ufv.getUfvUnit().getUnitLineOperator().getBzuId()
-                        isSameOp = true
-                    } else if (!ufv.getUfvUnit().getUnitLineOperator().getPrimaryKey().equals(line)) {
-                        isSameOp = false
-                    }
-                }
-            }
-        })
-
-        if (isSameOp) {
-            // this.currentValues.setFieldValue(InventoryCompoundField.UNIT_LINE_OP_GKEY, line)
-            LookupFormWidget billingPartyWidget = (LookupFormWidget) getFormWidget(OrdersField.SRVO_BILLING_PARTY)
-            if (billingPartyWidget != null && lineId != null) {
-                //
-            }
-        }
-
-        super.configure()
-    }*/
 
     @Override
     void setWidgetValue(ICarinaWidget inWidget, Object inValue) {
@@ -263,5 +233,7 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
         if (s == null && s.length() == 0) return s;
         return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
     }
+    private static final Logger logger = Logger.getLogger(customBeanITSShowCreateServiceOrderFormController.class)
+
 
 }
