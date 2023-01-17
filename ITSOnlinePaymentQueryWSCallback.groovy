@@ -120,12 +120,10 @@ class ITSOnlinePaymentQueryWSCallback extends AbstractExtensionPersistenceCallba
                                             .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UNIT_GKEY, unit.getUnitGkey()))
                                             .addDqPredicate(PredicateFactory.isNotNull(ArgoExtractField.BEXU_PAID_THRU_DAY))
                                             .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EVENT_TYPE, ["UNIT_EXTENDED_DWELL"]))
-                                            .addDqOrdering(Ordering.desc(ArgoExtractField.BEXU_PAID_THRU_DAY))
-                                    List<ChargeableUnitEvent> cueList = (List<ChargeableUnitEvent>) HibernateApi.getInstance().findEntitiesByDomainQuery(cueDQ)
-                                    if (!CollectionUtils.isEmpty(cueList)) {
-                                        ChargeableUnitEvent cue = cueList.get(0)
+                                            .addDqOrdering(Ordering.desc(ArgoExtractField.BEXU_PAID_THRU_DAY)).setDqMaxResults(1)
+                                    ChargeableUnitEvent cue = (ChargeableUnitEvent)HibernateApi.getInstance().getUniqueEntityByDomainQuery(cueDQ)
+                                    if (!cue) {
                                         dwellLastPtd = cue.getBexuPaidThruDay()
-
                                     }
                                     //VesselVisitDetails vesselVisitDetails = unitFacilityVisit.getUfvActualIbCv() != null ? VesselVisitDetails.resolveVvdFromCv(unitFacilityVisit.getUfvActualIbCv()) : null
                                     JSONBuilder jsonUnitObject = JSONBuilder.createObject();
