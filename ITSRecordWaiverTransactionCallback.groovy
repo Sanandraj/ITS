@@ -28,14 +28,25 @@ import org.apache.log4j.Logger
 
 /*
 *
-* @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 29/Dec/2022
+* @Author: mailto:kgopinath@weservetech.com, Gopinath Kannappan; Date: 29/12/2022
 *
-*  Requirements :  7-9 Apply Waiver to Multiple Units -- This groovy is used to record the guarantee for multiple units.
+*  Requirements: 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the guarantee for multiple units.
 *
-* @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION .Copy --> Paste this code   (ITSRecordWaiverTransactionCallback.groovy)
+*  @Inclusion Location: Incorporated as a code extension of the type
 *
-* @Set up :- Calling as transaction business function from ITSRecordWaiverSubmitFormCommand and execute it.
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: ITSRecordWaiverTransactionCallback
+*     Code Extension Type: TRANSACTED_BUSINESS_FUNCTION
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
 *
+*	@Setup Calling as transaction business function from ITSRecordWaiverSubmitFormCommand and execute it.
+*
+*
+*  S.No    Modified Date   Modified By     Jira      Description
 *
 */
 
@@ -48,11 +59,13 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
 
         List<Serializable> gkeyList = (List<Serializable>) inputParams.get("GKEYS")
         FieldChanges fieldChanges = (FieldChanges) inputParams.get("FIELD_CHANGES")
-        if(gkeyList == null || (gkeyList != null && gkeyList.isEmpty())) {
-            return ;
+        if (gkeyList == null || (gkeyList != null && gkeyList.isEmpty())) {
+            if (gkeyList) {
+                LOGGER.debug("ITSRecordWaiverTransactionCallback gkeyList size:" + gkeyList)
+            }
+            return;
         }
         for (int i = 0; i < gkeyList.size(); i++) {
-            LOGGER.debug("ITSRecordWaiverTransactionCallback size : " + gkeyList.size())
             FieldChanges newFieldChanges = new FieldChanges(fieldChanges)
             Serializable gkey = gkeyList.get(i)
             UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate(gkey)
@@ -63,9 +76,6 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
                 if (newFieldChanges.hasFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE)) {
                     extractEventType = (Serializable) newFieldChanges.findFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE).getNewValue()
                 }
-
-                LOGGER.debug("ITSRecordWaiverTransactionCallback extractEventType : " + extractEventType)
-
 
 
                 Date startDate = null
@@ -78,19 +88,13 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
                 }
 
                 Date linePaidThruDay = unitFacilityVisit.getUfvLinePaidThruDay()
-                Date calculatedLfd = unitFacilityVisit.getUfvCalculatedLastFreeDayDate("LINE_STORAGE")
                 if (linePaidThruDay != null && startDate <= linePaidThruDay) {
                     throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " A Waiver start date should be ", "after the Line Paid Through Day.")
-                }
-                if (calculatedLfd != null && startDate != null && startDate.before(calculatedLfd)) {
-                    LOGGER.debug("inside calculatedLfd    throw BizViolation  :: " + startDate)
-                    throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " A Waiver start date should be ", "after the line last free day.")
                 }
                 chargeableUnitEvent = extractEventType != null ? ChargeableUnitEvent.hydrate(extractEventType) : null;
                 DomainQuery cueQuery = null;
                 List<ChargeableUnitEvent> chargeableUnitEventList = null;
-                LOGGER.debug("inside calculatedLfd    throw BizViolation  :: " + startDate)
-                if(chargeableUnitEvent != null){
+                if (chargeableUnitEvent != null) {
                     cueQuery = QueryUtils.createDomainQuery("ChargeableUnitEvent")
                     cueQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_UFV_GKEY, gkey))
                     cueQuery.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, chargeableUnitEvent.getEventType()))
@@ -99,11 +103,11 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
 
 
                 chargeableUnitEventList = cueQuery != null ? HibernateApi.getInstance().findEntitiesByDomainQuery(cueQuery) : null;
-                if(chargeableUnitEventList != null){
+                if (chargeableUnitEventList != null) {
                     chargeableUnitEvent = !chargeableUnitEventList.isEmpty() ? chargeableUnitEventList.get(0) : null;
                 }
 
-                if(chargeableUnitEvent != null){
+                if (chargeableUnitEvent != null) {
                     newFieldChanges.setFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE, chargeableUnitEvent.getPrimaryKey())
                     newFieldChanges.setFieldChange(UnitField.UFV_UNIT_ID, unitId)
                     newFieldChanges.setFieldChange(ArgoExtractField.GNTE_GUARANTEE_TYPE, GuaranteeTypeEnum.WAIVER)
@@ -117,14 +121,12 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
                     InventoryFacade inventoryFacade = (InventoryFacade) Roastery.getBean(InventoryFacade.BEAN_ID)
 
                     inventoryFacade.recordWaiverForUfv(req, response)
-                    LOGGER.debug("ITSRecordWaiverTransactionCallback message : " + response.getMessages())
 
                     if (response.getMessages(MessageLevel.SEVERE)) {
                         List<UserMessage> userMessageList = (List<UserMessage>) response.getMessages(MessageLevel.SEVERE)
                         for (UserMessage message : userMessageList) {
                             getMessageCollector().appendMessage(message)
                         }
-                        LOGGER.debug("ITSRecordWaiverTransactionCallback userMessageList : " + userMessageList.toString())
                     }
 
                 }
@@ -132,5 +134,5 @@ class ITSRecordWaiverTransactionCallback extends AbstractExtensionPersistenceCal
             }
         }
     }
-    private static final Logger LOGGER = Logger.getLogger(ITSRecordWaiverTransactionCallback.class)
+    private static Logger LOGGER = Logger.getLogger(ITSRecordWaiverTransactionCallback.class)
 }
