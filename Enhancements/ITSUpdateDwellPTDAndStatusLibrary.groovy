@@ -69,7 +69,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
             }
         }
 
-        LOG.debug("unitDwellEventCUEGkey : " + unitDwellEventCUEGkey);
+
         if (!CollectionUtils.isEmpty(unitDwellEventCUEGkey)) {
             Map<Serializable, Date> dwellPTDMap = createDwellPTDMap(unitDwellEventCUEGkey, invoice);
 
@@ -94,7 +94,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                 dwellPTDMap.put(eventExtractGkey, lastDwellPTD);
             }
         }
-//LOG.debug("dwellPTDMap"+dwellPTDMap.toMapString())
+
         return dwellPTDMap;
     }
 
@@ -108,7 +108,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                 extractSession = ExtractHibernateApi.getInstance().beginExtractSession();
                 LOG.debug("begin session")
                 for (Serializable bexuGkey : examsCueGkeySet) {
-                    LOG.debug("bexuGkey Lib" + examsCueGkeySet)
+
                     vacisOrTailGateExamCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
 
                     if (vacisOrTailGateExamCUE != null && IServiceExtract.INVOICED.equals(vacisOrTailGateExamCUE.getBexuStatus())) {
@@ -118,7 +118,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
                 if (extractSession != null) {
                     extractSession.getTransaction().commit();
-                    //  ExtractHibernateApi.getInstance().endExtractSession(extractSession);
+
                 }
             } catch (Exception ex) {
                 LOG.debug("Exception" + ex)
@@ -145,7 +145,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                 extractSession = ExtractHibernateApi.getInstance().beginExtractSession();
                 LOG.debug("begin session")
                 for (Serializable bexuGkey : bexuGkeys) {
-                    LOG.debug("bexuGkey Lib" + bexuGkey)
+
                     dwellCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
 
                     if (dwellCUE != null) {
@@ -165,7 +165,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
                 if (extractSession != null) {
                     extractSession.getTransaction().commit();
-                    //  ExtractHibernateApi.getInstance().endExtractSession(extractSession);
+
                 }
             } catch (Exception ex) {
                 LOG.debug("Exception" + ex)
@@ -225,7 +225,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
         DomainQuery invoiceDQ = QueryUtils.createDomainQuery(BillingEntity.INVOICE)
                 .addDqPredicate(disjunction);
-        LOG.debug("invoiceDQ: " + invoiceDQ);
+
 
         DomainQuery invoiceItemDQ = QueryUtils.createDomainQuery(BillingEntity.INVOICE_ITEM)
                 .addDqPredicate(PredicateFactory.eq(BillingField.ITEM_SERVICE_EXTRACT_GKEY, inEventExtractGkey))
@@ -233,7 +233,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                 .addDqPredicate(PredicateFactory.subQueryIn(invoiceDQ, BillingField.ITEM_INVOICE))
                 .addDqOrdering(Ordering.desc(BillingField.ITEM_TO_DATE));
 
-        LOG.debug("invoiceItemDQ: " + invoiceItemDQ);
+
         Serializable[] invoiceItemGkeys = (Serializable[]) Roastery.getHibernateApi().findPrimaryKeysByDomainQuery(invoiceItemDQ);
 
         if (invoiceItemGkeys.length > 0) {
@@ -245,7 +245,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
     }
 
 
-    private static Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(ITSUpdateDwellPTDAndStatusLibrary.class)
     private static final String dwell_event = "UNIT_EXTENDED_DWELL"
     private static final String tailGateExam = "TAILGATE_EXAM_REQUIRED"
     private static final String vacisInspectionRequired = "VACIS_INSPECTION_REQUIRED"
