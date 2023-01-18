@@ -76,8 +76,8 @@
       <subMenu userActionId="INV_PARENT_MENU_TRANSACTIONS" label="INV_PARENT_MENU_TRANSACTIONS">
         <!--transactions-->
         <menuItem userActionId="INV_RECORD_EVENT_ON_UNIT" variformId="FORM_RECORD_UNIT_EVENT" label="RECORD_SERVICE_EVENT" modal="true" enable="oneOrMoreSources" />
-        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneSource" />
-        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneOrMoreSources" />
         <menuItem userActionId="INV_CREATE_SERVICE_ORDER_FOR_UNITS" variformId="INV127" label="CREATE_SERVICE_ORDER" modal="true" enable="oneOrMoreSources" />
         <menuItem userActionId="INV_STRIP_UNIT" variformId="INV060" label="UNIT_STRIP" modal="true" enable="oneSource" />
         <menuItem userActionId="INV_STUFF_UNIT" variformId="INV061" label="UNIT_STUFF" modal="true" enable="oneSource" />
@@ -153,8 +153,8 @@
       <subMenu userActionId="INV_PARENT_MENU_TRANSACTIONS" label="INV_PARENT_MENU_TRANSACTIONS">
         <!--transactions-->
         <menuItem userActionId="INV_RECORD_EVENT_ON_UNIT" variformId="FORM_RECORD_UNIT_EVENT" label="RECORD_SERVICE_EVENT" modal="true" enable="oneOrMoreSources" />
-        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneSource" />
-        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneSource" />
+        <menuItem userActionId="INV_RECORD_GUARANTEE" variformId="INV_FORM_RECORD_GUARANTEE" label="RECORD_GUARANTEE" modal="true" enable="oneOrMoreSources" />
+        <menuItem userActionId="INV_RECORD_WAIVER" variformId="INV_FORM_RECORD_WAIVER" label="RECORD_WAIVER" modal="true" enable="oneOrMoreSources" />
         <menuItem userActionId="INV_CREATE_SERVICE_ORDER_FOR_UNITS" variformId="INV127" label="CREATE_SERVICE_ORDER" modal="true" enable="oneOrMoreSources" />
         <menuItem userActionId="INV_STRIP_UNIT" variformId="INV060" label="UNIT_STRIP" modal="true" enable="oneSource" />
         <menuItem userActionId="INV_STUFF_UNIT" variformId="INV061" label="UNIT_STUFF" modal="true" enable="oneSource" />
@@ -189,7 +189,7 @@
         <menuItem userActionId="INV_UNDO_LOAD" label="UNDO_LOAD" commandRefId="undoLoadedUfvTableViewCommand" enable="oneSource" />
         <menuItem userActionId="INV_UNDO_DISCH" label="UNDO_DISCH" commandRefId="undoDischargeTableViewCommand" modal="true" enable="oneSource" />
       </subMenu>
-      <menuItem userActionId="INV_INSPECT_UFV" label="INSPECT_UNIT" variformId="INSPECTOR_UNIT" destination="dialog" modal="false" enable="oneSource" />
+      <menuItem userActionId="INV_INSPECT_UFV" label="INSPECT_UNIT" variformId="INSPECTOR_UNIT" destination="dialog" enable="oneSource" />
       <menuItem userActionId="INV_INITIALIZE_UFV_MOVE_COUNT" commandRefId="initializeUfvMoveCountCommand" label="INITIALIZE_UFV_MOVE_COUNT" modal="true" enable="oneOrMoreSources" />
       <menuItem userActionId="INV_UNIT_RECAP_ALL_ACTION" label="Recap All" variformId="FORM_RECAP_AXES_SELECTION" enable="zeroOrMoreSources" destination="overlapped" />
       <menuItem userActionId="INV_UNIT_RECAP_SELECT_ACTION" label="Recap Selected" variformId="FORM_RECAP_AXES_SELECTION" enable="oneOrMoreSources" destination="overlapped" />
@@ -198,9 +198,11 @@
       <menuItem userActionId="CUSTOM_INV016" label="Routing" variformId="CUSTOM_INV016" destination="overlapped" enable="oneSource" />
       <menuItem userActionId="CUSTOM_INV013" label="ReeferReq" variformId="CUSTOM_INV013" destination="overlapped" enable="oneSource" />
       <menuItem userActionId="CUSTOM_INV019" label="Physical Status" variformId="CUSTOM_INV019" destination="overlapped" enable="oneOrMoreSources" />
-      <menuItem userActionId="CUSTOM_INV_UNDO_RAMP" label="Undo Ramp" codeExtensionId="ITSUndoRampMoveTableViewCommand" destination="none" enable="oneSource" />
-      <menuItem userActionId="CUSTOM_INV_UNDO_DERAMP" label="Undo DeRamp" codeExtensionId="ITSUndoDeRampMoveTableViewCommand" destination="none" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_INV_UNDO_RAMP" label="Undo Ramp (Custom)" codeExtensionId="ITSUndoRampMoveTableViewCommand" destination="none" enable="oneSource" />
+      <menuItem userActionId="CUSTOM_INV_UNDO_DERAMP" label="Undo DeRamp (Custom)" codeExtensionId="ITSUndoDeRampMoveTableViewCommand" destination="none" enable="oneSource" />
       <menuItem userActionId="CUSTOM_LFD_MASS_UPDATE" label="LFD Mass Update" variformId="CUSTOM_INV075" destination="dialog" enable="oneOrMoreSources" />
+      <menuItem userActionId="INV_UNDO_RAMP" label="UNDO_RAMP" commandRefId="undoRampedUfvTableViewCommand" modal="true" enable="oneOrMoreSources" />
+      <menuItem userActionId="INV_UNDO_DERAMP" label="UNDO_DERAMP" commandRefId="undoDeRampedTableViewCommand" modal="true" enable="oneOrMoreSources" />
     </menu>
     <column fieldId="ufvTimeOfLastMove" display="visible" complexQuery="include" />
     <!--2010-06-09 psethuraman ARGO-25957: grouping at column level, to avoid inconsistency-->
@@ -299,6 +301,7 @@
     <!--2006-03-13 lbarman v1.0.9.1 ARGO-3560 add commodity to table choice-->
     <column fieldId="ufvUnit.unitGoods.gdsCommodity" display="none" complexQuery="include" />
     <column fieldId="ufvUnit.unitGoods.gdsCommodity.cmdyId" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
+    <column fieldId="ufvUnit.unitGoods.gdsCommodity.cmdyDescription" display="viewable" complexQuery="omit" groupLabel="4-Contents" />
     <column fieldId="ufvUnit.unitIsOog" display="viewable" complexQuery="include" recapable="true" />
     <column fieldId="ufvUnit.unitLineOperator" display="none" complexQuery="include" />
     <!--2006-05-11 eyu v1.0.11.10+ ARGO-4101  Suggested better default columns -->
