@@ -29,21 +29,30 @@ import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /*
+* @Author: mailto:kgopinath@weservetech.com, Gopinath ; Date: 29/12/2022
 *
-* @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 29/Dec/2022
+*  Requirements: 7-9 Apply Waiver to Multiple Units -- This groovy is used to record the guarantee for multiple units.
 *
-*  Requirements :  7-9 Apply Waiver to Multiple Units -- This groovy is used to record the guarantee for multiple units.
+*  @Inclusion Location: Incorporated as a code extension of the type
 *
-* @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION .Copy --> Paste this code   (ITSRecordGuaranteeTransactionCallback.groovy)
+*  Load Code Extension to N4:
+*  1. Go to Administration --> System --> Code Extensions
+*  2. Click Add (+)
+*  3. Enter the values as below:
+*     Code Extension Name: ITSRecordGuaranteeTransactionCallback
+*     Code Extension Type: TRANSACTED_BUSINESS_FUNCTION
+*     Groovy Code: Copy and paste the contents of groovy code.
+*  4. Click Save button
 *
-* @Set up :- Calling as transaction business function from ITSRecordGuaranteeSubmitFormCommand and execute it.
+*	@Setup Calling as transaction business function from ITSRecordGuaranteeSubmitFormCommand and execute it.
 *
+*
+*  S.No    Modified Date   Modified By     Jira      Description
 *
 */
 
 
 class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistenceCallback {
-    private static final Logger LOGGER = Logger.getLogger(ITSRecordGuaranteeTransactionCallback.class)
 
     @Override
     void execute(Map inputParams, Map inOutResults) {
@@ -54,7 +63,6 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
         FieldChanges fieldChanges = (FieldChanges) inputParams.get("FIELD_CHANGES")
 
         FieldChanges newFieldChanges = new FieldChanges(fieldChanges)
-        LOGGER.debug("newFieldChanges  :: " + newFieldChanges)
 
         Serializable extractEventType = null
         if (newFieldChanges.hasFieldChange(InventoryBizMetafield.EXTRACT_EVENT_TYPE)) {
@@ -71,23 +79,17 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
         }
 
         for (Serializable gkey : gkeyList) {
-            LOGGER.debug("gkey  :: " + gkey)
             UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate(gkey)
             ChargeableUnitEvent chargeableUnitEvent
             if (unitFacilityVisit != null) {
                 String unitId = unitFacilityVisit?.getUfvUnit()?.getUnitId()
-                LOGGER.debug("extractEventType  :: " + extractEventType)
                 chargeableUnitEvent = ChargeableUnitEvent.hydrate(extractEventType)
-                LOGGER.debug("chargeableUnitEvent  :: " + chargeableUnitEvent)
                 Date linePaidThruDay = unitFacilityVisit.getUfvLinePaidThruDay()
                 Date calculatedLfd = unitFacilityVisit.getUfvCalculatedLastFreeDayDate("LINE_STORAGE")
-                LOGGER.debug("calculatedLfd    :: " + calculatedLfd)
                 if (linePaidThruDay != null && startDate != null && startDate <= linePaidThruDay) {
-                    LOGGER.debug("line storage paid throughDay    :: " + linePaidThruDay)
                     throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " A Guarantee start date should be ", "after the Line Paid Through Day.")
                 }
                 if (calculatedLfd != null && startDate != null && startDate.before(calculatedLfd)) {
-                    LOGGER.debug("inside calculatedLfd    throw BizViolation  :: " + startDate)
                     throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " A Guarantee start date should be ", "after the line last free day.")
                 }
                 DomainQuery dq = QueryUtils.createDomainQuery("Guarantee")
@@ -125,12 +127,9 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
                         .addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_EVENT_TYPE, chargeableUnitEvent?.getBexuEventType()))
                         .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, "PARTIAL", "QUEUED"))
                         .addDqOrdering(Ordering.desc(ArgoExtractField.BEXU_GKEY))
-                LOGGER.debug("chargeableUnitEvent    :: " + chargeableUnitEvent)
 
                 LOGGER.debug("event type    :: " + chargeableUnitEvent?.getBexuEventType())
-                LOGGER.debug("cueQuery    :: " + cueQuery)
                 List<ChargeableUnitEvent> chargeableUnitEventList = HibernateApi.getInstance().findEntitiesByDomainQuery(cueQuery)
-                LOGGER.debug("chargeableUnitEventList    :: " + chargeableUnitEventList)
                 if (chargeableUnitEventList != null && !chargeableUnitEventList.isEmpty()) {
                     chargeableUnitEvent = chargeableUnitEventList.get(0)
                     LOGGER.debug("chargeableUnitEvent    :: " + chargeableUnitEvent.getBexuEventType())
@@ -171,4 +170,6 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
         cal.set(Calendar.MILLISECOND, 00)
         return cal.getTime()
     }
+    private static Logger LOGGER = Logger.getLogger(ITSRecordGuaranteeTransactionCallback.class)
+
 }
