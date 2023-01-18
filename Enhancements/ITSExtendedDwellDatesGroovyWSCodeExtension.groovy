@@ -1,9 +1,9 @@
-package ITS.Enhancements
-
+package ITS
 
 /*
- * Copyright (c) 2019. Code Written by WeserveTech LLC. All Rights Reserved.
- */
+ * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
+ *
+*/
 
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.BillingExtractEntityEnum
@@ -29,16 +29,26 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 
 /**
+ * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 28/12/2022
  *
- <groovy class-name="ITSExtendedDwellDatesGroovyWSCodeExtension" class-location="code-extension">
- <parameters>
- <parameter id="PTD" value="28-12-2022T12:00:00 +0530"/>
- <parameter id="EXTRACT_GKEY" value="540196"/>
- </parameters>
- </groovy>
+ *  Requirements: This groovy sends back the ufvGkey (if the unit has active ufv),
+ *                else sends back return value as 'FAIL'
  *
- * This groovy sends back the ufvGkey (if the unit has active ufv),
- * else sends back return value as 'FAIL'
+ * @Inclusion Location: Incorporated as a code extension of the type
+ *
+ *  Load Code Extension to N4:
+ *  1. Go to Administration --> System --> Code Extensions
+ *  2. Click Add (+)
+ *  3. Enter the values as below:
+ *     Code Extension Name: ITSExtendedDwellDatesGroovyWSCodeExtension
+ *     Code Extension Type: GROOVY_WS_CODE_EXTENSION
+ *     Groovy Code: Copy and paste the contents of groovy code.
+ *  4. Click Save button
+ *
+ *
+ *
+ *  S.No    Modified Date   Modified By     Jira      Description
+ *
  */
 
 @SuppressWarnings(["GroovyUnusedAssignment", "unused"])
@@ -50,12 +60,11 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
     public String execute(Map<String, Object> inParams) {
         LOG.setLevel(Level.DEBUG)
         LOG.debug("ITSExtendedDwellDatesGroovyWSCodeExtension begins")
-        LOG.debug( "inParams" + inParams.toString())
         if (null == inParams) {
             LOG.debug("Input parameters are Null, cannot process further. Exiting with status FAIL")
             return FAIL
         } else if (null != inParams && inParams.containsKey(PTD) && inParams.containsKey(EXTRACT_GKEY)) {
-            String finalProposedPtdStr =inParams.get(PTD);
+            String finalProposedPtdStr = inParams.get(PTD);
             String extractGkeyStr = inParams.get(EXTRACT_GKEY)
             if (StringUtils.isEmpty(finalProposedPtdStr) || StringUtils.isEmpty(extractGkeyStr)) {
                 LOG.debug("Input parameters don't have value for property PTD, cannot process further. Exiting with status FAIL")
@@ -65,19 +74,15 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
             Long extractGkey = Long.valueOf(extractGkeyStr)
             Date finalProposedPtd = parseDate(XML_DATE_TIME_ZONE_FORMAT, finalProposedPtdStr)
 
-            ChargeableUnitEvent cue = ChargeableUnitEvent.hydrate((Serializable)extractGkey)
+            ChargeableUnitEvent cue = ChargeableUnitEvent.hydrate((Serializable) extractGkey)
 
-            LOG.debug("finalProposedPtd"+finalProposedPtd)
             Calendar calendar = Calendar.getInstance(TimeZone.getDefault())
             Map<Date, String> calendarEventsMap = new HashMap<Date, String>()
             Date startDate = cue.getBexuFlexDate01()
-            /*if(cue.getBexuPaidThruDay() != null){
-                startDate = getPreviousPTDPlusOne(cue.getBexuPaidThruDay())
-            }*/
             calendarEventsMap = getCalendarGratisDates(startDate, finalProposedPtd)
 
-            Set<String> guaranteeSet = Guarantee.getListOfGuaranteesOnly(BillingExtractEntityEnum.INV, (Serializable)extractGkey)
-            Set<String> waiverSet = Guarantee.getListOfWaiversOnly(BillingExtractEntityEnum.INV, (Serializable)extractGkey)
+            Set<String> guaranteeSet = Guarantee.getListOfGuaranteesOnly(BillingExtractEntityEnum.INV, (Serializable) extractGkey)
+            Set<String> waiverSet = Guarantee.getListOfWaiversOnly(BillingExtractEntityEnum.INV, (Serializable) extractGkey)
             if (!CollectionUtils.isEmpty(waiverSet)) {
                 for (String waiverId : waiverSet) {
                     if (waiverId) {
@@ -95,13 +100,13 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
                 }
             }
 
-            LOG.debug("Success calendarEventsMap.toString()"+calendarEventsMap.toString())
             String mapStr = calendarEventsMap.toString()
 
             return calendarEventsMap.toMapString()
 
         }
     }
+
     Date getPreviousPTDPlusOne(Date previousPTD) {
         TimeZone tz = (ContextHelper.getThreadUserTimezone() == null) ? TimeZone.getDefault() : ContextHelper.getThreadUserTimezone()
         Calendar calendar = Calendar.getInstance(tz);
@@ -109,6 +114,7 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
         calendar.add(Calendar.DAY_OF_MONTH, 1)
         return calendar.getTime()
     }
+
     private Map<Date, String> addDatesToCalendar(Guarantee guarantee, Map<Date, String> calendarEventMap) {
         TimeZone tz = (ContextHelper.getThreadUserTimezone() == null) ? TimeZone.getDefault() : ContextHelper.getThreadUserTimezone()
         Calendar guaranteeStartDate = Calendar.getInstance(tz);
@@ -132,6 +138,7 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
 
 
     }
+
     @Nullable
     private Date parseDate(DateFormat targetDateFormat, String ptdStr) {
         if (ptdStr == null || ptdStr.isEmpty()) {
@@ -157,7 +164,6 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
         calEventTypes[0] = ArgoCalendarEventType.findByName("GRATIS_DAY");
         List<ArgoCalendarEvent> gratisEvents = ArgoCalendarUtil.getEvents(calEventTypes, argoCalndr);
         int gratisDays = 0;
-        //inEndDate = adjustWithCalendarHolidays(gratisEvents, calEventTypes, inStartDate, inEndDate, inForStr);
         for (ArgoCalendarEvent calEvent : gratisEvents) {
             Date eventStartDate = calEvent.getArgocalevtOccurrDateStart();
             Calendar instance = Calendar.getInstance(tz);
@@ -204,10 +210,9 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
             }
         }
 
-        LOG.debug("getCalendarGratisDates: Total Gratis days = " + gratisDays);
         return gratisDates;
     }
-    private static final Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(ITSExtendedDwellDatesGroovyWSCodeExtension.class)
     DateFormat XML_DATE_TIME_ZONE_FORMAT = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss Z");
     DateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy")
 }
