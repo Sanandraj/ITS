@@ -30,11 +30,10 @@ import java.text.SimpleDateFormat
 /**
  * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 28/12/2022
  *
- *  Requirements:  IP-14,3-6 Extended Dwell Fee.  Details in section 3.6.
- *                 This groovy sends back the ufvGkey (if the unit has active ufv),
- *                 else sends back return value as 'FAIL'
+ *  Requirements: This groovy sends back the ufvGkey (if the unit has active ufv),
+ *                else sends back return value as 'FAIL'
  *
- * @Inclusion Location: Incorporated as a code extension of the type GROOVY_WS_CODE_EXTENSION
+ * @Inclusion Location: Incorporated as a code extension of the type
  *
  *  Load Code Extension to N4:
  *  1. Go to Administration --> System --> Code Extensions
@@ -44,6 +43,7 @@ import java.text.SimpleDateFormat
  *     Code Extension Type: GROOVY_WS_CODE_EXTENSION
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
+ *
  *
  *
  *  S.No    Modified Date   Modified By     Jira      Description
