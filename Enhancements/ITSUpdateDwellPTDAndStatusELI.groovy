@@ -48,7 +48,6 @@ class ITSUpdateDwellPTDAndStatusELI extends AbstractEntityLifecycleInterceptor {
             e.printStackTrace()
             LOG.debug("ITSUpdateDwellPTDAndStatusELI on create Exception", e)
         }
-        LOG.debug("inOriginalFieldChanges on create" + inOriginalFieldChanges)
 
     }
 
@@ -65,7 +64,6 @@ class ITSUpdateDwellPTDAndStatusELI extends AbstractEntityLifecycleInterceptor {
             e.printStackTrace()
             LOG.error("ITSUpdateDwellPTDAndStatusELI on update Exception", e)
         }
-        LOG.debug("inOriginalFieldChanges on Update " + inOriginalFieldChanges)
 
 
     }
@@ -75,13 +73,11 @@ class ITSUpdateDwellPTDAndStatusELI extends AbstractEntityLifecycleInterceptor {
         Invoice invoice = (Invoice) inEntity._entity;
         if (inOriginalFieldChanges.hasFieldChange(BillingField.INVOICE_STATUS)) {
             InvoiceStatusEnum invStatus = (InvoiceStatusEnum) inEntity.getField(BillingField.INVOICE_STATUS)
-            LOG.debug("invStatus" + invStatus)
             InvoiceStatusEnum invoiceStatusEnumNew = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getNewValue()
             InvoiceStatusEnum invoiceStatusEnumOld = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getPriorValue()
-            LOG.debug("invoiceStatusEnumNew" + invoiceStatusEnumNew)
-            LOG.debug("invoiceStatusEnumOld" + invoiceStatusEnumOld)
+
             if (InvoiceStatusEnum.FINAL.equals(invStatus)) {
-                def library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
+                Object library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
                 LOG.debug("calling ITSUpdateDwellPTDAndStatusLibrary on finalize")
                 library.updateExtendedDwellStatusAndPTD(inEntity, isDelete)
             }
@@ -90,10 +86,10 @@ class ITSUpdateDwellPTDAndStatusELI extends AbstractEntityLifecycleInterceptor {
 
     @Override
     public void validateDelete(EEntityView inEntity) {
-        def library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
+        Object library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
         library.updateExtendedDwellStatusAndPTD(inEntity, Boolean.TRUE)
     }
 
-    private static Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(ITSUpdateDwellPTDAndStatusELI.class)
 
 }
