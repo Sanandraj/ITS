@@ -49,6 +49,7 @@ class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor {
                     if (unit != null) {
                         if (TranStatusEnum.OK.equals(tran?.getTranStatus())) {
                             tran.setTranStatus(TranStatusEnum.COMPLETE)
+                            tran.setTranNextStageId(null)
                             unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"), "YES")
                         } else {
                             unit.setFieldValue(MetafieldIdFactory.valueOf("unitFlexString04"), "NO")
