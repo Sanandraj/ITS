@@ -43,7 +43,8 @@ import java.time.ZoneId
 /**
  * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 16/SEP/2022
  *
- * Requirements :IP-407, 7-10 Waiver or Guarantee Extended Dwell Fee
+ * Requirements : IP-407,7-10 Requirements for Waiver or Guarantee Extended Dwell Fee.
+ *                IP-14,3-6 Extended Dwell Fee.  Details in section 3.6.
  *
  * @Inclusion Location : Incorporated as a code extension of the type TARIFF_RATE_CALCULATOR
  *
@@ -191,7 +192,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
             tariffRateTier = tariffRateTiersList.get(i)
             Double tierMinQuantity = tariffRateTier.getTierMinQuantity();//   For Tier1 --> 1
             Double tierMaxQuantity = tariffRateTier.findTierMaxQuantity();
-// For Tier1 --> 6; N4 will give max Qty of that tier + 1
+            // For Tier1 --> 6; N4 will give max Qty of that tier + 1
 
             Double presentTierMaxQty = tierMaxQuantity - 1;                // For Tier1 --> 5
             Double presentTierActualQty = 0.0

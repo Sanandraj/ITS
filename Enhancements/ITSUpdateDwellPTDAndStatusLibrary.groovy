@@ -30,7 +30,8 @@ import org.hibernate.classic.Session
 /**
  * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 12/DEC/2022
  *
- * Requirements :IP-407, 7-10 Waiver or Guarantee Extended Dwell Fee
+ * Requirements : IP-407,7-10 Requirements for Waiver or Guarantee Extended Dwell Fee.
+ *                IP-14,3-6 Extended Dwell Fee.  Details in section 3.6.
  *
  * @Inclusion Location : Incorporated as a code extension of the type LIBRARY
  *
