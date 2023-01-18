@@ -99,7 +99,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
 
             HibernateApi hibernateApi = Roastery.getHibernateApi();
             hibernateApi.save(invoiceItem)
-            //hibernateApi.update(invoiceItem);
+
             hibernateApi.delete(invoiceItem);
         }
     }
@@ -412,7 +412,6 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
     @Nullable
     private String getcalEvents(@NotNull Date ptd, @NotNull Long extractGkey) {
         String requestString = generateWSRequest(ptd, extractGkey);
-        LOG.debug("XML request to N4 from tariffRateCalculator is" + requestString)
         String webServiceResponseString = invokeWebServiceRequest(requestString);
         if (null != webServiceResponseString) {
             String responseString = parseWebServiceResponse(webServiceResponseString);
@@ -432,7 +431,6 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
             Element rootElement = wsResponseDoc.getRootElement();
             String status = wsResponseDoc.getRootElement().getAttribute("status").getValue();
             if (status && status.equalsIgnoreCase("3")) {
-                LOG.error("Webservice invocation failed, the response is " + inWebServiceResponse)
                 return null;
 
             }
@@ -486,7 +484,6 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
             return null
         }
 
-        LOG.debug("WebService Response received :: " + webServiceResponse);
         return webServiceResponse;
     }
 
@@ -599,7 +596,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
         calendar2.set(Calendar.MILLISECOND, 999);
         return Math.ceil((double) (calendar2.getTimeInMillis() - calendar.getTimeInMillis()) / MILLIS_PER_DAY);
     }
-    private static Logger LOG = Logger.getLogger(this.class)
+    private static Logger LOG = Logger.getLogger(ITSExtendedDwellCalculator.class)
     private static final String dwell_event = "UNIT_EXTENDED_DWELL"
     public static final String scopeCoOrdinatesString = 'ITS/USLGB/PIERG/PIERG'
     private ServiceLocator _externalServiceLocator = new ServiceLocator();
