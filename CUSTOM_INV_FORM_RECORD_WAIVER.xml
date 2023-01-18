@@ -20,9 +20,11 @@
     <actionsAllowed>
       <actionMode action="update" mode="editable" pageId="" />
     </actionsAllowed>
-  <controller ref="customBeanITSRecordWaiverFormController" />
+ <controller ref="customBeanITSRecordWaiverFormController" />
 <formSubmissionCodeExtension name="ITSRecordWaiverSubmitFormCommand"/>
-   <!--<submitFormCommand ref="recordWaiverFormCommand" />-->
+  <!--  <controller ref="recordWaiverFormController" />
+    <submitFormCommand ref="recordWaiverFormCommand" />
+-->
     <borderLayout>
       <northPanel>
         <grid name="SELECT_EXTRACT_EVENT_TITLE" title="SELECT_EXTRACT_EVENT_TITLE">
