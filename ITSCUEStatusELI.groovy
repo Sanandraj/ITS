@@ -125,6 +125,6 @@ class ITSCUEStatusELI extends AbstractEntityLifecycleInterceptor {
     private static final String ITS = "ITS";
     private static final String POWER_CONTAINERS = "POWER_CONTAINERS"
     private static final String NON_BILLABLE = "NON_BILLABLE"
-    private static final Logger LOGGER = Logger.getLogger(this.class)
+    private static Logger LOGGER = Logger.getLogger(ITSCUEStatusELI.class)
  
 }
