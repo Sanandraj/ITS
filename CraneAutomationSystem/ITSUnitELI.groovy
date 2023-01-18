@@ -30,7 +30,9 @@ import java.time.*
 /**
  * @Author: mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/05/2022
  *
- *  Requirements: For CAS - OnBoardUnitUpdate
+ * Requirements : IP-407,7-10 Requirements for Waiver or Guarantee Extended Dwell Fee.
+ *                IP-14,3-6 Extended Dwell Fee.  Details in section 3.6.
+ *                For CAS - OnBoardUnitUpdate.
  *
  * @Inclusion Location: Incorporated as a code extension of the type
  *
@@ -141,6 +143,6 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
     private final String T__ON_BOARD_UNIT_UPDATE = "OnboardUnitUpdate";
 
     private ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
-       private static Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
+    private static Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
 
 }

@@ -26,7 +26,9 @@ import java.time.ZoneId
 /**
  * @Author: mailto:annalakshmig@weservetech.com, AnnaLakshmi G; Date: 16/SEP/2022
  *
- * Requirements : Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
+ * Requirements : IP-407,7-10 Requirements for Waiver or Guarantee Extended Dwell Fee.
+ *                IP-14,3-6 Extended Dwell Fee.  Details in section 3.6
+ *                Prod code will update the status as invoiced for UNIT_EXTENDED_DWELL at the time of finalizing.
  *                This groovy will check the out time of the unit and then update the status.
  *
  * @Inclusion Location : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
