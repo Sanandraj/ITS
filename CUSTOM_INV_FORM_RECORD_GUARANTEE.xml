@@ -20,9 +20,12 @@
     <actionsAllowed>
       <actionMode action="update" mode="editable" pageId="" />
     </actionsAllowed>
-    <controller ref="customBeanITSRecordGuaranteeFormController" />
+ <controller ref="customBeanITSRecordGuaranteeFormController" />
 <formSubmissionCodeExtension name="ITSRecordGuaranteeSubmitFormCommand"/>
-  <!--  <submitFormCommand ref="recordGuaranteeFormCommand" /> -->
+   <!--<controller ref="recordGuaranteeFormController" />
+    <submitFormCommand ref="recordGuaranteeFormCommand" />
+-->
+
     <!--<item fieldId="ufvUnit.unitId"/>-->
     <borderLayout>
       <northPanel>
