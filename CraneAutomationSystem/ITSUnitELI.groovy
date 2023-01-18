@@ -28,24 +28,23 @@ import java.text.SimpleDateFormat
 import java.time.*
 
 /**
- * @Author: mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/MAY/2022
+ * @Author: mailto:sramasamy@weservetech.com, Ramasamy Sathappan; Date: 13/05/2022
  *
- * Requirements :For CAS - OnBoardUnitUpdate
+ *  Requirements: For CAS - OnBoardUnitUpdate
  *
- * @Inclusion Location    : Incorporated as a code extension of the type ENTITY_LIFECYCLE_INTERCEPTION
+ * @Inclusion Location: Incorporated as a code extension of the type
  *
  *  Load Code Extension to N4:
  *  1. Go to Administration --> System --> Code Extensions
  *  2. Click Add (+)
  *  3. Enter the values as below:
- *     Code Extension Name:ITSUnitELI
- *     Code Extension Type:ENTITY_LIFECYCLE_INTERCEPTION
+ *     Code Extension Name: ITSUnitELI
+ *     Code Extension Type: ENTITY_LIFECYCLE_INTERCEPTION
  *     Groovy Code: Copy and paste the contents of groovy code.
  *  4. Click Save button
  *
- *
- *  S.No    Modified Date        Modified By                                              Jira      Description
- *  1       25/OCT/2022          mailto:annalakshmig@weservetech.com AnnaLakshmi G        IP-14     update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
+ *  S.No      Modified Date        Modified By                                              Jira      Description
+ *   1        25/10/2022          AnnaLakshmi G, mailto:annalakshmig@weservetech.com       IP-14     Update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
  */
 
 class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
@@ -62,7 +61,6 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
             unit = unitFacilityVisit.getUfvUnit();
         }
 
-        LOGGER.debug("ITSUnitELI inOriginalFieldChanges" + inOriginalFieldChanges)
         if (unit != null && unit.getUnitEquipment() != null && EquipClassEnum.CONTAINER.equals(unit.getUnitEquipment().getEqClass()) && inOriginalFieldChanges != null && inOriginalFieldChanges.hasFieldChange(InvField.UFV_LAST_KNOWN_POSITION)) {
             LocPosition locPositionOld = (LocPosition) inOriginalFieldChanges.findFieldChange(InvField.UFV_LAST_KNOWN_POSITION).getPriorValue()
             LocPosition locPositionNew = (LocPosition) inOriginalFieldChanges.findFieldChange(InvField.UFV_LAST_KNOWN_POSITION).getNewValue()
@@ -93,7 +91,6 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
         // to update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
         if (unitFacilityVisit != null && inOriginalFieldChanges != null && (inOriginalFieldChanges.hasFieldChange(InvField.UFV_FLEX_DATE01) || inOriginalFieldChanges.hasFieldChange(InvField.UFV_LINE_LAST_FREE_DAY))) {
             Date date = null
-            // Date firstDeliverableDate = (String) inOriginalFieldChanges.findFieldChange(InvField.UFV_FLEX_DATE01).getNewValue()
             String lineLFD = unitFacilityVisit.getUfvCalculatedLineStorageLastFreeDay()
             if (!StringUtils.isEmpty(lineLFD)) {
                 date = getLfdDate(lineLFD)
@@ -145,6 +142,6 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
 
     private ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
     private static final String LIBRARY = "ITSAdaptor";
-    private static  Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
+    private static Logger LOGGER = Logger.getLogger(ITSUnitELI.class);
 
 }
