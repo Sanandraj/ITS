@@ -60,6 +60,7 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
     void execute(TransactionAndVisitHolder inWfCtx) {
         TruckVisitDetails truckVisitDetails = inWfCtx.getTv()
         if (truckVisitDetails != null) {
+
             DomainQuery domainQuery = QueryUtils.createDomainQuery(RoadEntity.TRUCK_VISIT_DETAILS)
                     .addDqPredicate(PredicateFactory.eq(RoadField.TVDTLS_TRUCK_LICENSE_NBR, truckVisitDetails.getTruckLicenseNbr()))
                     .addDqPredicate(PredicateFactory.in(RoadField.TVDTLS_STATUS, [TranStatusEnum.OK, TranStatusEnum.TROUBLE]))
@@ -70,10 +71,11 @@ class ITSResolveOpenVisitForTruckGateTaskInterceptor extends AbstractGateTaskInt
                     for (TruckVisitDetails tvd : outputList as List<TruckVisitDetails>) {
                         Date date = tvd.getTvdtlsCreated();
                         long diff = ArgoUtils.timeNow().getTime() - date.getTime()
-                        long duration = TimeUnit.MILLISECONDS.toMinutes(diff);
 
+                        long duration = TimeUnit.MILLISECONDS.toMinutes(diff);
                         if (duration > settingValue.toInteger()) {
-                            Set<TruckTransaction> transactions = tvd.getActiveTransactions()
+                            Set<TruckTransaction> transactions = tvd.getTvdtlsTruckTrans()
+
                             for (TruckTransaction tran : transactions) {
                                 if (tran != null) {
                                     boolean isReceival = tran.isReceival();
