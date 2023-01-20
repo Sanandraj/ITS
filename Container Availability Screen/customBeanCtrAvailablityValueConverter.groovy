@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable
 
 
 /**
- * @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>, 03/11/2022
+ * @Author: mailto:mharikumar@weservetech.com, Harikumar M; Date: 03/11/2022
  *
  *  Requirements: To update the container availability details based on the impediments fees/storage charges owing for the units.
  *
@@ -64,6 +64,7 @@ import org.jetbrains.annotations.Nullable
  *  4. Click Save button
  *
  * @SetUp Value convertor configured in CUSTOM_TABLE_VIEW_AVAILABILITY
+ *
  *  S.No    Modified Date   Modified By     Jira      Description
  *
  */
