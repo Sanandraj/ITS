@@ -2,7 +2,7 @@
  * Copyright (c) 2022 WeServe LLC. All Rights Reserved.
  *
 */
-package ITS
+
 
 import com.navis.argo.ArgoExtractEntity
 import com.navis.argo.ArgoExtractField
@@ -141,9 +141,9 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
                 } catch (Exception inUfvEx) {
                     continue
                 }
-                LOGGER.debug(" UFV founf for Gkey : " + ufv)
+
                 if (ufv == null) {
-                    LOGGER.debug("No UFV founf for Gkey : " + ufvGkey)
+
                     continue
                 }
 
@@ -281,7 +281,6 @@ class ITSGenerateDemurrageInvoicesGroovyJob extends AbstractGroovyJobCodeExtensi
     }
 
     public getInvoiceByInvTypeIdForUnit(Element inElement) throws BizViolation {
-        LOGGER.setLevel(Level.DEBUG)
         ArgoServicePort port = getWsStub()
         ScopeCoordinateIdsWsType scopeCoordinates = getScopeCoordenatesForWs()
         GenericInvokeResponseWsType invokeResponseWsType = port.genericInvoke(scopeCoordinates, XmlUtil.toString(inElement, false));
