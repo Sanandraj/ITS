@@ -4,6 +4,7 @@
 */
 package ITS
 
+import com.navis.argo.business.atoms.EventEnum
 import com.navis.cargo.business.model.BillOfLading
 import com.navis.cargo.business.model.BlGoodsBl
 import com.navis.external.services.AbstractGeneralNoticeCodeExtension
@@ -42,7 +43,7 @@ class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExte
 
     @Override
     void execute(GroovyEvent inGroovyEvent) {
-        LOGGER.setLevel(Level.DEBUG)
+        //LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSUpdateUnitsCountToBLGenaralNotice is invoked::")
         if (EventEnum.UNIT_RESERVE.getKey().equalsIgnoreCase(inGroovyEvent.getEvent()?.getEventTypeId())) {
             Unit unit = (Unit) inGroovyEvent.getEntity()
@@ -56,9 +57,9 @@ class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExte
                         if (blGoodsBl.getBlgdsblBl() != null) {
                             List unitList = inventoryCargoManager1?.findUnitsForBillOfLading(blGoodsBl.getBlgdsblBl())
                             if (unitList != null && unitList?.size() > 0) {
-                                blGoodsBl?.getBlgdsblBl()?.setBlFlexString01(String.valueOf(unitList?.size()))
+                                blGoodsBl?.getBlgdsblBl()?.setBlFlexString04(String.valueOf(unitList?.size()))
                             } else {
-                                blGoodsBl?.getBlgdsblBl()?.setBlFlexString01(0)
+                                blGoodsBl?.getBlgdsblBl()?.setBlFlexString04("0")
                             }
                         }
                     }
@@ -76,15 +77,17 @@ class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExte
                     List<BillOfLading> billOfLading = BillOfLading.findAllBillsOfLading(blNbr);
                     for (BillOfLading bl : billOfLading) {
                         Collection blGoodsblCollection = bl?.getBlBlGoodsBls();
-                        if (blGoodsblCollection != null) {
+                        if (blGoodsblCollection != null && !blGoodsblCollection.isEmpty()) {
                             for (BlGoodsBl blGoodsBl : (blGoodsblCollection as List<BlGoodsBl>)) {
                                 if (blGoodsBl.getBlgdsblBl() != null) {
                                     List unitList = inventoryCargoManager1.findUnitsForBillOfLading(blGoodsBl?.getBlgdsblBl())
                                     if (unitList != null && unitList.size() > 0) {
-                                        blGoodsBl?.getBlgdsblBl()?.setBlFlexString01(String.valueOf(unitList?.size()))
+                                        blGoodsBl?.getBlgdsblBl()?.setBlFlexString04(String.valueOf(unitList?.size()))
                                     }
                                 }
                             }
+                        }else {
+                            bl.setBlFlexString04("0")
                         }
                     }
                 }
@@ -96,6 +99,7 @@ class ITSUpdateUnitsCountToBLGenaralNotice extends AbstractGeneralNoticeCodeExte
 
     private static String getLastWordUsingSplit(String input) {
         String[] tokens = input.split(" ");
+        LOGGER.debug("Word :: "+tokens[tokens.length - 3])
         return tokens[tokens.length - 3]
     }
 }
