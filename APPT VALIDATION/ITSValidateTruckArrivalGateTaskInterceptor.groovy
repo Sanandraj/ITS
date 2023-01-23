@@ -60,6 +60,10 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
         int firstShiftEndHr = 0
         int firstShiftStartMin = 0
         int firstShiftEndMin = 0
+        int secondShiftStartHr = 0
+        int secondShiftEndHr = 0
+        int secondShiftStartMin = 0
+        int secondShiftEndMin = 0
         if (truckDetails != null && truckDetails.getTvdtlsTruckVisitAppointment() != null) {
             TruckVisitAppointment tva = truckDetails.getTvdtlsTruckVisitAppointment()
             validationStartTime = truckDetails.getTvdtlsTruckVisitAppointment().getSlotStartDate()
@@ -72,11 +76,7 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
         }
         else if (truckDetails!= null && truckDetails?.getTvdtlsTruckVisitAppointment() == null){
 
-            LOGGER.debug("inside else if find TVA by findEarliestTva")
-            //TruckVisitAppointment truckVisitAppointment =
-              //      TruckVisitAppointment.findEarliestTva(truckDetails?.getTvdtlsTrkCompany(),truckDetails?.getTvdtlsTruckId(),truckDetails?.getTvdtlsTruckLicenseNbr(), TruckDriver.findDriverByLicNbr(truckDetails?.getTvdtlsDriverLicenseNbr()))
-            TruckVisitAppointment truckVisitAppointment = getTVA(truckDetails?.getTvdtlsTruckLicenseNbr())
-            LOGGER.debug("truckVisitAppointment"+truckVisitAppointment)
+              TruckVisitAppointment truckVisitAppointment = getTVA(truckDetails?.getTvdtlsTruckLicenseNbr())
             if (truckVisitAppointment != null){
                 validationStartTime = truckVisitAppointment.getSlotStartDate()
                 atslotStartSlackTimeMin = String.valueOf(truckVisitAppointment.getTimeSlot().getAtslotQuotaRule().getAruleStartSlackTimeMin())
@@ -119,18 +119,12 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
 
         }
 
-        LOGGER.debug("atslotStartSlackTimeMin"+atslotStartSlackTimeMin)
-        LOGGER.debug("atslotEndSlackTimeMin"+atslotEndSlackTimeMin)
-        LOGGER.debug("validationStartTime"+validationStartTime)
-        LOGGER.debug("validationEndTime"+validationEndTime)
-        LOGGER.debug("truckStartTime"+truckStartTime)
 
 
         if (validationStartTime && validationEndTime) {
             GeneralReference gn = GeneralReference.findUniqueEntryById("ITS_APPT_VALIDATION", "SHIFT_SET")
              //TODO determine the Current Shift
               String firstShift = gn.getRefValue5()
-            LOGGER.debug("firstShift"+firstShift)
 
               if(StringUtils.isNotEmpty(firstShift) && firstShift.indexOf('-') != -1){
                   String[] shifts = firstShift.split('-')
@@ -139,18 +133,13 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
                   String firstShiftStartHrStr = startArr[0]
                   String firstShiftStartMinStr = startArr[1]
                   firstShiftStartHr = Integer.valueOf(firstShiftStartHrStr)
-                  firstShiftStartMin = Integer.valueOf(firstShiftStartMinStr)
+                 // firstShiftStartMin = Integer.valueOf(firstShiftStartMinStr)
 
                   String endShift = shifts[1]
                   String[] endArr =endShift.split(':')
                   String firstShiftEndHrStr = endArr[0]
                   String firstShiftEndMinStr = endArr[1]
                   firstShiftEndHr = Integer.valueOf(firstShiftEndHrStr)
-                  firstShiftEndMin = Integer.valueOf(firstShiftEndMinStr)
-                  LOGGER.debug("firstShiftStartHr"+firstShiftStartHr)
-                  LOGGER.debug("firstShiftStartMin"+firstShiftStartMin)
-                  LOGGER.debug("firstShiftEndHr"+firstShiftEndHr)
-                  LOGGER.debug("firstShiftEndMin"+firstShiftEndMin)
 
               }
 
@@ -159,8 +148,17 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
             if(StringUtils.isNotEmpty(secondShift) && secondShift.indexOf('-') != -1){
                   String[] shifts = secondShift.split('-')
                   String startShift = shifts[0]
-                  String endShift = shifts[1]
+                String[] startArr =startShift.split(':')
+                String secondShiftStartHrStr = startArr[0]
+                String secondShiftStartMinStr = startArr[1]
+                secondShiftStartHr = Integer.valueOf(secondShiftStartHrStr)
+                //secondShiftStartMin = Integer.valueOf(secondShiftStartMinStr)
 
+                  String endShift = shifts[1]
+                String[] endArr =endShift.split(':')
+                String secondShiftEndHrStr = endArr[0]
+                String secondShiftEndMinStr = endArr[1]
+                secondShiftEndHr = Integer.valueOf(secondShiftEndHrStr)
               }
 
             if (truckStartTime.after(validationStartTime) && truckStartTime.before(validationEndTime)) {
@@ -172,10 +170,7 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
             boolean firstShiftLate = (gn.getRefValue2() != null && "ON".equalsIgnoreCase(gn.getRefValue2())) ? Boolean.TRUE : Boolean.FALSE
             boolean secondShiftEarly = (gn.getRefValue3() != null && "ON".equalsIgnoreCase(gn.getRefValue3())) ? Boolean.TRUE : Boolean.FALSE
             boolean secondShiftLate = (gn.getRefValue4() != null && "ON".equalsIgnoreCase(gn.getRefValue4())) ? Boolean.TRUE : Boolean.FALSE
-            LOGGER.debug("firstShiftEarly"+firstShiftEarly)
-            LOGGER.debug("firstShiftLate"+firstShiftLate)
-            LOGGER.debug("secondShiftEarly"+secondShiftEarly)
-            LOGGER.debug("secondShiftLate"+secondShiftLate)
+
 
 
 
@@ -184,84 +179,129 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
             startTimeCal.setTime(validationStartTime)
             Calendar endTimeCal = Calendar.getInstance();
             endTimeCal.setTime(validationEndTime)
-            LOGGER.debug("startTimeCal"+startTimeCal?.getTime())
-            LOGGER.debug("endTimeCal"+endTimeCal?.getTime())
 
             LocalDateTime lcDate = truckStartTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
             int hour = lcDate.getHour()
             int minute = lcDate.getMinute()
-            LOGGER.debug("lcDate"+lcDate)
-            LOGGER.debug("hour"+hour)
             LocalDateTime lcEndTime = validationEndTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
             int endhour = lcEndTime?.getHour()
             LocalDateTime lcStartTime = validationStartTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
             int starthour = lcStartTime?.getHour()
-            LOGGER.debug("endhour"+endhour)
-            LOGGER.debug("starthour"+starthour)
             long diff = 0
-            LOGGER.debug("diff1"+diff)
             long diffMinutes = 0
-            LOGGER.debug("diffMinutes1"+diffMinutes)
             // // assuming First Shift is between 6 to 23 // TODO check if the current shift is 1st Shift
                 if( truckStartTime.before(validationStartTime)  || truckStartTime.after(validationEndTime)) {
-                    LOGGER.debug("inside 1st shift")
 
-                    if (getShift(hour).equals(FIRST_SHIFT)) {
-                        if (firstShiftEarly) {
-                            LOGGER.debug(" inside firstShiftEarly")
+                    String currentShift = getShiftTimeByGeneralReference(firstShiftStartHr,firstShiftEndHr,secondShiftStartHr,secondShiftEndHr,hour)
+                    String startShift = getShiftTimeByGeneralReference(firstShiftStartHr,firstShiftEndHr,secondShiftStartHr,secondShiftEndHr,starthour)
+                    String endShift = getShiftTimeByGeneralReference(firstShiftStartHr,firstShiftEndHr,secondShiftStartHr,secondShiftEndHr,endhour)
+
+                    if (truckStartTime.after(validationEndTime) && getShift(hour).equals(SECOND_SHIFT)  && getShift(endhour).equals(FIRST_SHIFT)){
+                        if (firstShiftLate) {
+                            if (atslotEndSlackTimeMin) {
+                                endTimeCal.add(Calendar.MINUTE, Integer.valueOf(atslotEndSlackTimeMin));
+                                //TODO use a temp
+                                if (truckStartTime > endTimeCal.getTime()) {
+                                    diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
+                                    diffMinutes = diff / (60 * 1000);
+                                    RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                    // Throw error - ERROR_APPOINTMENT_TIME_PASSED
+                                }
+                            }
+                        }else {
+                            if (truckStartTime > endTimeCal.getTime()) {
+                                diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
+                                diffMinutes = diff / (60 * 1000);
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                // Throw error - ERROR_APPOINTMENT_TIME_PASSED
+                            }
+                        }
+                    }
+                    else if (truckStartTime.before(validationStartTime) &&getShift(hour).equals(FIRST_SHIFT) && getShift(starthour).equals(SECOND_SHIFT)){
+                        //else if (truckStartTime.before(validationStartTime) && currentShift.equals(FIRST_SHIFT) && startShift.equals(SECOND_SHIFT)){
+                        if (secondShiftEarly) {
                             if (atslotStartSlackTimeMin) {
                                 startTimeCal.add(Calendar.MINUTE, -(Integer.valueOf(atslotStartSlackTimeMin)));
                                 //TODO use a temp
-                                LOGGER.debug("startTimeCal - atslotStartSlackTimeMin " + startTimeCal?.getTime())
-                                LOGGER.debug("validationStartTime::  " + validationStartTime.getTime())
-                                LOGGER.debug("truckStartTime::  " + truckStartTime.getTime())
-
-
-                                //diff = validationStartTime.getTime() - truckStartTime.getTime()
+                                if (truckStartTime < startTimeCal.getTime()) {
+                                    diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
+                                    diffMinutes = diff / (60 * 1000);
+                                    RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                    //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
+                                }
+                            }
+                        }else {
+                            if (truckStartTime < startTimeCal.getTime()) {
                                 diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
-
-                                LOGGER.debug("diff  " + diff)
                                 diffMinutes = diff / (60 * 1000);
-                                LOGGER.debug("diffMinutes::  " + diffMinutes)
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
+                            }
+                        }
+                    }
+
+                   else if (getShift(hour).equals(FIRST_SHIFT)) {
+                        if (firstShiftEarly) {
+                            if (atslotStartSlackTimeMin) {
+                                startTimeCal.add(Calendar.MINUTE, -(Integer.valueOf(atslotStartSlackTimeMin)));
+                                diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
+                                diffMinutes = diff / (60 * 1000);
                                 if (truckStartTime < startTimeCal.getTime()) {
                                     RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
 
                                     //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
                                 }
                             }
-                        }
+                        } else {
+                            diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
+                            diffMinutes = diff / (60 * 1000);
+                            if (truckStartTime < startTimeCal.getTime()) {
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+
+                                //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
+                            }
+                             }
 
                         if (firstShiftLate) {
                             if (atslotEndSlackTimeMin) {
                                 endTimeCal.add(Calendar.MINUTE, Integer.valueOf(atslotEndSlackTimeMin));
                                 //TODO use a temp
                                 if (truckStartTime > endTimeCal.getTime()) {
-                                    //diff = truckStartTime.getTime() - validationEndTime.getTime()
                                     diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
-                                    LOGGER.debug("diff" + diff)
                                     diffMinutes = diff / (60 * 1000);
-                                    LOGGER.debug("diffMinutes" + diffMinutes)
                                     RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
                                     // Throw error - ERROR_APPOINTMENT_TIME_PASSED
                                 }
                             }
+                        }else {
+                            if (truckStartTime > endTimeCal.getTime()) {
+                                diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
+                                diffMinutes = diff / (60 * 1000);
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                // Throw error - ERROR_APPOINTMENT_TIME_PASSED
+                            }
                         }
                     } // TODO check if the current shift is 2nd Shift
                     else if (getShift(hour).equals(SECOND_SHIFT)) {
-                        LOGGER.debug("second shift")
                         if (secondShiftEarly) {
                             if (atslotStartSlackTimeMin) {
                                 startTimeCal.add(Calendar.MINUTE, -(Integer.valueOf(atslotStartSlackTimeMin)));
                                 //TODO use a temp
                                 if (truckStartTime < startTimeCal.getTime()) {
-                                    //diff = validationStartTime.getTime() - truckStartTime.getTime()
                                     diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
-                                    LOGGER.debug("diff" + diff)
                                     diffMinutes = diff / (60 * 1000);
                                     RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
                                     //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
                                 }
                             }
+                        }else {
+                            if (truckStartTime < startTimeCal.getTime()) {
+                                diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
+                                diffMinutes = diff / (60 * 1000);
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
+                            }
+
                         }
 
                         if (secondShiftLate) {
@@ -269,55 +309,26 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
                                 endTimeCal.add(Calendar.MINUTE, Integer.valueOf(atslotEndSlackTimeMin));
                                 //TODO use a temp
                                 if (truckStartTime > endTimeCal.getTime()) {
-                                    //diff = truckStartTime.getTime() - validationEndTime.getTime()
                                     diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
-                                    LOGGER.debug("diff" + diff)
                                     diffMinutes = diff / (60 * 1000);
-                                    LOGGER.debug("diffMinutes" + diffMinutes)
                                     RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
                                     // Throw error - ERROR_APPOINTMENT_TIME_PASSED
                                 }
                             }
+                        }else {
+                            if (truckStartTime > endTimeCal.getTime()) {
+
+                                diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
+                                diffMinutes = diff / (60 * 1000);
+                                RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
+                                // Throw error - ERROR_APPOINTMENT_TIME_PASSED
+                            }
+
                         }
                     }//During 2nd shift with end time in 1st shift
-                    else if (truckStartTime.after(validationEndTime) && getShift(hour).equals(SECOND_SHIFT)  && getShift(endhour).equals(FIRST_SHIFT)){
-                        LOGGER.debug("During 2nd shift with end time is in 1st shift")
-                            if (firstShiftLate) {
-                                if (atslotEndSlackTimeMin) {
-                                    endTimeCal.add(Calendar.MINUTE, Integer.valueOf(atslotEndSlackTimeMin));
-                                    //TODO use a temp
-                                    if (truckStartTime > endTimeCal.getTime()) {
-                                        //diff = truckStartTime.getTime() - validationEndTime.getTime()
-                                        diff = truckStartTime.getTime() - endTimeCal.getTime().getTime()
-                                        LOGGER.debug("diff" + diff)
-                                        diffMinutes = diff / (60 * 1000);
-                                        LOGGER.debug("diffMinutes" + diffMinutes)
-                                        RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_PASSED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
-                                        // Throw error - ERROR_APPOINTMENT_TIME_PASSED
-                                    }
-                                }
-                            }
-                        } else if (truckStartTime.before(validationStartTime) &&getShift(hour).equals(FIRST_SHIFT) && getShift(starthour).equals(SECOND_SHIFT)){
-                        LOGGER.debug("During 1nd shift with start time is in 2st shift")
-                        if (secondShiftEarly) {
-                                    if (atslotStartSlackTimeMin) {
-                                        startTimeCal.add(Calendar.MINUTE, -(Integer.valueOf(atslotStartSlackTimeMin)));
-                                        //TODO use a temp
-                                        if (truckStartTime < startTimeCal.getTime()) {
-                                            //diff = validationStartTime.getTime() - truckStartTime.getTime()
-                                            diff = startTimeCal.getTime().getTime() - truckStartTime.getTime()
-                                            LOGGER.debug("diff" + diff)
-                                            diffMinutes = diff / (60 * 1000);
-                                            RoadBizUtil.appendMessage(MessageLevel.SEVERE, PropertyKeyFactory.valueOf("ERROR_APPOINTMENT_TIME_NOT_YET_REACHED"), apptNbr, validationStartTime, validationEndTime, diffMinutes, truckStartTime)
-                                            //Throw error - ERROR_APPOINTMENT_TIME_NOT_YET_REACHED
-                                        }
-                                    }
-                                }
-                            }
-                    //}
+
                 }
-            //startTimeCal.setTime(validationStartTime)
-            //endTimeCal.setTime(validationEndTime)
+
         }
     }
 
@@ -329,6 +340,21 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
         else if ((targetTime >= 18 && targetTime < 24) || (targetTime >= 0 && targetTime < 3)){
             shift = SECOND_SHIFT
         }
+        return shift
+    }
+
+    private String getShiftTimeByGeneralReference(int firstStartTime, int firstEndTime ,int secondStartTime, int secondEndTime,  int currentTime) {
+        String shift = null
+        // 1st start 6 to end 18
+        //current time 6 6>=6 - 6<18
+        // 2nd start 18 to end 24
+        //current time 18 18>=18 - 18<24  // 18>=0 - 18<3 --false?
+        if (currentTime >= firstStartTime && currentTime < firstEndTime){
+            shift = FIRST_SHIFT
+        }
+        else if ((currentTime >= secondStartTime && currentTime < secondEndTime)){
+            shift = SECOND_SHIFT
+        }
 
 
         return shift
@@ -336,8 +362,8 @@ class ITSValidateTruckArrivalGateTaskInterceptor extends AbstractGateTaskInterce
  private  TruckVisitAppointment getTVA(String inLicenseNbr){
      TruckVisitAppointment truckVisitAppointment = null
              DomainQuery dq = QueryUtils.createDomainQuery("TruckVisitAppointment")
-             .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("tvapptTruckLicenseNbr"),inLicenseNbr ))
-             //.addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("tvapptTruckDriver.driverCardId"), ))
+             //.addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("tvapptTruckLicenseNbr"),inLicenseNbr ))
+             .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("tvapptTruckId"),inLicenseNbr ))
              .addDqPredicate(PredicateFactory.eq(MetafieldIdFactory.valueOf("tvapptState"), AppointmentStateEnum.CREATED))
              .addDqOrdering(Ordering.desc(MetafieldIdFactory.valueOf("tvapptCreated")))
      List<TruckVisitAppointment> truckVisitAppointments = HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
