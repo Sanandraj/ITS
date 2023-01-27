@@ -14,9 +14,12 @@ import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.portal.UserContext
 import com.navis.framework.presentation.FrameworkPresentationUtils
 import com.navis.framework.presentation.lovs.Lov
+import com.navis.framework.presentation.lovs.LovValue
 import com.navis.framework.presentation.lovs.Style
 import com.navis.framework.presentation.lovs.list.AtomizedEnumLov
+import com.navis.framework.presentation.lovs.list.BasicLov
 import com.navis.framework.presentation.lovs.value.AtomLovValue
+import com.navis.framework.presentation.lovs.value.LocalizedLovValue
 
 /**
  * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 21/Dec/2022
@@ -35,6 +38,7 @@ import com.navis.framework.presentation.lovs.value.AtomLovValue
  *   4. Click Save button
  *
  *  S.No    Modified Date   Modified By     Jira      Description
+ *  1        23-Jan-2023    Gopinath K      IP-320    To make the grpFlexString01 as dropdown - Yes or No.
  */
 
 class ITSCustomLOVFactory extends AbstractExtensionLovFactory {
@@ -70,6 +74,13 @@ class ITSCustomLOVFactory extends AbstractExtensionLovFactory {
 
             return lov;
 
+        } else if(eLovKey.represents("customgrpFlexString01")){
+            BasicLov lov = new BasicLov();
+            LovValue lovYesValue = new LocalizedLovValue("Yes", "Yes");
+            LovValue lovNoValue = new LocalizedLovValue("No", "No");
+            lov.addLovEntry(lovYesValue);
+            lov.addLovEntry(lovNoValue);
+            return lov;
         }
         return null
     }
