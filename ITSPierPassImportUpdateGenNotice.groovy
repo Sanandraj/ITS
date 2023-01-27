@@ -43,7 +43,7 @@ import java.text.SimpleDateFormat
     * @Set up General Notice for event type "UNIT_REROUTE" on Unit Entity then execute this code extension (ITSPierPassImportUpdateGenNotice).
     *
     *  S.No    Modified Date   Modified By     Jira      Description
-    *
+    * 01.      24-01-2023                      IP-320    If Revert or clear unit group, generate the cancel EDI file
  */
 
 
@@ -74,17 +74,23 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
         }
         boolean isObCarrierandDestChange = false;
         String filePath = "";
-
+        boolean clearExemptStatus = false
         Set efcs = inGroovyEvent.getEvent()?.getEvntFieldChanges();
         for (EventFieldChange efc : efcs) {
             if (eventType != null && UNIT_REROUTE.equals(eventType) && ((ufv.isTransitStateAtLeast(UfvTransitStateEnum.S40_YARD)))) {
-                if ((inGroovyEvent.wasFieldChanged(UnitField.UNIT_RTG_GROUP.getFieldId())) && "YES".equals(TMF_EXEMPT)) {
-                    isObCarrierandDestChange = true;
+                if ((inGroovyEvent.wasFieldChanged(UnitField.UNIT_RTG_GROUP.getFieldId()))) {
+                    // isObCarrierandDestChange = true;
+                    if ("YES".equalsIgnoreCase(TMF_EXEMPT)) {
+                        isObCarrierandDestChange = true;
+                  
+                    } else if(!"NO".equalsIgnoreCase(TMF_EXEMPT))  {
+                        isObCarrierandDestChange = true;
+                        clearExemptStatus = true
+                    }
                 } else {
                     isObCarrierandDestChange = false;
                     break;
                 }
-
             } else if (UnitField.UNIT_RTG_POD1.getFieldId().equals(efc.getMetafieldId())) {
                 RoutingPoint rtg = RoutingPoint.hydrate(efc.getNewVal().toLong());
                 String podNew = rtg != null ? rtg.getPointUnlocId() : '';
@@ -92,7 +98,6 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
                     FILE_STATUS = "D";
             }
         }
-
         String exempStatus = "";
         if (LocTypeEnum.RAILCAR.equals(ufv.getUfvIntendedObCv()?.getLocType()) || LocTypeEnum.TRAIN.equals(ufv.getUfvIntendedObCv()?.getLocType())) {
             exempStatus = "RE";
@@ -101,6 +106,9 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
             exempStatus = "NE";
         ufv.setUfvFlexString05(exempStatus);
 
+        if(clearExemptStatus){
+            exempStatus = null
+        }
         if (!isObCarrierandDestChange) {
             return;
         }
