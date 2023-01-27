@@ -43,7 +43,10 @@
     <item fieldId="grpPurpose" extraEntry="none" />
     <item fieldId="grpTimeStartDelivery" />
     <item fieldId="grpTimeEndDelivery" />
- <item fieldId="grpFlexString01" />
+  <!--<item fieldId="grpFlexString01" />-->
+     <item fieldId="grpFlexString01" >
+	<item-attribute type="lovKey">customCodeExtensionLov?EXTENSION=ITSCustomLOVFactory,KEY=customgrpFlexString01</item-attribute>
+      </item>
 
 
 
@@ -54,4 +57,3 @@
 -->
   </form>
 </variforms>
-
