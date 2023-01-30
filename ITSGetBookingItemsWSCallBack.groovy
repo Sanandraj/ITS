@@ -20,6 +20,10 @@ import java.text.DecimalFormat
  * Date:
  * Requirements:- Receives Order Number and returns Equipment order item details
  *  @Inclusion Location	: Incorporated as a code extension of the type TRANSACTED_BUSINESS_FUNCTION --> Paste this code (ITSGetBookingItemsWSCallback.groovy)
+ *
+ *  S.No Modified Date   Modified By     Jira Id     SFDC        Change Description
+        1     29/06/2022      Mohan         IP-324
+        2     11/01/2023      Mohan         IP-458                  Set next stage to empty for truck visit
  */
 class ITSGetBookingItemsWSCallBack extends AbstractExtensionPersistenceCallback{
 
@@ -62,7 +66,7 @@ class ITSGetBookingItemsWSCallBack extends AbstractExtensionPersistenceCallback{
                             eqItemJsonObject.put("archeTypeISO",(eqBoOrderItem.getEqoiSampleEquipType() == null || eqBoOrderItem.getEqoiSampleEquipType().getEqtypArchetype() == null) ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypArchetype().getEqtypId())
                             //DecimalFormat dfFormat = new DecimalFormat("#.#")
                             //eqItemJsonObject.put("height",eqBoOrderItem.getEqoiEqHeight() == null ? null : eqBoOrderItem.getEqoiEqHeight().getValueInUnits(LengthUnit.MILLIMETERS))
-                            eqItemJsonObject.put("height",eqBoOrderItem.getEqoiSampleEquipType().getEqtypNominalHeight() == null ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypNominalHeight().getKey().replace("NOM",""))
+                            eqItemJsonObject.put("height",eqBoOrderItem.getEqoiSampleEquipType()?.getEqtypNominalHeight() == null ? null : eqBoOrderItem.getEqoiSampleEquipType().getEqtypNominalHeight().getKey().replace("NOM",""))
                             eqItemJsonObject.put("Qty",eqBoOrderItem.getEqoiQty())
                             eqItemJsonObject.put("tallyOut",eqBoOrderItem.getEqoiTally())
                             itemsJsonArray.add(eqItemJsonObject)

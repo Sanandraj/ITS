@@ -1,13 +1,23 @@
+import com.navis.argo.ArgoField
+import com.navis.argo.ContextHelper
+import com.navis.argo.business.model.Yard
 import com.navis.argo.util.ArgoGroovyUtils
 import com.navis.argo.util.XmlUtil
-import com.navis.framework.util.internationalization.PropertyKey
-import com.navis.framework.util.internationalization.PropertyKeyFactory
-import com.navis.road.business.appointment.model.TruckVisitAppointment
+import com.navis.framework.persistence.HibernateApi
+import com.navis.framework.portal.QueryUtils
+import com.navis.framework.portal.query.DomainQuery
+import com.navis.framework.portal.query.PredicateFactory
 import com.navis.road.business.atoms.TranStatusEnum
+import com.navis.road.business.atoms.TranSubTypeEnum
 import com.navis.road.business.model.DocumentMessage
 import com.navis.road.business.model.TruckTransaction
 import com.navis.road.business.model.TruckVisitDetails
-import org.apache.log4j.Level
+import com.navis.spatial.BinField
+import com.navis.yard.YardField
+import com.navis.yard.business.atoms.YardBlockTypeEnum
+import com.navis.yard.business.model.AbstractYardBlock
+import com.navis.yard.business.model.YardBinModel
+import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Logger
 import org.jdom.Document
 import org.jdom.Element
@@ -15,16 +25,17 @@ import org.jdom.Attribute
 import com.navis.argo.webservice.types.v1_0.QueryResultType
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.road.business.atoms.TruckVisitStatusGroupEnum
-/**
+/*
 *
-* Requirements : This groovy is used to add messages element to process truck and submit transaction response
-        *
-        * and this groovy handles only at Ingate.
+* Requirements : This groovy is used to add messages element to process truck and submit transaction response and this groovy handles only at Ingate.
 *
 * @Inclusion Location	: Incorporated as GroovyPlugin
- *  @author <a href="mailto:smohanbabu@weservetech.com">Mohan Babu</a>
-        *
-        */
+* @author <a href="mailto:smohanbabu@weservetech.com">Mohan Babu</a>
+*
+*  S.No Modified Date   Modified By     Jira Id     SFDC        Change Description
+     1     17/08/2022      Mohan
+     2     30/01/2023      Mohan         IP-480              Add "gate.flip_mission_statement" message for wheeled block
+*/
 class GateWebservicePostInvokeInTx {
     private final String PROCESS_TRUCK_ELEMENT = "process-truck"
     private final String PROCESS_TRUCK_RESPONSE_ELEMENT = "process-truck-response"
@@ -93,6 +104,32 @@ class GateWebservicePostInvokeInTx {
                                     }
                                 }
                             }
+
+                            /* Add flip message for receive transactions if yard block is wheeled */
+                            if(truckTransaction.getTranSubType() == TranSubTypeEnum.RE || truckTransaction.getTranSubType() == TranSubTypeEnum.RM){
+                                LOGGER.info("Entered flip message block")
+                                String blockId = truckTransElement.getAttributeValue("block-id")
+                                if(StringUtils.isNotBlank(blockId)){
+                                    LOGGER.info("Block id to check if wheeled - " + blockId)
+                                    DomainQuery dq = QueryUtils.createDomainQuery("Yard").addDqPredicate(PredicateFactory.eq(ArgoField.YRD_ID,"PIERG"))
+                                    List<Yard> yard = (List<Yard>)HibernateApi.getInstance().findEntitiesByDomainQuery(dq)
+                                    if(yard != null && !yard.isEmpty()){
+                                        long key = yard.get(0).getYrdBinModel().getAbnGkey()
+                                        AbstractYardBlock yardBlock = AbstractYardBlock.findYardBlockByCode(key, blockId)
+                                        if(yardBlock != null && yardBlock.getAyblkBlockType() == YardBlockTypeEnum.CHASSIS){
+                                            LOGGER.info("Add message for flip")
+                                            Element messageElement = new Element("message")
+                                            messageElement.setAttribute("message-id", "gate.flip_mission_statement")
+                                            messageElement.setAttribute("message-text", "gate.flip_mission_statement")
+                                            messageElement.setAttribute("message-severity", "INFO")
+                                            messagesElement.addContent(messageElement)
+                                            LOGGER.info("Added message "+"gate.flip_mission_statement")
+                                        }
+                                    }
+
+                                }
+                            }
+
                         }
 
                         truckTransElement.addContent(messagesElement)
