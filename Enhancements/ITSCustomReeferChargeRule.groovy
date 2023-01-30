@@ -36,8 +36,8 @@ import org.apache.log4j.Logger
  * @Setup: Create a Rule Id 1. REEFER POWER IMPORT RULE and 2. REEFER RULE SET in STORAGE RULE TYPES tab with Custom End Day Extension as ITSCustomReeferChargeRule
  *
  *
- *  S.No    Modified Date   Modified By     Jira      Description
- *
+ *  S.No    Modified Date   Modified By                                Jira      Description
+ *   1      25-01-2023      Anandaraj S <sanandaraj@weservetech.com>   IP-293    Requested for THROUGH Container.
  */
 
 
@@ -70,7 +70,7 @@ public class ITSCustomReeferChargeRule extends AbstractStorageRule {
                 if (ufv != null) {
 
                     if (isStartDate) {
-                        if (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory())) {
+                        if (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory()) || UnitCategoryEnum.THROUGH.equals(unit.getUnitCategory())) {
                             calculationTime = ufv.getUfvTimeIn();
                         } else if (UnitCategoryEnum.EXPORT.equals(unit.getUnitCategory())) {
                             // ITS wants Export reefers by train to have ATA
@@ -84,7 +84,7 @@ public class ITSCustomReeferChargeRule extends AbstractStorageRule {
                     } else {
                         if (UnitCategoryEnum.EXPORT.equals(unit.getUnitCategory())) {
                             calculationTime = ufv.getUfvTimeOfLoading() != null ? ufv.getUfvTimeOfLoading() : ufv.getUfvTimeOut();
-                        } else if (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory())) {
+                        } else if (UnitCategoryEnum.IMPORT.equals(unit.getUnitCategory()) || UnitCategoryEnum.THROUGH.equals(unit.getUnitCategory())) {
                             CarrierVisit carrierVisit = ufv.getUfvActualObCv() != null ? ufv.getUfvActualObCv() :
                                     ufv.getUfvIntendedObCv();
                             if (carrierVisit != null && (LocTypeEnum.TRAIN.equals(carrierVisit.getCvCarrierMode()) ||
