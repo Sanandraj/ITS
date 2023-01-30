@@ -46,7 +46,7 @@ import org.apache.log4j.Logger
 import wslite.json.JSONArray
 import wslite.json.JSONObject
 
-class ITSEquipmentOrderMigratorJob extends AbstractGroovyJobCodeExtension {
+class ITSEquipmentOrderMigratorJob2 extends AbstractGroovyJobCodeExtension {
     StringBuilder errorMessage = new StringBuilder()
     UnitManager manager = Roastery.getBean(UnitManager.BEAN_ID);
     def em = Roastery.getBean(EventManager.BEAN_ID);
@@ -107,7 +107,7 @@ class ITSEquipmentOrderMigratorJob extends AbstractGroovyJobCodeExtension {
             /*})
         }*/
         } catch (Exception e) {
-            LOGGER.warn("Exception occurred while executing ITSEquipmentOrderMigratorJob")
+            LOGGER.warn("Exception occurred while executing ITSEquipmentOrderMigratorJob2")
         }
     }
 
@@ -414,7 +414,7 @@ class ITSEquipmentOrderMigratorJob extends AbstractGroovyJobCodeExtension {
 
     private void updateHolds(Booking booking, JSONObject jsonObj){
         String port_count = jsonObj.getOrDefault("port_count", null)
-       /* if (StringUtils.isNotEmpty(port_count)) {
+        /*if (StringUtils.isNotEmpty(port_count)) {
             int portCount = Integer.valueOf(port_count)
 
             if (portCount > 0) {
@@ -676,7 +676,7 @@ class ITSEquipmentOrderMigratorJob extends AbstractGroovyJobCodeExtension {
         domainQuery.addDqPredicate(PredicateFactory.eq(ArgoIntegrationField.ISM_USER_STRING3, "false"))
         //        .addDqPredicate(PredicateFactory.isNotNull(ArgoIntegrationField.ISM_USER_STRING4))
         domainQuery.addDqPredicate(PredicateFactory.isNull(ArgoIntegrationField.ISM_FIRST_SEND_TIME))
-        domainQuery.addDqOrdering(Ordering.asc(ArgoIntegrationField.ISM_CREATED))
+        domainQuery.addDqOrdering(Ordering.desc(ArgoIntegrationField.ISM_CREATED))
                 .setDqMaxResults(5000)
 
         return HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery)

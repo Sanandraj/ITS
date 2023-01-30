@@ -207,11 +207,7 @@ WHERE  (lcv.VisitStatusCd IN ('O', 'P'))
 CREATE OR ALTER VIEW LT_ContainerUses_VW
 AS
 SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
-                  CASE WHEN lcs.ContainerStatusCd = 'S' THEN 'T'
-                  WHEN lcs.ContainerStatusCd = 'U' THEN 'D'
-                  WHEN lcs.ContainerStatusCd = 'I' THEN 'I'
-                  WHEN lcs.ContainerStatusCd = 'M' THEN 'M'
-                  WHEN lcs.ContainerStatusCd = 'X' THEN 'E' ELSE NULL
+                  CASE WHEN lcs.ContainerStatusCd = 'S' THEN 'T' WHEN lcs.ContainerStatusCd = 'U' THEN 'D' WHEN lcs.ContainerStatusCd = 'I' THEN 'I' WHEN lcs.ContainerStatusCd = 'M' THEN 'M' WHEN lcs.ContainerStatusCd = 'X' THEN 'E' ELSE NULL
                   END AS category, lcv.ContainerPrefixCd + lcv.ContainerNum + lcv.ContainerChkDigit AS equipment_id, lcs.FullEmptyCd AS status, gcc.ISOCd AS iso_code, gsl.ShippingLineCd AS owner_id,
                   CASE WHEN lcp.ContainerPosTypeCd = 'Y' THEN 'Y' WHEN lcp.ContainerPosTypeCd = 'A' AND lcp.CarrierTypeCd = 'V' THEN 'V' WHEN lcp.ContainerPosTypeCd = 'A' AND lcp.CarrierTypeCd = 'R' THEN 'R' ELSE '' END AS loc_type,
                   CASE WHEN lcs.ContainerStatusCd = 'I' THEN
@@ -250,9 +246,8 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                        WHERE   lcc.ContainerVisitId = lcv.ContainerVisitId) ELSE NULL END AS cg_weight, 'KG' AS gross_units, lcad1.EquipPrefixCd + lcad1.EquipNum + CAST(ISNULL(lcad1.EquipChkDigit, '') AS varchar) AS chassis_number,
                   lcad2.EquipPrefixCd + lcad2.EquipNum + CAST(ISNULL(lcad2.EquipChkDigit, '') AS varchar) AS accessory_number, lcs.CmdtyCd AS commodity_description,
                   CASE WHEN ltcr.ReeferTemperatureUOM = 6 THEN ltcr.ReeferTemperature WHEN ltcr.ReeferTemperatureUOM = 5 THEN (ltcr.ReeferTemperature - 32) * 5 / 9 ELSE NULL END AS temp_required_c, ltcr.VentSetting AS VENT_REQUIRED,
-                  CASE WHEN ltcr.VentSettingUOM = 7 THEN '%' WHEN ltcr.VentSettingUOM = 8 THEN 'CMH' ELSE NULL END AS VENT_UNITS, lcr.POLCd AS origin, lcr.PODCd AS destination, lcr.POLCd AS pol, lcr.PODCd AS pod1, NULL AS pod2, lcr.RailDestHubCd as rail_destination,
-                  lcs.SvcOrderStatusCd AS service_status_code,
-                  lcr.ContainerGrpCd AS group_code_id, NULL AS note, NULL AS dray_status,
+                  CASE WHEN ltcr.VentSettingUOM = 7 THEN '%' WHEN ltcr.VentSettingUOM = 8 THEN 'CMH' ELSE NULL END AS VENT_UNITS, lcr.POLCd AS origin, lcr.PODCd AS destination, lcr.POLCd AS pol, lcr.PODCd AS pod1, NULL AS pod2,
+                  lcr.RailDestHubCd AS rail_destination, lcs.SvcOrderStatusCd AS service_status_code, lcr.ContainerGrpCd AS group_code_id, NULL AS note, NULL AS dray_status,
                       (SELECT MIN(lcseal.SealNum) AS Expr1
                        FROM      dbo.LT_ContainerSeal AS lcseal INNER JOIN
                                          dbo.LT_ContainerSealInfo AS lcsi ON lcseal.ContainerSealInfoId = lcsi.ContainerSealInfoId
@@ -274,12 +269,10 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                        WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) AS in_loc_id, CASE WHEN lcp.CarrierTypeCd = 'R' THEN
                       (SELECT LTRC.RailcarNum + '-' + lcp.SlotNum
                        FROM      LT_Railcar LTRC
-                       WHERE   LTRC.RailcarId = lcp.RailcarId AND lcp.ContainerPosTypeCd = 'A')
-                        WHEN lcp.ContainerPosTypeCd = 'Y' then
-                        						(SELECT SlotNum
-                                               FROM      dbo.LT_ContainerPos AS lcp
-                                               WHERE   (lcp.ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A'))
-                                               ELSE lcp.SlotNum END AS in_pos_id,
+                       WHERE   LTRC.RailcarId = lcp.RailcarId AND lcp.ContainerPosTypeCd = 'A') WHEN lcp.ContainerPosTypeCd = 'Y' THEN
+                      (SELECT SlotNum
+                       FROM      dbo.LT_ContainerPos AS lcp
+                       WHERE   (lcp.ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) ELSE lcp.SlotNum END AS in_pos_id,
                       (SELECT CASE WHEN lcp.CarrierTypeCd = 'V' THEN
                                              (SELECT LTVS.VslCd + LTVS.VoyNum
                                               FROM      LT_VslSchedule LTVS
@@ -291,8 +284,9 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                                               FROM      LT_TrainVisits_VW LTVS
                                               WHERE   LTVS.TrainScheduleId = lcp.TrainScheduleId) ELSE NULL END AS Expr1
                        FROM      dbo.LT_ContainerPos AS lcp
-                       WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) AS in_visit_id, CASE WHEN lcp.ContainerPosTypeCd = 'A' THEN NULL ELSE lcp.ContainerPosStatusDtTm END AS in_time, NULL AS out_time, NULL
-                  AS out_loc_type, NULL AS out_loc_id, NULL AS out_pos_id, NULL AS out_visit_id, NULL AS created, 'MIGRATION' AS creator, NULL AS changed, NULL AS remarks, 'ITS' AS loc_id, lcp.SlotNum AS pos_id,
+                       WHERE   (ContainerVisitId = lcv.ContainerVisitId) AND (ContainerPosTypeCd = 'A')) AS in_visit_id, CASE WHEN lcp.ContainerPosTypeCd = 'A' THEN NULL ELSE ISNULL(UCH.ContainerArrdtTm, lcp.ContainerPosStatusDtTm)
+                  END AS in_time, NULL AS out_time, NULL AS out_loc_type, NULL AS out_loc_id, NULL AS out_pos_id, NULL AS out_visit_id, NULL AS created, 'MIGRATION' AS creator, NULL AS changed, NULL AS remarks, 'ITS' AS loc_id,
+                  lcp.SlotNum AS pos_id,
                       (SELECT BookingNum
                        FROM      dbo.LT_Booking AS LTB
                        WHERE   (BookingId IN
@@ -304,7 +298,8 @@ SELECT lcv.ContainerVisitId AS gkey, 'X' AS active_sparcs, 'CTR' AS eq_class,
                   CASE WHEN lcm.MaxGrossWgtUOM = 1 THEN lcm.MaxGrossWgt WHEN lcm.MaxGrossWgtUOM = 2 THEN lcm.MaxGrossWgt / 2.2046 ELSE NULL END AS safe_weight, 'KG' AS safe_units,
                       (SELECT DamageFlg
                        FROM      dbo.LT_ContainerCondition AS lcc
-                       WHERE   (ContainerVisitId = lcv.ContainerVisitId)) AS damaged, lcr.SpecialStowCd AS shand_id, NULL AS bl_no, NULL AS service_code
+                       WHERE   (ContainerVisitId = lcv.ContainerVisitId)) AS damaged, lcr.SpecialStowCd AS shand_id, NULL AS bl_no, NULL AS service_code, UCH.FirstDeliverableDtTm AS DeliverableDate,
+                  UCH.CustomsHoldRelDtTm AS CustomsReleaseDate
 FROM     dbo.LT_ContainerVisit AS lcv LEFT OUTER JOIN
                   dbo.LT_ContainerReeferInfo AS ltcr ON ltcr.ContainerVisitId = lcv.ContainerVisitId AND ltcr.ReeferTemperature IS NOT NULL LEFT OUTER JOIN
                   dbo.LT_ContainerODInfo AS lcod ON lcv.ContainerVisitId = lcod.ContainerVisitId LEFT OUTER JOIN
@@ -316,7 +311,8 @@ FROM     dbo.LT_ContainerVisit AS lcv LEFT OUTER JOIN
                   dbo.LRef_ContainerMaster AS lcm ON lcv.ContainerNum = lcm.ContainerNum AND ISNULL(lcv.ContainerPrefixCd, 'X') = ISNULL(lcm.ContainerPrefixCd, 'X') INNER JOIN
                   centraldb.dbo.GRef_ShippingLine AS gsl ON lcv.OwnerLineId = gsl.ShippingLineId INNER JOIN
                   dbo.LT_ContainerPos AS lcp ON lcv.CurrPosId = lcp.ContainerPosId INNER JOIN
-                  dbo.LT_ContainerRoute AS lcr ON lcv.ContainerVisitId = lcr.ContainerVisitId
+                  dbo.LT_ContainerRoute AS lcr ON lcv.ContainerVisitId = lcr.ContainerVisitId LEFT OUTER JOIN
+                  dbo.DM_UnitChargeHeader AS UCH ON UCH.ContainerVisitId = lcv.ContainerVisitId
 WHERE  (lcv.VisitStatusCd IN ('O', 'P')) AND (lcp.ContainerPosTypeCd IN ('Y', 'A'))
 
 

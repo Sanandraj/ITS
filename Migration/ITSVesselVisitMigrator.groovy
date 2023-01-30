@@ -12,10 +12,13 @@ import com.navis.argo.business.reference.LineOperator
 import com.navis.external.framework.AbstractExtensionCallback
 import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.persistence.HibernateApi
+import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
+import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.portal.Ordering
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.road.business.util.RoadBizUtil
 import com.navis.vessel.VesselEntity
 import com.navis.vessel.VesselField
 import com.navis.vessel.business.atoms.BerthSideTypeEnum
@@ -37,60 +40,99 @@ import wslite.json.JSONObject
  */
 
 class ITSVesselVisitMigrator extends AbstractExtensionCallback {
+    StringBuilder errorMessage = new StringBuilder()
+
     void execute() {
-        List<IntegrationServiceMessage> ismList = getMessagesToProcess()
+        List<Serializable> ismList = getMessagesToProcess()
 
-        for (IntegrationServiceMessage ism : ismList) {
-            String jsonPayload = ism.getIsmMessagePayload()
-            if (StringUtils.isNotEmpty(jsonPayload)) {
-                JSONObject jsonObj = new JSONObject(jsonPayload);
-                VesselVisitDetails vvd = processVisit(jsonObj)
-                String berth = jsonObj.getOrDefault("berth", null)
-                if (vvd != null && StringUtils.isNotEmpty(berth)) {
-                    String shipSide = jsonObj.getOrDefault("ship_side_to", null)
-                    updateBerthing(berth, shipSide, vvd)
-                }
-                String line_count = jsonObj.getOrDefault("line_count", null)
+        for (Serializable ismGkey : ismList) {
+            PersistenceTemplate pt = new PersistenceTemplate(getUserContext())
+            pt.invoke(new CarinaPersistenceCallback() {
+                protected void doInTransaction() {
+                    IntegrationServiceMessage ism = HibernateApi.getInstance().load(IntegrationServiceMessage.class, ismGkey);
+                    errorMessage = new StringBuilder()
+                    String jsonPayload = null
+                    if (StringUtils.isNotEmpty(ism.getIsmMessagePayload())) {
+                        jsonPayload = ism.getIsmMessagePayload()
+                    } else if (StringUtils.isNotEmpty(ism.getIsmMessagePayloadBig())) {
+                        jsonPayload = ism.getIsmMessagePayloadBig()
+                    }
 
-                if (vvd != null && StringUtils.isNotEmpty(line_count)) {
-                    int line = Integer.valueOf(line_count)
+                    if (StringUtils.isNotEmpty(jsonPayload)) {
+                        JSONObject jsonObj = new JSONObject(jsonPayload);
+                        try {
+                            VesselVisitDetails vvd = processVisit(jsonObj)
 
-                    if (line > 0) {
-                        List<JSONArray> visit_lines = (List<JSONArray>) jsonObj.getOrDefault("visit_lines", null)
-                        JSONArray array = visit_lines.get(0)
-                        for (int i = 0; i < array.size(); i++) {
-                            JSONObject lineObj = array.getJSONObject(i)
-                            processVisitLines(vvd, lineObj)
+                            String berth = jsonObj.getOrDefault("berth", null)
+                            if (vvd != null && StringUtils.isNotEmpty(berth)) {
+                                String shipSide = jsonObj.getOrDefault("ship_side_to", null)
+                                updateBerthing(berth, shipSide, vvd)
+                            }
+                            String line_count = jsonObj.getOrDefault("line_count", null)
+
+                            if (vvd != null && StringUtils.isNotEmpty(line_count)) {
+                                int line = Integer.valueOf(line_count)
+
+                                if (line > 0) {
+                                    List<JSONArray> visit_lines = (List<JSONArray>) jsonObj.getOrDefault("visit_lines", null)
+                                    JSONArray array = visit_lines.get(0)
+                                    for (int i = 0; i < array.size(); i++) {
+                                        JSONObject lineObj = array.getJSONObject(i)
+                                        processVisitLines(vvd, lineObj)
+                                    }
+
+                                }
+                            }
+                            if (getMessageCollector().hasError() && getMessageCollector().getMessageCount() > 0) {
+                                errorMessage.append(getMessageCollector().toCompactString()).append("::")
+                            }
+                            if (errorMessage.toString().length() > 0) {
+                                ism.setIsmUserString4(errorMessage.toString())
+                            } else if (vvd != null) {
+                                ism.setIsmUserString3("true")
+                            }
+                            HibernateApi.getInstance().save(ism)
+                        } catch (Exception e) {
+                            LOGGER.warn("e " + e)
+                            errorMessage.append("" + e.getMessage().take(100)).append("::")
+                            ism.setIsmUserString4(errorMessage.toString())
+
                         }
 
+                    } else {
+                        LOGGER.warn("No JSON Payload for " + ism.getIsmUserString1())
                     }
                 }
-                ism.setIsmUserString3("true")
-            } else {
-                LOGGER.warn("No JSON Payload for " + ism.getIsmUserString1())
-            }
+            })
+
+
         }
     }
 
     VesselVisitDetails processVisit(JSONObject object) {
+        VesselVisitDetails vvd = null
         String visitId = object.getOrDefault("vessel_visit_id", null)
         // String gkey = object.get("gkey")
         String ibVoy = object.getOrDefault("in_voy_nbr", null)
 
 
         if (StringUtils.isEmpty(visitId)) {
-            throwError("vessel_visit_id is required for vessel visit.")
+            errorMessage.append("vessel_visit_id is required for vessel visit.").append("::")
+            return null
         }
 
         String shipId = object.get('ship_id')
         if (StringUtils.isEmpty(shipId)) {
-            throwError("ship_id is required for vessel visit.")
+            errorMessage.append("ship_id is required for vessel visit.").append("::")
+            return null
         }
 
         Vessel vessel = Vessel.findVesselById(shipId);
         if (vessel == null) {
-            throwError("Unknown vessel " + shipId + " for vessel visit " + visitId)
+            errorMessage.append("Unknown vessel " + shipId + " for vessel visit " + visitId).append("::")
+            return null
         }
+        LOGGER.warn("visitId " + visitId)
 
         CarrierVisit cv = findCarrierVisitByInboundVoyage(vessel, ibVoy)
         if (!cv) {
@@ -100,10 +142,11 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
         if (cv) {
             cv.setCvId(visitId)
         } else {
-            throwError('Not able to create vessel visit: could be blank space in vessel id-not allowed in N4 ' + visitId)
+            errorMessage.append('Not able to create vessel visit: could be blank space in vessel id-not allowed in N4 ' + visitId).append("::")
+            return null
         }
 
-        VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(cv);
+        vvd = VesselVisitDetails.resolveVvdFromCv(cv);
 
         String ata = object.getOrDefault("ata", null)
         String atd = object.getOrDefault("atd", null)
@@ -154,20 +197,24 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
         HibernateApi.getInstance().save(cv);
 
         if (StringUtils.isEmpty(service_id)) {
-            throwError("service_id is required for vessel visit " + visitId)
+            errorMessage.append("service_id is required for vessel visit " + visitId).append("::")
+            return null
         }
 
         CarrierService service = CarrierService.findCarrierService(service_id);
         if (service == null) {
-            throwError("Unknown Carrier Service " + service_id + " for vessel visit " + visitId);
+            errorMessage.append("Unknown Carrier Service " + service_id + " for vessel visit " + visitId).append("::")
+            return null
         }
 
         if (!service.srvcItinerary) {
-            throwError("Null Itinerary for Service " + service_id + " for vessel visit " + visitId);
+            errorMessage.append("Null Itinerary for Service " + service_id + " for vessel visit " + visitId).append("::")
+            return null
         }
 
         if (StringUtils.isEmpty(out_voy_nbr)) {
-            throwError("obVoyage is required for vessel visit " + visitId)
+            errorMessage.append("obVoyage is required for vessel visit " + visitId).append("::")
+            return null
         }
         if (vvd == null) {
             vvd = VesselVisitDetails.createVesselVisitDetails(cv, service, service.getSrvcItinerary(), vessel, ibVoy, out_voy_nbr, null, ContextHelper.getThreadDataSource())
@@ -241,6 +288,10 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
             if (vvd == null || vvd.cvdETD != date) {
                 vvd.cvdETD = date;
             }
+            //Apply ETD to ATD - IP 441
+            if(cv.cvATD == null && vvd.cvdETD != null){
+                cv.cvATD = vvd.cvdETD
+            }
         }
 
         if (StringUtils.isNotEmpty(begin_receive)) {
@@ -252,23 +303,31 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
 
         if (StringUtils.isNotEmpty(hazardous_cutoff)) {
             date = getFormattedDate(hazardous_cutoff)
-            if (vvd == null || vvd.vvdTimeHazCutoff != date) {
-                vvd.vvdTimeHazCutoff = date;
+            if (date > vvd.vvdTimeBeginReceive) {
+                if (vvd == null || vvd.vvdTimeHazCutoff != date) {
+                    vvd.vvdTimeHazCutoff = date;
+                }
             }
         }
 
         if (StringUtils.isNotEmpty(reefer_cutoff)) {
             date = getFormattedDate(reefer_cutoff)
-            if (vvd == null || vvd.vvdTimeReeferCutoff != date) {
-                vvd.vvdTimeReeferCutoff = date;
+            if (date > vvd.vvdTimeBeginReceive) {
+                if (vvd == null || vvd.vvdTimeReeferCutoff != date) {
+                    vvd.vvdTimeReeferCutoff = date;
+                }
             }
+
         }
 
         if (StringUtils.isNotEmpty(cargo_cutoff)) {
             date = getFormattedDate(cargo_cutoff)
-            if (vvd == null || vvd.vvdTimeCargoCutoff != date) {
-                vvd.vvdTimeCargoCutoff = date;
+            if (date > vvd.vvdTimeBeginReceive) {
+                if (vvd == null || vvd.vvdTimeCargoCutoff != date) {
+                    vvd.vvdTimeCargoCutoff = date;
+                }
             }
+
         }
 
         if (StringUtils.isNotEmpty(discharged)) {
@@ -280,18 +339,25 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
             if (vvd == null || vvd.getCvdTimeDischargeComplete() != date)
                 vvd.setCvdTimeDischargeComplete(date)
         }
-        HibernateApi.getInstance().save(vvd);
 
         // VV Phase
         if (cv.cvATD == null || (cv.cvATD && cv.cvATD.after(new Date()))) {
-            if (vvd.cvdETA == null && cv.cvATA == null)
+            if (vvd.cvdETA == null && cv.cvATA == null) {
                 cv.cvVisitPhase = CarrierVisitPhaseEnum.CREATED;
-            else if ((vvd.cvdETA && cv.cvATA == null) || (vvd.cvdETA && cv.cvATA && cv.cvATA.after(new Date())))
+                cv.cvATD = null
+            }
+            else if ((vvd.cvdETA && cv.cvATA == null) || (vvd.cvdETA && cv.cvATA && cv.cvATA.after(new Date()))) {
                 cv.cvVisitPhase = CarrierVisitPhaseEnum.INBOUND;
-            else if (vvd.cvdETA && cv.cvATA && cv.cvATA.before(new Date()))
+                cv.cvATD = null
+            } else if (vvd.cvdETA && cv.cvATA && cv.cvATA.before(new Date()))
                 cv.cvVisitPhase = CarrierVisitPhaseEnum.ARRIVED;
-        } else{
+        } else {
             cv.cvVisitPhase = CarrierVisitPhaseEnum.CLOSED;
+        }
+
+        if (vvd) {
+            HibernateApi.getInstance().save(vvd)
+            RoadBizUtil.commit()
         }
 
         return vvd
@@ -337,7 +403,8 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
         String changer = lineObj.getOrDefault("changer", null)
 
         if (StringUtils.isEmpty(line_id)) {
-            throwError("STATUS is required for vessel visit " + vvd.getCvdCv().getCvId() + " vv line")
+            errorMessage.append("STATUS is required for vessel visit " + vvd.getCvdCv().getCvId() + " vv line").append("::")
+            return
         }
         LineOperator operator = LineOperator.findLineOperatorById(line_id);
         if (operator == null) {
@@ -433,17 +500,13 @@ class ITSVesselVisitMigrator extends AbstractExtensionCallback {
         return carrierVisit
     }
 
-    List<IntegrationServiceMessage> getMessagesToProcess() {
+    List<Serializable> getMessagesToProcess() {
         DomainQuery domainQuery = QueryUtils.createDomainQuery(ArgoIntegrationEntity.INTEGRATION_SERVICE_MESSAGE)
         domainQuery.addDqPredicate(PredicateFactory.eq(ArgoIntegrationField.ISM_ENTITY_CLASS, LogicalEntityEnum.VV));
         domainQuery.addDqPredicate(PredicateFactory.eq(ArgoIntegrationField.ISM_USER_STRING3, "false"))
         domainQuery.addDqOrdering(Ordering.asc(ArgoIntegrationField.ISM_CREATED));
 
-        return HibernateApi.getInstance().findEntitiesByDomainQuery(domainQuery)
-    }
-
-    void throwError(String msg) {
-        throw new Exception(msg);
+        return HibernateApi.getInstance().findPrimaryKeysByDomainQuery(domainQuery)
     }
 
     Date getFormattedDate(String date) {
