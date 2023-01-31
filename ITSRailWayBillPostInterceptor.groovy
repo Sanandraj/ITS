@@ -111,6 +111,10 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
             EdiCommodity ediCommodity = railWayBillTransaction.getEdiRailWayBillContainer() != null ? railWayBillTransaction.getEdiRailWayBillContainer().getEdiCommodity() : null
             Port originPort = ediCommodity != null ? ediCommodity.getOriginPort() : null
             if (originPort != null && originPort.getPortId() != null && !FACILITY_PORT_CODE.equalsIgnoreCase(originPort.getPortId())) {
+                Port destinationPort = ediCommodity != null ? ediCommodity.getDestinationPort() : null
+                if(destinationPort != null && destinationPort.getPortId() != null && FACILITY_PORT_CODE.equalsIgnoreCase(destinationPort.getPortId())){
+                    registerError("EDI data does not match the outbound rail move criteria, cannot process EDI.")
+                }
                 return
             }
 
@@ -133,7 +137,7 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
             CarrierVisit ediCv = ediVesselVisit != null ? this.resolveCarrierVisit(ediVesselVisit) : null
             //Validation - V1
             if (unitUfv == null) {
-                registerError("No container visit found for " + ediCtrNbr + ", cannot process EDI.")
+                registerError("No active container visit found for " + ediCtrNbr + ", cannot process EDI.")
                 return
             }
             Unit ctrUnit = unitUfv.getUfvUnit()
@@ -141,6 +145,10 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
 
 
             if (unitUfv != null) {
+                if (UnitCategoryEnum.THROUGH.equals(ctrUnit?.getUnitCategory())) {
+                        registerError("Category of  " + ediCtrNbr + " is THROUGH, cannot process EDI.")
+                        return
+                }
                 CarrierVisit unitObCv = unitUfv.getUfvObCv()
                 //Validation - V3
                 if (!UfvTransitStateEnum.S20_INBOUND.equals(unitUfv.getUfvTransitState()) && !UfvTransitStateEnum.S30_ECIN.equals(unitUfv.getUfvTransitState()) && !UfvTransitStateEnum.S40_YARD.equals(unitUfv.getUfvTransitState())) {
@@ -316,4 +324,3 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
     private static final FACILITY_PORT_CODE = "LGB"
 
 }
-
