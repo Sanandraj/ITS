@@ -64,6 +64,7 @@ import org.jetbrains.annotations.Nullable
  * E1-BL deletion if any B/L-Container is associated with Container Visit: To verify the stowplan update against BL units and reject EDI if available
  * E2-BL deletion if any B/L-Container has Exam record: To verify the Exam Status against BL or associated units and reject EDI if available
  *
+ * If any unit is associated to BL and EDI visit is different from BL visit record an error.
  *
  * @Inclusion Location	: Incorporated as a code extension of the type EDI_POST_INTERCEPTOR.
  *  Load Code Extension to N4:
@@ -74,7 +75,6 @@ import org.jetbrains.annotations.Nullable
             Code Extension Type:  EDI_POST_INTERCEPTOR
             Groovy Code: Copy and paste the contents of groovy code.
         4. Click Save button
-
  Attach code extension to EDI session:
         1. Go to Administration-->EDI-->EDI configuration
         2. Select the EDI session and right click on it
@@ -152,6 +152,17 @@ class ITSManifestPostInterceptor extends AbstractEdiPostInterceptor {
             return
         }
         if (ediBillOfLading != null) {
+
+            List<BillOfLading> billOfLadings = BillOfLading.findAllBillsOfLading(ediBillOfLading?.getBlNbr())
+            if (billOfLadings != null && !billOfLadings.isEmpty()){
+                BillOfLading bl = billOfLadings.get(0)
+                if (!ediCv.equals(bl?.getBlCarrierVisit())){
+                    if (bl.getBlBlGoodsBls() != null && bl.getBlBlGoodsBls().size() > 0){
+                        registerError("BL ${bl?.getBlNbr()} is available for vessel visit ${bl?.getCarrierVisitId()} with reserved units and does not match with EDI vessel visit ${ediCv?.getCvId()}, cannot process EDI.")
+                        return
+                    }
+                }
+            }
             if (ediBillOfLading.getManifestedQty() == null) {
                 registerError("BL " + ediBillOfLading.getBlNbr() + " received without Manifested Qty, cannot process EDI.")
                 return
@@ -229,7 +240,7 @@ class ITSManifestPostInterceptor extends AbstractEdiPostInterceptor {
             }
             //Validation P3
             if (pod != null && !ediCv.isPointInItinerary(pod)) {
-                registerError("POD '" + pol.getPointId() + "' is unavailable in the port rotation of " + ediCv.getCvId() + ", cannot process EDI.")
+                registerError("POD '" + pod.getPointId() + "' is unavailable in the port rotation of " + ediCv.getCvId() + ", cannot process EDI.")
             }
 
 //            if (blTransaction.getEdiBlItemHolderList().size() != 0) {
