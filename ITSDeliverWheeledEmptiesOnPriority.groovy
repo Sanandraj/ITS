@@ -1,4 +1,5 @@
 import com.navis.argo.ContextHelper
+import com.navis.argo.business.atoms.BizRoleEnum
 import com.navis.argo.business.atoms.EquipClassEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.argo.business.atoms.WiMoveKindEnum
@@ -59,9 +60,7 @@ class ITSDeliverWheeledEmptiesOnPriority extends AbstractGateTaskInterceptor {
             return;
         }
         ScopedBizUnit inLinOp = inTran.getTranAppointment()?.getGapptLineOperator()
-        LOGGER.debug("inLinOp:: " + inLinOp)
         EquipmentOrderItem odrItm = inTran.getTranEqoItem()
-        LOGGER.debug("odrItm:: " + odrItm)
         if (inLinOp == null) {
             LineOperator line = inTran.getTranLine()
             if (line) {
@@ -76,20 +75,24 @@ class ITSDeliverWheeledEmptiesOnPriority extends AbstractGateTaskInterceptor {
                     inTran.setTranCtrNbrAssigned(inUnit.getUnitId())
                     if (inUnit.getUnitCurrentlyAttachedChassisId()) {
                         inTran.setTranChsNbr(inUnit.getUnitCurrentlyAttachedChassisId())
+                        return
                     }
                 } else {
                     inTran.setTranStatus(TranStatusEnum.TROUBLE)
                     String errorMsg = "Suitable Wheeled/Grounded Containers Not Found";
                     RoadBizUtil.messageCollector.appendMessage(MessageLevel.SEVERE, AllOtherFrameworkPropertyKeys.ERROR__NULL_MESSAGE, null, errorMsg);
+                    return
                 }
             } else if (inTran.getTranCtrNbrAssigned() == null) {      //chassis
                 Unit inUnit = findWheeledUnitsPriority(inLinOp, odrItm, false, true)
                 if (inUnit != null) {
                     inTran.setTranCtrNbrAssigned(inUnit.getUnitId())
+                    return
                 } else {
                     inTran.setTranStatus(TranStatusEnum.TROUBLE)
                     String errorMsg = "Suitable Grounded Containers Not Found";
                     RoadBizUtil.messageCollector.appendMessage(MessageLevel.SEVERE, AllOtherFrameworkPropertyKeys.ERROR__NULL_MESSAGE, null, errorMsg);
+                    return
                 }
             }
         }
@@ -109,7 +112,6 @@ class ITSDeliverWheeledEmptiesOnPriority extends AbstractGateTaskInterceptor {
         List<ScopedBizUnit> equPoolFinalMembers = new ArrayList<>()
         List<ScopedBizUnit> tempMembers = new ArrayList<>();
         for (Pool pool : listPools) {
-            LOGGER.debug("pool ::" + pool)
             boolean eqmLineFind = false
             tempMembers.clear()
             Set poolMembers = pool.getPoolMembers()
@@ -138,7 +140,6 @@ class ITSDeliverWheeledEmptiesOnPriority extends AbstractGateTaskInterceptor {
             memberLineList.add(scopePrimaryKey.getPrimaryKey())
         }
 
-
         /* Find order item archetype */
         EquipType archType = null
         EquipType orderEquipType = OrdrItm.getEqoiSampleEquipType()
@@ -146,25 +147,21 @@ class ITSDeliverWheeledEmptiesOnPriority extends AbstractGateTaskInterceptor {
             String archTypeId = orderEquipType?.getEqtypArchetype()?.getEqtypId()
             if (archTypeId != null) {
                 archType = EquipType.findEquipType(archTypeId)
-                /*if (archType != null) {
-                    Collection eqIsoList = EquipType.findEquipTypesByArchType(archType)
-                }*/
+
             }
         }
+        /* Fetch list of Empty container*/
         DomainQuery dq = QueryUtils.createDomainQuery("Unit")
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.STORAGE))
                 .addDqPredicate(PredicateFactory.in(UnitField.UNIT_LINE_OPERATOR, memberLineList))
-
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_EQTYPE_ARCHETYPE, archType?.getEqtypGkey()))
         // .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_EQTYPE_ISO_GROUP, OrdrItm.getEqoiEqIsoGroup()))
-
         // .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_EQ_ISO_GROUP, OrdrItm.getEqoiEqIsoGroup()))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_EQ_NOMINAL_LENGTH, OrdrItm.getEqoiEqSize()))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_EQTYP_HEIGHT, OrdrItm.getEqoiEqHeight()))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CURRENT_UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
-        //final Equipment pools list
-        LOGGER.debug("dq::" + dq)
+
         List<ScopedBizUnit> listScopedBizUnit = new ArrayList<>()
         for (Serializable serializable : memberLineList) {
             ScopedBizUnit scopedBizUnit = ScopedBizUnit.hydrate(serializable)
