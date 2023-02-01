@@ -18,9 +18,12 @@ import com.navis.edi.business.edimodel.EdiConsts
 import com.navis.edi.business.entity.EdiBatch
 import com.navis.external.edi.entity.AbstractEdiPostInterceptor
 import com.navis.framework.AllOtherFrameworkPropertyKeys
+import com.navis.framework.business.Roastery
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.message.MessageLevel
+import com.navis.inventory.business.api.UnitFinder
 import com.navis.inventory.business.units.EquipmentState
+import com.navis.inventory.business.units.Unit
 import com.navis.road.business.util.RoadBizUtil
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.lang.StringUtils
@@ -60,10 +63,10 @@ import org.apache.xmlbeans.XmlObject
  4. Select the extension in "Post Code Extension" tab
  5. Click on save
  *
- *  S.No   Modified Date   Modified By     Jira      Description
- *  01.    31-01-2023    Praveen Raj M   IP-352    On posting BAPLIE EDI for a container, EDI should be rejected if the requested container has active visit
+ *
+ * S.No   Modified Date   Modified By     Jira      Description
+ *  01.     31-01-2023    Praveen Raj M   IP-352   On posting BAPLIE EDI for a container, EDI should be rejected if the requested container has active visit
  */
-
 
 class ITSBapliePostInterceptor extends AbstractEdiPostInterceptor {
     private static final Logger LOGGER = Logger.getLogger(ITSBapliePostInterceptor.class)
@@ -167,15 +170,15 @@ class ITSBapliePostInterceptor extends AbstractEdiPostInterceptor {
                         eqState.upgradeEquipmentOwner(ediLineOp, DataSourceEnum.EDI_STOW)
                         eqState.upgradeEquipmentOperator(ediLineOp, DataSourceEnum.EDI_STOW)
                     }
-                 UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
+
+                    UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
                     Unit unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), ediCtr);
                     if (unit !=null && unit?.getUnitActiveUfvNowActive() !=null )
                         registerError("Active visit found for " + ediCtr.getEqIdFull() + ", cannot process EDI.")
-                  }
+                }
 
             }
-        } 
-     finally {
+        } finally {
             //inParams.put(EdiConsts.SKIP_POSTER, Boolean.TRUE);
         }
         LOGGER.debug("ITSBapliePostInterceptor - Execution completed.");
@@ -192,3 +195,4 @@ class ITSBapliePostInterceptor extends AbstractEdiPostInterceptor {
 
 
 }
+
