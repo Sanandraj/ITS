@@ -21,6 +21,7 @@ import com.navis.framework.portal.query.PredicateFactory
 import com.navis.orders.OrdersField
 import com.navis.orders.business.serviceorders.ServiceOrder
 import com.navis.util.concurrent.NamedThreadFactory
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 import java.util.concurrent.Callable
@@ -59,8 +60,8 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
 
     @Override
     void execute(Map parameters) throws Exception {
-
-        LOGGER.debug("ITSUpdateServiceOrderInJob - BEGIN :")
+        //LOGGER.setLevel(Level.WARN)
+        LOGGER.warn("ITSUpdateServiceOrderInJob - BEGIN :")
         DomainQuery dq = QueryUtils.createDomainQuery("ServiceOrder")
         dq.addDqPredicate(PredicateFactory.eq(OrdersField.SRVO_SUB_TYPE, ServiceOrderTypeEnum.SRVO))
         dq.addDqPredicate(PredicateFactory.in(OrdersField.SRVO_STATUS, status))
@@ -93,11 +94,13 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                 ServiceOrder serviceOrder
                                 PersistenceTemplate persistenceTemplate = new PersistenceTemplate(userContext);
                                 persistenceTemplate.invoke(new CarinaPersistenceCallback() {
+
                                     @Override
                                     protected void doInTransaction() {
 
                                         serviceOrder = (ServiceOrder) HibernateApi.getInstance().get(ServiceOrder.class, primaryKey);
                                         String lastInvoiceDraftNbr = null
+                                        String finalInvNbr = null
                                         Boolean cueStatus = false
 
                                         List<ChargeableUnitEvent> cueList = serviceOrder != null ? findChargeableUnitEventByServiceOrderNbr(serviceOrder?.getSrvoNbr()) : null
@@ -106,30 +109,28 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                             for (ChargeableUnitEvent cue : cueList) {
 
                                                 if (cue != null) {
-
                                                     if ("INVOICED".equalsIgnoreCase(cue?.getStatus()) || "DRAFT".equalsIgnoreCase(cue?.getStatus())) {
                                                         lastInvoiceDraftNbr = cue?.getBexuLastDraftInvNbr()
 
-                                                        if ("INVOICED".equalsIgnoreCase(cue?.getStatus())) {
+                                                        if ("INVOICED".equalsIgnoreCase(cue?.getStatus()) && cue?.getBexuFlexString04() != null) {
                                                             cueStatus = true
+                                                            finalInvNbr = cue?.getBexuFlexString04()
 
                                                         }
                                                     }
                                                 }
                                             }
-                                            if (lastInvoiceDraftNbr != null) {
-                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), lastInvoiceDraftNbr)
-                                                if (cueStatus) {
-                                                    serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), true)
-                                                } else {
-                                                    serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), false)
-                                                }
 
-
+                                            if(cueStatus){
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), finalInvNbr)
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), true)
                                             } else {
-                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), lastInvoiceDraftNbr)
+                                                if (lastInvoiceDraftNbr != null){
+                                                    serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), lastInvoiceDraftNbr)
+                                                }else {
+                                                    serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), null)
+                                                }
                                                 serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), false)
-
                                             }
                                             HibernateApi.getInstance().save(serviceOrder)
                                         }
@@ -144,7 +145,7 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                 HibernateApi.getInstance().flush()
             }
         }
-        LOGGER.debug("ITSUpdateServiceOrderInJob - END")
+        LOGGER.warn("ITSUpdateServiceOrderInJob - END")
     }
 
 

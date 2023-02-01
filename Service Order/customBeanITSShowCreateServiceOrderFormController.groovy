@@ -23,6 +23,7 @@ import com.navis.framework.presentation.FrameworkPresentationUtils
 import com.navis.framework.presentation.ui.ICarinaWidget
 import com.navis.framework.presentation.ui.command.ISubmitFormCommand
 import com.navis.framework.presentation.ui.message.ButtonTypes
+import com.navis.framework.presentation.ui.message.MessageType
 import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.ulc.server.application.view.form.widget.CheckBoxFormWidget
@@ -32,6 +33,8 @@ import com.navis.framework.util.message.MessageCollector
 import com.navis.framework.util.message.MessageCollectorFactory
 import com.navis.framework.util.message.MessageLevel
 import com.navis.inventory.InventoryBizMetafield
+import com.navis.inventory.business.atoms.UfvTransitStateEnum
+import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.inventory.presentation.command.DefaultShowUnitDigitSubmitFormCommand
 import com.navis.inventory.presentation.controller.ShowCreateServiceOrderFormController
 import com.navis.orders.business.serviceorders.ItemServiceType
@@ -39,6 +42,7 @@ import com.navis.orders.business.serviceorders.ItemServiceTypeUnit
 import com.navis.orders.business.serviceorders.ServiceOrder
 import com.navis.orders.business.serviceorders.ServiceOrderItem
 import org.apache.commons.lang.StringUtils
+import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 /**
@@ -64,13 +68,34 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
     private ValueObject currentValues;
     private Serializable _ufvGkeys;
 
-
     public Serializable processPrimaryKeyForSubmitRequest() {
         return this._ufvGkeys;
     }
 
-
-    //TODO Configure method - To handle Multiple Billing Parties - Pending confirmation, if this requirement is valid
+    @Override
+    protected void configure() {
+        super.configure()
+        logger.setLevel(Level.DEBUG)
+        Serializable[] gkeys = getPrimaryKeys()
+        logger.debug("configure gkeys"+gkeys)
+        boolean isDeparted = false
+        PersistenceTemplate pt1 = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext());
+        pt1.invoke(new CarinaPersistenceCallback() {
+            protected void doInTransaction() {
+                logger.debug("inside pt1")
+                for (Serializable gkey : gkeys){
+                    UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(gkey)
+                    if (ufv != null && UfvTransitStateEnum.S70_DEPARTED.equals(ufv?.getUfvTransitState())){
+                        isDeparted = true
+                    }
+                }
+                if (isDeparted){
+                    OptionDialog.showError(PropertyKeyFactory.valueOf("Please select only active units"),null, ButtonTypes.OK,null);
+                }
+            }
+        })
+    }
+//TODO Configure method - To handle Multiple Billing Parties - Pending confirmation, if this requirement is valid
 
     @Override
     void setWidgetValue(ICarinaWidget inWidget, Object inValue) {
@@ -99,6 +124,34 @@ class customBeanITSShowCreateServiceOrderFormController extends ShowCreateServic
                 }
 
             }
+
+            /*@Override
+            BizResponse doBeforeSubmit(String inEntityName, Serializable inEntityGkey, FieldChanges inOutFieldChanges) {
+                  Logger logger1 = Logger.getLogger(customBeanITSShowCreateServiceOrderFormController.class)
+                logger1.setLevel(Level.DEBUG)
+                Serializable[] gkeys = getPrimaryKeys()
+                logger1.debug("doBeforeSubmit gkeys"+gkeys)
+                logger1.debug("doBeforeSubmit entity"+inEntityName)
+                logger1.debug("doBeforeSubmit gkey"+inEntityGkey)
+                logger1.debug("doBeforeSubmit fc"+inOutFieldChanges)
+                boolean isDeparted = false
+                PersistenceTemplate pt1 = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext());
+                pt1.invoke(new CarinaPersistenceCallback() {
+                    protected void doInTransaction() {
+                        logger1.debug("inside pt1")
+                        for (Serializable gkey : gkeys){
+                            UnitFacilityVisit ufv = UnitFacilityVisit.hydrate(gkey)
+                            if (ufv != null && UfvTransitStateEnum.S70_DEPARTED.equals(ufv?.getUfvTransitState())){
+                                isDeparted = true
+                            }
+                        }
+                        if (isDeparted){
+                            OptionDialog.showMessage("Please select valid units","INVALID_UNIT", ButtonTypes.OK,  MessageType.WARNING_MESSAGE, null);
+                        }
+                    }
+                })
+                return new BizResponse()
+            }*/
 
             @Override
             void doAfterSubmit(BizResponse inOutBizResponse, String inEntityName, Serializable inEntityGkey, FieldChanges inOutFieldChanges) {
