@@ -101,7 +101,6 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
             RailWayBillTransactionsDocument railWayBillDocument = (RailWayBillTransactionsDocument) inXmlTransactionDocument;
             RailWayBillTransactionsDocument.RailWayBillTransactions railWayBillTrans = railWayBillDocument != null ? railWayBillDocument.getRailWayBillTransactions() : null;
             List<RailWayBillTransactionDocument.RailWayBillTransaction> railWayBillTransList = railWayBillTrans != null ? railWayBillTrans.getRailWayBillTransactionList() : null;
-            LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - railWayBillTransList .." + railWayBillTransList);
 
             RailWayBillTransactionDocument.RailWayBillTransaction railWayBillTransaction = railWayBillTransList != null && railWayBillTransList.size() > 0 ? railWayBillTransList.get(0) : null
             if (railWayBillTransaction == null) {
@@ -120,9 +119,7 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
 
             RailWayBillTransactionDocument.RailWayBillTransaction.EdiRailWayBillContainer ediRailWayBillContainer = railWayBillTransaction.getEdiRailWayBillContainer();
             EdiContainer ediContainer = ediRailWayBillContainer != null ? ediRailWayBillContainer.getEdiContainer() : null
-            LOGGER.debug("ediContainer:: "+ediContainer);//
             if (ediContainer == null) {
-                LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - Container details unavailable.");
                 return
             }
             String ediCtrNbr = ediContainer.getContainerNbr()
@@ -141,8 +138,6 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
                 return
             }
             Unit ctrUnit = unitUfv.getUfvUnit()
-            LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - ctrUnit: " + ctrUnit);
-
 
             if (unitUfv != null) {
                 if (UnitCategoryEnum.THROUGH.equals(ctrUnit?.getUnitCategory())) {
@@ -207,23 +202,16 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
                 }
                 //Validation - VB
                 RailRoad railRoad = railWayBillTransaction.getEdiRailRoad()
-                LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - railRoad: " + railRoad);
                 ScopedBizUnit railOp = railRoad != null ? Railroad.resolveScopedBizUnit(railRoad.getRailRoadCode(), railRoad.getRailRoadCodeAgency(), BizRoleEnum.RAILROAD) : null
-                LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - railOp: " + railOp);
                 CarrierService carrierService = railOp != null && OPR_BNSF.equalsIgnoreCase(railOp.getBzuId()) ? CarrierService.findCarrierService(BNSF_SERVICE) : null
-                LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - carrierService: " + carrierService);
                 if (carrierService == null) {
                     carrierService = railOp != null && OPR_UP.equalsIgnoreCase(railOp.getBzuId()) ? CarrierService.findCarrierService(UP_SERVICE) : null
-                    LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - carrierService 2: " + carrierService);
                 }
                 if (carrierService != null && carrierService.getSrvcItinerary() != null) {
                     CarrierItinerary itinerary = carrierService.getSrvcItinerary()
-                    LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - itinerary: " + itinerary);
                     if (itinerary != null) {
                         Port destination = ediRailWayBillContainer.getEdiCommodity() != null ? ediRailWayBillContainer.getEdiCommodity().getDestinationPort() : null
-                        LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - destination: " + destination);
                         RoutingPoint destPort = destination != null ? RoutingPoint.resolveRoutingPointFromEncoding(destination.getPortIdConvention(), destination.getPortId()) : null
-                        LOGGER.debug("ITSRailWayBillPostInterceptor (beforeEdiPost) - destPort: " + destPort);
                         if (destPort != null && !itinerary.isPointInItinerary(destPort)) {
                             registerWarning("Destination (" + destPort.getPointId() + ") provided for " + ediCtrNbr + " is not available in Train Service " + carrierService.getSrvcId() + ".")
                         }
@@ -302,7 +290,6 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
                     }
                 }
             }
-            //LOGGER.warn("cv::" + carrierVisit)
         }
         return carrierVisit
     }
