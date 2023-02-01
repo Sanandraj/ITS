@@ -72,25 +72,30 @@ class ITSUpdateDwellPTDAndStatusELI extends AbstractEntityLifecycleInterceptor {
     private void createOrUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges,
                                 EFieldChanges inMoreFieldChanges, Boolean isDelete) {
         Invoice invoice = (Invoice) inEntity._entity;
-        if (inOriginalFieldChanges.hasFieldChange(BillingField.INVOICE_STATUS)) {
-            InvoiceStatusEnum invStatus = (InvoiceStatusEnum) inEntity.getField(BillingField.INVOICE_STATUS)
-            InvoiceStatusEnum invoiceStatusEnumNew = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getNewValue()
-            InvoiceStatusEnum invoiceStatusEnumOld = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getPriorValue()
-
-            if (InvoiceStatusEnum.FINAL.equals(invStatus)) {
-                Object library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
-                LOG.debug("calling ITSUpdateDwellPTDAndStatusLibrary on finalize")
-                library.updateExtendedDwellStatusAndPTD(inEntity, isDelete)
-            }
-        }
-    }
-
-    @Override
-    public void validateDelete(EEntityView inEntity) {
         Object library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
-        library.updateExtendedDwellStatusAndPTD(inEntity, Boolean.TRUE)
-    }
+        if (inOriginalFieldChanges.hasFieldChange(BillingField.INVOICE_FINAL_NBR)|| inOriginalFieldChanges.hasFieldChange(BillingField.INVOICE_STATUS)) {
+            InvoiceStatusEnum invStatus = (InvoiceStatusEnum) inEntity.getField(BillingField.INVOICE_STATUS)
+          /*  InvoiceStatusEnum invoiceStatusEnumNew = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getNewValue()
+            InvoiceStatusEnum invoiceStatusEnumOld = (InvoiceStatusEnum) inOriginalFieldChanges.findFieldChange(BillingField.INVOICE_STATUS).getPriorValue()
+            */
+            if (InvoiceStatusEnum.FINAL.equals(invStatus)) {
+                String inFinalNbr = (String) inEntity.getField(BillingField.INVOICE_FINAL_NBR)
+                LOG.debug("calling ITSUpdateDwellPTDAndStatusLibrary on inFinalNbr  final : "+inFinalNbr)
+                LOG.debug("calling ITSUpdateDwellPTDAndStatusLibrary on finalize")
+                library.updateExtendedDwellStatusAndPTD(inEntity, isDelete,inFinalNbr)
+            }
+        } else if(inOriginalFieldChanges.hasFieldChange(BillingField.INVOICE_PARENT_INVOICE)){
+            LOG.debug("inside invoice  with parent invoice")
+            library.updateExtendedDwellStatusAndPTD(inEntity, Boolean.FALSE,"Regenerate")
+        }
+}
 
-    private static Logger LOG = Logger.getLogger(ITSUpdateDwellPTDAndStatusELI.class)
+@Override
+public void validateDelete(EEntityView inEntity) {
+Object library = ExtensionUtils.getLibrary(getUserContext(), "ITSUpdateDwellPTDAndStatusLibrary");
+library.updateExtendedDwellStatusAndPTD(inEntity, Boolean.TRUE, "")
+}
+
+private static Logger LOG = Logger.getLogger(ITSUpdateDwellPTDAndStatusELI.class)
 
 }

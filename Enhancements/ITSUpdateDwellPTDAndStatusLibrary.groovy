@@ -50,8 +50,8 @@ import org.hibernate.classic.Session
 
 class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
-    void updateExtendedDwellStatusAndPTD(EEntityView entity, Boolean isUpdatePtd) {
-        LOG.setLevel(Level.DEBUG)
+    void updateExtendedDwellStatusAndPTD(EEntityView entity, Boolean isUpdatePtd,String finalInvNbr) {
+        //LOG.setLevel(Level.DEBUG)
         LOG.debug("ITSUpdateDwellPTDAndStatusLibrary starts");
         Serializable invoiceGkey = (Serializable) entity.getField(BillingField.INVOICE_GKEY)
 
@@ -63,19 +63,25 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
 
 
         for (InvoiceItem invItem : invoiceItems) {
-            if (dwell_event.equals(invItem.getItemEventTypeId())) {
+           /* if (dwell_event.equals(invItem.getItemEventTypeId())) {
                 unitDwellEventCUEGkey.add(invItem.getItemServiceExtractGkey());
-            } else if (vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())) {
+
+            }else if (vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())) {
                 vacisAndTailGateExamsCUEGkey.add(invItem.getItemServiceExtractGkey())
-            }
+            }*/
+            unitDwellEventCUEGkey.add(invItem.getItemServiceExtractGkey());
         }
 
-
-        if (!CollectionUtils.isEmpty(unitDwellEventCUEGkey)) {
-            Map<Serializable, Date> dwellPTDMap = createDwellPTDMap(unitDwellEventCUEGkey, invoice);
-
-            updateDwellPTDAndStatus(dwellPTDMap, isUpdatePtd)
+        LOG.debug("unitDwellEventCUEGkey : " + unitDwellEventCUEGkey);
+        if (CollectionUtils.isEmpty(unitDwellEventCUEGkey)) {
+            LOG.debug("No item for this event!")
+            return;
         }
+
+        Map<Serializable, Date> dwellPTDMap = createDwellPTDMap(unitDwellEventCUEGkey, invoice);
+
+        updateDwellPTDAndStatus(dwellPTDMap,isUpdatePtd,finalInvNbr)
+
         if (!CollectionUtils.isEmpty(vacisAndTailGateExamsCUEGkey)) {
             updateVacisAndTailGateExamPTD(vacisAndTailGateExamsCUEGkey)
         }
@@ -93,6 +99,8 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
             Date lastDwellPTD = findLastDwellPTD(eventExtractGkey, inInvoice);
             if (lastDwellPTD != null) {
                 dwellPTDMap.put(eventExtractGkey, lastDwellPTD);
+            } else {
+                dwellPTDMap.put(eventExtractGkey, null);
             }
         }
 
@@ -135,7 +143,7 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
         }
     }
 
-    void updateDwellPTDAndStatus(Map<Serializable, Date> dwellPTDMap, Boolean isUpdatePtd) {
+    void updateDwellPTDAndStatus(Map<Serializable, Date> dwellPTDMap, Boolean isUpdatePtd,String finalInvNbr) {
 
         if (dwellPTDMap != null && dwellPTDMap.size() > 0) {
             Set<Serializable> bexuGkeys = dwellPTDMap.keySet();
@@ -150,16 +158,29 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                     dwellCUE = (ChargeableUnitEvent) extractSession?.load(ChargeableUnitEvent.class, bexuGkey);
 
                     if (dwellCUE != null) {
-                        Date ptd = (Date) dwellPTDMap.get(bexuGkey);
-                        String bexuStatus = getDwellStatusToUpdate(dwellCUE, ptd, isUpdatePtd)
-                        if ("PARTIAL".equals(bexuStatus)) {
-                            dwellCUE.setBexuStatus("QUEUED");
+                        if(!"Regenerate".equalsIgnoreCase(finalInvNbr)){
+                            dwellCUE.setBexuFlexString04(finalInvNbr)
+                            dwellCUE.setBexuStatus("INVOICED")
                         } else {
-                            dwellCUE.setBexuStatus(bexuStatus)
+                            dwellCUE.setBexuFlexString04(null)
+                            dwellCUE.setBexuStatus("DRAFT");
                         }
-                        dwellCUE.setBexuFlexString03(bexuStatus)
-                        if (!isUpdatePtd) {
-                            dwellCUE.setBexuPaidThruDay(ptd);
+
+                        if(!"Regenerate".equals(finalInvNbr )){
+                            Date ptd =  dwellPTDMap.get(bexuGkey) != null ? (Date) dwellPTDMap.get(bexuGkey) : null;
+                            String bexuStatus = ptd != null ? getDwellStatusToUpdate(dwellCUE, ptd, isUpdatePtd) : null;
+
+                            if(bexuStatus != null){
+                                if ("PARTIAL".equals(bexuStatus)) {
+                                    dwellCUE.setBexuStatus("QUEUED");
+                                } else {
+                                    dwellCUE.setBexuStatus(bexuStatus)
+                                }
+                                dwellCUE.setBexuFlexString03(bexuStatus)
+                                if (!isUpdatePtd) {
+                                    dwellCUE.setBexuPaidThruDay(ptd);
+                                }
+                            }
                         }
                     }
                 }
