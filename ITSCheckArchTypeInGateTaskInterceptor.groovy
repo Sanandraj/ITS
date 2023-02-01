@@ -7,6 +7,7 @@ import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.road.business.workflow.TransactionAndVisitHolder
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
+
 /*
  *
  * @Author <a href="mailto:mmadhavan@weservetech.com"> Madhavan M</a>, 27/Jan/2023
@@ -33,26 +34,25 @@ class ITSCheckArchTypeInGateTaskInterceptor extends AbstractGateTaskInterceptor 
     @Override
     void execute(TransactionAndVisitHolder inWfCtx) {
         LOGGER.setLevel(Level.DEBUG)
-       String apptCtrNbr  =inWfCtx.getTran()?.getTranAppointment()?.getGapptCtrId()
-        if(apptCtrNbr == null) {
-        EquipmentOrderItem ordrItm = inWfCtx.getTran()?.getTranEqoItem()
-            if(ordrItm != null){
-        EquipType orderEquipType = ordrItm.getEqoiSampleEquipType()
-        if (orderEquipType != null) {
-             String itemArchTypeId = orderEquipType?.getEqtypArchetype()?.getEqtypId()
-            Unit unit= inWfCtx.getTran().getTranUnit()
-            if(unit != null){
-                String unitArchTypeId= unit .getPrimaryEq()?.getEqEquipType()?.getEqtypArchetype()?.getEqtypId()
-            if(itemArchTypeId != null && unitArchTypeId != null && unitArchTypeId.equals(itemArchTypeId)){
-                //Do nothing
-            }else{
-                executeInternal(inWfCtx)
-               }
+        String apptCtrNbr = inWfCtx.getTran()?.getTranAppointment()?.getGapptCtrId()
+        if (apptCtrNbr == null) {
+            EquipmentOrderItem ordrItm = inWfCtx.getTran()?.getTranEqoItem()
+            if (ordrItm != null) {
+                EquipType orderEquipType = ordrItm.getEqoiSampleEquipType()
+                if (orderEquipType != null) {
+                    String itemArchTypeId = orderEquipType?.getEqtypArchetype()?.getEqtypId()
+                    Unit unit = inWfCtx.getTran().getTranUnit()
+                    if (unit != null) {
+                        String unitArchTypeId = unit.getPrimaryEq()?.getEqEquipType()?.getEqtypArchetype()?.getEqtypId()
+                        if (itemArchTypeId != null && unitArchTypeId != null && unitArchTypeId.equals(itemArchTypeId)) {
+                            //Do nothing
+                        } else {
+                            executeInternal(inWfCtx)
+                        }
+                    }
+                }
             }
-          }
-            }
-    }else
-        {
+        } else {
             executeInternal(inWfCtx)
         }
     }
