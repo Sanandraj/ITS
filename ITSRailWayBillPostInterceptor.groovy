@@ -244,15 +244,10 @@ class ITSRailWayBillPostInterceptor extends AbstractEdiPostInterceptor {
         UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID)
         Unit ctrUnit = unitFinder.findActiveUnit(inComplex, inEquipment)
         UnitFacilityVisit ufv = null
-        if (ctrUnit == null) {
-            Collection<Unit> advisedUnits= unitFinder.findAdvisedUnitsUsingEq(inComplex, inEquipment, inCategory)
-            if (advisedUnits.size() > 0) {
-                ctrUnit = advisedUnits.getAt(0)
-                ufv = ctrUnit != null ? ctrUnit.getUfvForFacilityNewest(ContextHelper.getThreadFacility()) : null
-            }
-        } else {
-            ufv = ctrUnit. getUnitActiveUfvNowActive()
+        if (ctrUnit != null){
+            ufv = ctrUnit?.getUnitActiveUfvNowActive()
         }
+
         return ufv
     }
 
