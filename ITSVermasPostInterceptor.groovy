@@ -20,11 +20,34 @@ import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.xmlbeans.XmlObject
 
-import java.util.logging.Logger
+/*
+ *
+ * @Author <a href="mailto:uaarthi@weservetech.com">Aarthi U</a>, 13/Jun/2022
+ *
+ * Requirements: To intercept and correct the checkdigit of the Container received
+ *
+ * @Inclusion Location	: Incorporated as a code extension of the type EDI_POST_INTERCEPTOR.
+ *
+ *  Load Code Extension to N4:
+        1. Go to Administration --> System --> Code Extensions
+        2. Click Add (+)
+        3. Enter the values as below:
+            Code Extension Name:  ITSVermasPostInterceptor
+            Code Extension Type:  EDI_POST_INTERCEPTOR
+            Groovy Code: Copy and paste the contents of groovy code.
+        4. Click Save button
 
-/**
- * 22/06 uaarthi - To intercept and correct the checkdigit of the Container received
+ Attach code extension to EDI session:
+        1. Go to Administration-->EDI-->EDI configuration
+        2. Select the EDI session and right click on it
+        3. Click on Edit
+        4. Select the extension in "Post Code Extension" tab
+        5. Click on save
+ *
+ *  S.No    Modified Date     Modified By     Jira      Description
+ *  01.     2023-02-01        madhavan m      IP-370    modify the custom error message
  */
+
 class ITSVermasPostInterceptor extends AbstractEdiPostInterceptor {
     @Override
     void beforeEdiPost(XmlObject inXmlTransactionDocument, Map inParams) {
@@ -41,7 +64,6 @@ class ITSVermasPostInterceptor extends AbstractEdiPostInterceptor {
             if (container != null && container.getContainerNbr() != null) {
                 Equipment ctrEquipment = Equipment.findEquipment(container.getContainerNbr())
                 UnitCategoryEnum unitCategory = container.getContainerCategory() ? UnitCategoryEnum.getEnum(container.getContainerCategory()) : UnitCategoryEnum.EXPORT
-                log(Level.DEBUG, "ITSVermasPostInterceptor - Container: " + ctrEquipment + " | " + unitCategory)
                 boolean hasError = Boolean.FALSE
                 String ediBkgNbr = vermasTransaction.getEdiReference() != null && REF_TYPE_BKG.equalsIgnoreCase(vermasTransaction.getEdiReference().getReferenceType()) ? vermasTransaction.getEdiReference().getReferenceNbr() : null
                 EdiOperator ediCtrOp = container.getContainerOperator()
@@ -49,7 +71,7 @@ class ITSVermasPostInterceptor extends AbstractEdiPostInterceptor {
                     ScopedBizUnit lineOp = ScopedBizUnit.resolveScopedBizUnit(ediCtrOp.getOperator(), ediCtrOp.getOperatorCodeAgency(), BizRoleEnum.LINEOP)
                     Booking inBkg = lineOp != null ? Booking.findBookingWithoutVesselVisit(ediBkgNbr, lineOp) : null
                     if (inBkg == null) {
-                        registerError("Requested booking: " + ediBkgNbr + " not found, cannot process EDI.")
+                        registerError("Requested booking: " + ediBkgNbr + " not found to the line "+ ediCtrOp.getOperator() +", cannot process EDI.")
                         inParams.put(EdiConsts.SKIP_POSTER, true)
                     } else {
                         CarrierVisit bkgCv = inBkg.getEqoVesselVisit()
@@ -88,7 +110,7 @@ class ITSVermasPostInterceptor extends AbstractEdiPostInterceptor {
                                     registerError("EDI received with VGM (" + ediVgmWt + ") less than tare wt (" + ctrTare + ") of " + container.getContainerNbr() + ", cannot process EDI.")
                                     inParams.put(EdiConsts.SKIP_POSTER, true)
                                 } else if (ctrSafe != null && ediVgmWt > ctrSafe && !hasError) {
-                                    registerWarning("EDI received with VGM (" + ediVgmWt + ") exceeds safe wt (" + ctrTare + ") of " + container.getContainerNbr() + ".")
+                                    registerWarning("EDI received with VGM (" + ediVgmWt + ") exceeds safe wt (" + ctrSafe + ") of " + container.getContainerNbr() + ".")
                                 }
                             }
 
