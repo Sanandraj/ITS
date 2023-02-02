@@ -21,6 +21,7 @@ import com.navis.inventory.InvField
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.units.GuaranteeManager
+import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import org.apache.commons.collections.CollectionUtils
 import org.apache.log4j.Level
@@ -45,13 +46,14 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
         LOGGER.setLevel(Level.DEBUG)
         LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob begin")
         Serializable[] ufvGkeys = fetchNDBUnitsToRecordWaiver()
+        Date today = ArgoUtils.timeNow()
+        LocalDate lcToday = getLocalDate(today)
+        LocalDate lcPreviousDay = lcToday.minusDays(1l)
         if (ufvGkeys != null && ufvGkeys.size() > 0) {
             Serializable[] extractGkeys = fetchExtractGkeys(ufvGkeys)
             LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob ufvGkeys" + ufvGkeys.size())
             UnitFacilityVisit ufv = null
-            Date today = ArgoUtils.timeNow()
-            LocalDate lcToday = getLocalDate(today)
-            LocalDate lcPreviousDay = lcToday.minusDays(1l)
+
             LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob lcToday" + lcToday + " lcPreviousDay : " + lcPreviousDay)
 
             boolean isWaiverApplied = false
@@ -66,17 +68,16 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                     if (!CollectionUtils.isEmpty(guaranteeList)) {
                         for (Guarantee guarantee : guaranteeList) {
                             isWaiverApplied = false
+                            //updating a waiver record is possible only if the CUE status is "CANCELLED"
                             if (dwellEvent.equals(cue.getEventType()) && !IServiceExtract.CANCELLED.equals(cue.getBexuStatus())) {
                                 cue.setBexuStatus(IServiceExtract.CANCELLED)
-                                // LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob lcToday cue.setBexuStatus(IServiceExtract.CANCELLED)")
-                            }
-                            if (guarantee.isWavier() && NDB_WAIVER.equals(guarantee.getGnteNotes())) {
 
+                            }
+                            if (guarantee.isWavier() /*&& NDB_WAIVER.equals(guarantee.getGnteNotes())*/) {
                                 if (guarantee.getGnteGuaranteeEndDay() != null && lcPreviousDay.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
                                     guarantee.setGnteGuaranteeEndDay(today)
                                     isWaiverApplied = true
                                 } else if (guarantee.getGnteGuaranteeEndDay() != null && lcToday.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
-
                                     isWaiverApplied = true
                                 }
                             }
@@ -108,8 +109,39 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                     }
                 }
             }
+        }
+        Serializable[] ufvDBGkeys = fetchDBUnitsToRecordWaiverForYardAreaOpenDate()
+        if (ufvGkeys != null && ufvGkeys.size() > 0) {
+            Serializable[] extractGkeys = fetchExtractGkeys(ufvDBGkeys)
+            LOGGER.debug("ITSRecordWaiverForDeliverableUnitsJob ufvGkeys" + ufvDBGkeys.size())
+            // UnitFacilityVisit ufv = null
+            ChargeableUnitEvent cue
+            if (extractGkeys != null && extractGkeys.size() > 0) {
+                LOGGER.debug("ITSRecordWaiverForDeliverableUnitsJob extractGkeys" + extractGkeys.size())
+                for (Serializable extractGkey : extractGkeys) {
+                    List<Guarantee> guaranteeList = (List<Guarantee>) Guarantee.getListOfGuarantees(BillingExtractEntityEnum.INV, extractGkey)
+                    cue = ChargeableUnitEvent.hydrate(extractGkey)
+                    boolean isWaiverApplied = false
+                    if (!CollectionUtils.isEmpty(guaranteeList)) {
+                        for (Guarantee guarantee : guaranteeList) {
+                            if (dwellEvent.equals(cue.getEventType()) && !IServiceExtract.CANCELLED.equals(cue.getBexuStatus())) {
+                                cue.setBexuStatus(IServiceExtract.CANCELLED)
+                            }
+                            if (guarantee.isWavier() /*&& NDB_WAIVER.equals(guarantee.getGnteNotes())*/) {
+                                if (guarantee.getGnteGuaranteeEndDay() != null && lcPreviousDay.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
+                                    guarantee.setGnteGuaranteeEndDay(today)
+                                    isWaiverApplied = true
+                                }
+                            }
+                        }
+                    }
+                    if (isWaiverApplied) {
+                        Unit unit = Unit.hydrate((Serializable) cue.getBexuUnitGkey())
+                        unit?.setUnitFlexString07(null)
 
-
+                    }
+                }
+            }
         }
 
         LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob end")
@@ -118,8 +150,6 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
     private ScopedBizUnit deriveScopedBizUnit(String lineId) {
         ScopedBizUnit scopedBizUnit
         scopedBizUnit = ScopedBizUnit.findScopedBizUnit(lineId, BizRoleEnum.LINEOP)
-
-
         return scopedBizUnit;
     }
 
@@ -146,12 +176,27 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_FLEX03, NO))
                 .addDqPredicate(PredicateFactory.isNotNull(InvField.UFV_FLEX_DATE01))
                 .addDqOrdering(Ordering.desc(InvField.UFV_TIME_OF_LAST_MOVE))/*.setDqMaxResults(2)*/
+// for testing purpose
+        return HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
+
+    }
+
+    private Serializable[] fetchDBUnitsToRecordWaiverForYardAreaOpenDate() {
+
+        DomainQuery dq = QueryUtils.createDomainQuery(InvEntity.UNIT_FACILITY_VISIT)
+                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
+                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
+                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_FLEX03, YES))
+                .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_FLEX_STRING07, YES))
+                .addDqOrdering(Ordering.desc(InvField.UFV_TIME_OF_LAST_MOVE))/*.setDqMaxResults(2)*/
+        // for testing purpose
         return HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
 
     }
 
     private final static Logger LOGGER = Logger.getLogger(this.class)
     private final static String NO = "N"
+    private final static String YES = "Y"
     private final static String dwellEvent = "UNIT_EXTENDED_DWELL"
     private final static String NDB_WAIVER = "Waived for NDB"
 

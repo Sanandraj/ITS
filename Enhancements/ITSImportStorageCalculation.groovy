@@ -135,7 +135,7 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
             List<Guarantee> guaranteeList = (List<Guarantee>) Guarantee.getListOfGuarantees(BillingExtractEntityEnum.INV, cue.getPrimaryKey())
             if (!CollectionUtils.isEmpty(guaranteeList)) {
                 for (Guarantee guarantee : guaranteeList) {
-                    if (guarantee.isWavier() && "Waived for NDB".equals(guarantee.getGnteNotes())) {
+                    if (guarantee.isWavier() /*&& "Waived for NDB".equals(guarantee.getGnteNotes())*/) {
                         testDate = guarantee.getGnteGuaranteeStartDay()
                         // increment the free days if waived day is not an exempt day and it it falls with in calculation Start date and Line LFD
                         while (guarantee.getGnteGuaranteeEndDay() != null && testDate <= guarantee.getGnteGuaranteeEndDay()) {
