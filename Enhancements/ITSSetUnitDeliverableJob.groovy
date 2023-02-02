@@ -42,6 +42,7 @@ import java.text.SimpleDateFormat
 *  Requirements: This groovy is used to update the deliverable status of the unit.
 *  Related enhancement: Set First Available Day (UnitFlexDate01)
 *  3-2 - Set Deliverable only if the List of Delivery holds are released for the Unit - '1H', '7H', '2H', '71', '72', '73'
+* IP-452
 *
 * @Inclusion Location: Incorporated as a code extension of the type
 *
@@ -124,7 +125,10 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                             if (blockName != null) {
                                 String blockBayId = blockName
                                 if (deliverableList.contains(blockBayId)) {
-                                    ufv.getUfvUnit()?.setUnitFlexString03(YES)
+                                    if(!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
+                                        ufv.getUfvUnit()?.setUnitFlexString03(YES)
+                                        ufv.getUfvUnit()?.setUnitFlexString07(YES)
+                                    }
                                     if (null == ufv.getUfvFlexDate01()) {
                                         GoodsBase goodsBase = ufv.getUfvUnit()?.getUnitGoods()
                                         boolean isHoldReleased = true
@@ -138,11 +142,15 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                                     }
                                 } else if (nonDeliverableList.contains(blockBayId)) {
                                     ufv.getUfvUnit()?.setUnitFlexString03(NO)
+                                    ufv.getUfvUnit()?.setUnitFlexString07(null)
                                 }
                                 if (bayName != null) {
                                     blockBayId = new StringBuilder().append(blockName).append(":").append(bayName).toString()
                                     if (deliverableList.contains(blockBayId)) {
-                                        ufv.getUfvUnit()?.setUnitFlexString03(YES)
+                                        if(!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
+                                            ufv.getUfvUnit()?.setUnitFlexString03(YES)
+                                            ufv.getUfvUnit()?.setUnitFlexString07(YES)
+                                        }
                                         if (null == ufv.getUfvFlexDate01()) {
                                             GoodsBase goodsBase = ufv.getUfvUnit()?.getUnitGoods()
                                             boolean isHoldReleased = true
@@ -156,6 +164,7 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                                         }
                                     } else if (nonDeliverableList.contains(blockBayId)) {
                                         ufv.getUfvUnit()?.setUnitFlexString03(NO)
+                                        ufv.getUfvUnit()?.setUnitFlexString07(null)
                                     }
                                 }
 
