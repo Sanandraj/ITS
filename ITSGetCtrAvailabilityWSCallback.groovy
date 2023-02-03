@@ -1,17 +1,14 @@
 package ITS
 
 import com.navis.argo.*
-import com.navis.argo.business.api.ArgoUtils
-import com.navis.argo.business.api.IFlagType
-import com.navis.argo.business.api.IImpediment
-import com.navis.argo.business.api.LogicalEntity
-import com.navis.argo.business.api.Serviceable
-import com.navis.argo.business.api.ServicesManager
+import com.navis.argo.business.api.*
 import com.navis.argo.business.atoms.*
 import com.navis.argo.business.extract.ChargeableUnitEvent
+import com.navis.argo.business.extract.Guarantee
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
 import com.navis.argo.business.reference.ScopedBizUnit
+import com.navis.argo.business.services.IServiceExtract
 import com.navis.argo.business.xps.model.StackStatus
 import com.navis.argo.business.xps.util.StackStatusUtils
 import com.navis.cargo.business.model.BillOfLading
@@ -23,11 +20,10 @@ import com.navis.framework.portal.Ordering
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.framework.portal.query.QueryFactory
 import com.navis.framework.query.common.api.QueryResult
 import com.navis.framework.util.BizFailure
 import com.navis.framework.util.BizViolation
-import com.navis.framework.util.internationalization.PropertyKeyFactory
-import com.navis.framework.util.message.MessageLevel
 import com.navis.framework.zk.util.JSONBuilder
 import com.navis.inventory.InvEntity
 import com.navis.inventory.InvField
@@ -37,10 +33,7 @@ import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.api.UnitStorageManager
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.moves.WorkInstruction
-import com.navis.inventory.business.units.GoodsBase
-import com.navis.inventory.business.units.Unit
-import com.navis.inventory.business.units.UnitFacilityVisit
-import com.navis.inventory.business.units.UnitStorageManagerPea
+import com.navis.inventory.business.units.*
 import com.navis.services.business.api.EventManager
 import com.navis.services.business.event.Event
 import com.navis.services.business.rules.EventType
@@ -56,6 +49,8 @@ import org.jetbrains.annotations.Nullable
 import java.text.DateFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
 
 /*
  * @Author <a href="mailto:annalakshmig@weservetech.com">ANNALAKSHMI G</a>
@@ -116,13 +111,11 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
             }
             JSONBuilder jsonArray = JSONBuilder.createArray()
             for (Map.Entry<Serializable, String> entry : map.entrySet()) {
-                Map<String, String> carrierParms = new HashMap<>()
                 UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate(entry.getKey())
                 if (unitFacilityVisit != null) {
                     Unit unit = unitFacilityVisit.getUfvUnit()
                     LOGGER.debug("unit ID " + unit.getUnitId())
                     if (unit != null) {
-                        VesselVisitDetails vesselVisitDetails = unitFacilityVisit.getUfvActualIbCv() != null ? VesselVisitDetails.resolveVvdFromCv(unitFacilityVisit.getUfvActualIbCv()) : null
                         JSONBuilder jsonEventObject = JSONBuilder.createObject();
                         jsonEventObject.put(UNIT_ID, unit.getUnitGkey())
                         jsonEventObject.put(CONTAINER_NUMBER, unit.getUnitId())
@@ -156,7 +149,6 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
 
                         EventManager eventManager = (EventManager) Roastery.getBean(EventManager.BEAN_ID)
                         if (unitFacilityVisit.isTransitStateBeyond(UfvTransitStateEnum.S30_ECIN)) {
-
                             EventType unitDischEvnt = EventType.findEventType(EventEnum.UNIT_DISCH.getKey());
                             if (unitDischEvnt != null) {
                                 Event event = eventManager.getMostRecentEventByType(unitDischEvnt, unit);
@@ -188,19 +180,99 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                         GoodsBase goodsBase = unitFacilityVisit.getUfvUnit()?.getUnitGoods()
                         boolean isHoldReleased = true
                         if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
-                        // send amount details only if FDD && FAD are not null, job also will set that field, hence checking deliverable status here without depending on the FDD & FAD
 
-                        if ((unitFacilityVisit.getUfvFlexDate03() != null && unitFacilityVisit.getUfvFlexDate01() != null) || (null == spotParms.get("SPOT_STATUS_NOTE") && isHoldReleased)) {
-                            if(unitFacilityVisit.getUfvFlexDate03() == null){
-                                unitFacilityVisit.setUfvFlexDate03(ArgoUtils.timeNow()) // setting FDD
+                        if ((unitFacilityVisit.getUfvFlexDate03() != null && unitFacilityVisit.getUfvFlexDate01() != null) || (null == spotParms.get("SPOT_STATUS_NOTE") && isHoldReleased)) { // send amount details only if fad != null
+                            if (unitFacilityVisit.getUfvFlexDate03() == null) {
+                                unitFacilityVisit.setUfvFlexDate03(ArgoUtils.timeNow())
                             }
                             if (unitFacilityVisit.getUfvFlexDate01() == null) {
-                                unitFacilityVisit.setUfvFlexDate01(ArgoUtils.timeNow()) //setting FAD
+                                unitFacilityVisit.setUfvFlexDate01(ArgoUtils.timeNow())
                                 unit.setUnitFlexString03("Y")
-
+                                unit.setUnitFlexString07("Y")
                             }
+
+                            DomainQuery domainQuery = QueryFactory.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT)
+                                    .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_EVENT_TYPE, ["LINE_STORAGE", "UNIT_EXTENDED_DWELL"]))
+                                    .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_UFV_GKEY, unitFacilityVisit.getPrimaryKey()))
+                                    .addDqPredicate(PredicateFactory.in(ArgoExtractField.BEXU_STATUS, ["QUEUED", "PARTIAL"]))
+                            Serializable[] extractGkeys = HibernateApi.getInstance().findPrimaryKeysByDomainQuery(domainQuery)
+                            boolean isWaiverApplied = false
+                            ChargeableUnitEvent cue
+                            Date today = ArgoUtils.timeNow()
+                            LocalDate lcToday = getLocalDate(today)
+                            LocalDate lcPreviousDay = lcToday.minusDays(1l)
+                            if (extractGkeys != null && extractGkeys.size() > 0) {
+                                LOGGER.debug("ITSRecordWaiverForUnit extractGkeys" + extractGkeys.size())
+                                for (Serializable extractGkey : extractGkeys) {
+                                    List<Guarantee> guaranteeList = (List<Guarantee>) Guarantee.getListOfGuarantees(BillingExtractEntityEnum.INV, extractGkey)
+                                    isWaiverApplied = false
+                                    cue = ChargeableUnitEvent.hydrate(extractGkey)
+                                    if (NO.equalsIgnoreCase(unit.getUnitFlexString03())) {
+                                        if (!CollectionUtils.isEmpty(guaranteeList)) {
+                                            for (Guarantee guarantee : guaranteeList) {
+                                                isWaiverApplied = false
+                                                //updating a waiver record is possible only if the CUE status is "CANCELLED"
+                                                if (dwellEvent.equals(cue.getEventType()) && !IServiceExtract.CANCELLED.equals(cue.getBexuStatus())) {
+                                                    cue.setBexuStatus(IServiceExtract.CANCELLED)
+                                                }
+                                                if (guarantee.isWavier() /*&& NDB_WAIVER.equals(guarantee.getGnteNotes())*/) {
+                                                    if (guarantee.getGnteGuaranteeEndDay() != null && lcPreviousDay.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
+                                                        guarantee.setGnteGuaranteeEndDay(today)
+                                                        isWaiverApplied = true
+                                                    } else if (guarantee.getGnteGuaranteeEndDay() != null && lcToday.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
+                                                        isWaiverApplied = true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (!isWaiverApplied && cue != null) {
+
+                                            Guarantee gtr = new Guarantee();
+                                            String gtId = gtr.getGuaranteeIdFromSequenceProvide();
+                                            gtr.setFieldValue(ArgoExtractField.GNTE_GUARANTEE_ID, gtId);
+                                            gtr.setGnteAppliedToClass(BillingExtractEntityEnum.INV);
+                                            gtr.setGnteAppliedToPrimaryKey((Long) extractGkey);
+                                            gtr.setGnteAppliedToNaturalKey(cue.getBexuEqId())
+                                            gtr.setGnteExternalUserId(ContextHelper.getThreadUserId());
+                                            gtr.setGnteGuaranteeType(GuaranteeTypeEnum.WAIVER)
+                                            gtr.setGnteOverrideValueType(GuaranteeOverrideTypeEnum.FREE_NOCHARGE)
+                                            gtr.setGnteQuantity(1)
+                                            gtr.setGnteGuaranteeStartDay(today)
+                                            gtr.setGnteGuaranteeEndDay(today)
+                                            gtr.setGnteNotes("Waived for NDB")
+                                            gtr.setGnteGuaranteeCustomer(deriveScopedBizUnit(cue.getBexuLineOperatorId()))
+                                            try {
+                                                GuaranteeManager.recordGuarantee(gtr);
+                                                // guaranteeList.add(gtr)
+
+                                            } catch (Exception e) {
+                                                LOGGER.debug("ITSRecordWaiverForNonDeliverableUnits from Ctr Availability exception catch" + e)
+                                            }
+                                        }
+                                    } else if (YES.equalsIgnoreCase(unit.getUnitFlexString03()) && YES.equalsIgnoreCase(unit.getUnitFlexString07())) {
+                                        isWaiverApplied = false
+                                        if (!CollectionUtils.isEmpty(guaranteeList)) {
+                                            for (Guarantee guarantee : guaranteeList) {
+                                                if (dwellEvent.equals(cue.getEventType()) && !IServiceExtract.CANCELLED.equals(cue.getBexuStatus())) {
+                                                    cue.setBexuStatus(IServiceExtract.CANCELLED)
+                                                }
+                                                if (guarantee.isWavier() /*&& NDB_WAIVER.equals(guarantee.getGnteNotes())*/) {
+                                                    if (guarantee.getGnteGuaranteeEndDay() != null && lcPreviousDay.equals(getLocalDate(guarantee.getGnteGuaranteeEndDay()))) {
+                                                        guarantee.setGnteGuaranteeEndDay(today)
+                                                        isWaiverApplied = true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (isWaiverApplied) {
+                                            unit.setUnitFlexString07(null)
+                                        }
+                                    }
+                                }
+                            }
+
                             jsonEventObject.put(FIRST_AVAILABLE_DT_TM, ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvFlexDate01()))
-                            jsonEventObject.put(FIRST_DELIVERABLE_DAY,  ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvFlexDate03()))
+                            jsonEventObject.put(FIRST_DELIVERABLE_DAY, ISO_DATE_FORMAT.format(unitFacilityVisit.getUfvFlexDate03()))
                             //}
 
                             String lineLFDStr = unitFacilityVisit.getUfvCalculatedLineStorageLastFreeDay()
@@ -229,15 +301,14 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                                     .addDqOrdering(Ordering.asc(ArgoExtractField.BEXU_PAID_THRU_DAY))
                             List<ChargeableUnitEvent> cueList = (List<ChargeableUnitEvent>) HibernateApi.getInstance().findEntitiesByDomainQuery(cueDQ)
                             if (!CollectionUtils.isEmpty(cueList)) {
-                                for (ChargeableUnitEvent cue : cueList) {
-                                    if ("UNIT_EXTENDED_DWELL".equals(cue.getBexuEventType())) {
-                                        dwellNoteDate = cue.getBexuPaidThruDay()
-                                    } else if ("TAILGATE_EXAM_REQUIRED".equals(cue.getBexuEventType())) {
-                                        examNoteDate = cue.getBexuPaidThruDay()
-                                    } else if ("VACIS_INSPECTION_REQUIRED".equals(cue.getBexuEventType())) {
-                                        examNoteDate = cue.getBexuPaidThruDay()
+                                for (ChargeableUnitEvent event : cueList) {
+                                    if ("UNIT_EXTENDED_DWELL".equals(event.getBexuEventType())) {
+                                        dwellNoteDate = event.getBexuPaidThruDay()
+                                    } else if ("TAILGATE_EXAM_REQUIRED".equals(event.getBexuEventType())) {
+                                        examNoteDate = event.getBexuPaidThruDay()
+                                    } else if ("VACIS_INSPECTION_REQUIRED".equals(event.getBexuEventType())) {
+                                        examNoteDate = event.getBexuPaidThruDay()
                                     }
-
                                 }
                             }
                             // LOGGER.debug("ediInvoice fro after getInvoice" + ediInvoice)
@@ -404,7 +475,6 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                             isContainerAvailable = false
                         }*/
                         jsonEventObject.put(IS_CONTAINER_AVAILABLE, spotParms.get("SPOT_STATUS_NOTE") == null && isContainerAvailable)
-                        jsonEventObject.put(IS_CONTAINER_ACCESSIBLE,spotParms.get("SPOT_STATUS_NOTE") == null)
                         jsonArray.add(jsonEventObject)
                     }
                 }
@@ -415,6 +485,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
         LOGGER.debug("ITSGetCtrAvailabilityWSCallback :: ends")
         return mainObj.toJSONString()
     }
+
     boolean isDeliverableHoldsReleased(goodsBase) {
         List<String> holdMap = ['1H', '7H', '2H', '71', '72', '73']
         GoodsBl goodsBl = GoodsBl.resolveGoodsBlFromGoodsBase(goodsBase)
@@ -439,6 +510,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
         }
         return false
     }
+
     private static Date getLfdDate(String dt) throws ParseException {
         Calendar cal = Calendar.getInstance()
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
@@ -505,27 +577,43 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                     }
                 }
                 String blockName = null
-
                 LocPosition position = ufv.getUfvLastKnownPosition()
                 String bayName = getBayNumber(position)
-
-                String currPosition = position.getPosSlot()
-                if (currPosition != null && ufv.getUfvUnit()?.getUnitEquipment()?.getEqEquipType() != null) {
-                    position = LocPosition.resolvePosition(ContextHelper.getThreadFacility(), LocTypeEnum.YARD, ContextHelper.getThreadYardId(), currPosition, null, ufv.getUfvUnit().getUnitEquipment().getEqEquipType().getEqtypBasicLength())
-                }
-
-                if (position != null && StringUtils.isNotEmpty(position.getPosSlot())) {
-                    blockName = (position.getBlockName() != null) ? position.getBlockName() :
-                            position.getPosSlot().indexOf('.') != -1 ? position.getPosSlot().split('\\.')[0] : null
-                }
-
-                if(!StringUtils.isEmpty(blockName) && !StringUtils.isEmpty(bayName)){
-                    if(!isBayDeliverable(blockName, bayName)){
-                        spotStatusNote = UNDELIVERABLE_SPOT
+                if (position.isWheeled() || position.isWheeledHeap() || (ufv.getUfvActualObCv() != null
+                        && LocTypeEnum.TRAIN == ufv.getUfvActualObCv().getCvCarrierMode()) || (ufv.getUfvUnit()?.getUnitRouting() != null && ufv.getUfvUnit().getUnitRouting().getRtgGroup() != null
+                        && StringUtils.isNotEmpty(ufv.getUfvUnit().getUnitRouting().getRtgGroup().getGrpId()))) {
+                    ufv.getUfvUnit().setUnitFlexString03("Y")
+                    ufv.getUfvUnit().setUnitFlexString07("N")
+                    if (ufv.getUfvFlexDate01() == null) { // DO not clear the FAD - [Container sorting Fee]
+                        ufv.setUfvFlexDate01(ArgoUtils.timeNow())
                     }
-                }else if(StringUtils.isEmpty(bayName)){
-                    if(!isBlockDeliverable(blockName)){
-                        spotStatusNote = UNDELIVERABLE_SPOT
+                    if (ufv.getUfvFlexDate03() == null) {
+                        ufv.setUfvFlexDate03(ArgoUtils.timeNow())
+                    }
+
+                } else {
+                    String currPosition = position.getPosSlot()
+                    if (currPosition != null && ufv.getUfvUnit()?.getUnitEquipment()?.getEqEquipType() != null) {
+                        position = LocPosition.resolvePosition(ContextHelper.getThreadFacility(), LocTypeEnum.YARD, ContextHelper.getThreadYardId(), currPosition, null, ufv.getUfvUnit().getUnitEquipment().getEqEquipType().getEqtypBasicLength())
+                    }
+
+                    if (position != null && StringUtils.isNotEmpty(position.getPosSlot())) {
+                        blockName = (position.getBlockName() != null) ? position.getBlockName() :
+                                position.getPosSlot().indexOf('.') != -1 ? position.getPosSlot().split('\\.')[0] : null
+                    }
+
+                    if (!StringUtils.isEmpty(blockName) && !StringUtils.isEmpty(bayName)) {
+                        if (!isBayDeliverable(blockName, bayName)) {
+                            spotStatusNote = UNDELIVERABLE_SPOT
+                        }
+                    } else if (StringUtils.isEmpty(bayName)) {
+                        if (!isBlockDeliverable(blockName)) {
+                            spotStatusNote = UNDELIVERABLE_SPOT
+                        }
+                    }
+                    if (null == spotStatusNote && !YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) { //if the unit is deliverable at the time of deriving ctrSpot, it is due to yard area open
+                        ufv.getUfvUnit()?.setUnitFlexString03("Y")
+                        ufv.getUfvUnit()?.setUnitFlexString07("Y")
                     }
                 }
                 break;
@@ -580,42 +668,49 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
         return bay
     }
 
+    private ScopedBizUnit deriveScopedBizUnit(String lineId) {
+        ScopedBizUnit scopedBizUnit
+        scopedBizUnit = ScopedBizUnit.findScopedBizUnit(lineId, BizRoleEnum.LINEOP)
+        return scopedBizUnit;
+    }
+
     boolean isBayDeliverable(String blkId, String bayId) {
         List<GeneralReference> genRefList = (List<GeneralReference>) GeneralReference.findAllEntriesById("ITS", "DELIVERABLE_BAY", blkId)
         if (!CollectionUtils.isEmpty(genRefList)) {
             List<String> deliverableBayList = new ArrayList<>()
             List<String> nonDeliverableBayList = new ArrayList<>()
             for (GeneralReference generalReference : genRefList) {
-                if (generalReference.getRefId3() != null && isDateWithinRange(generalReference) ) {
+                if (generalReference.getRefId3() != null && isDateWithinRange(generalReference)) {
                     String[] bays = StringUtils.split(generalReference.getRefId3(), ",")
                     for (String bay : bays) {
-                        if("Y".equalsIgnoreCase(generalReference.getRefValue1())) {
+                        if ("Y".equalsIgnoreCase(generalReference.getRefValue1())) {
                             deliverableBayList.add(generalReference.getRefId2().concat(":").concat(bay))
-                        }else if("N".equalsIgnoreCase(generalReference.getRefValue1())) {
+                        } else if ("N".equalsIgnoreCase(generalReference.getRefValue1())) {
                             nonDeliverableBayList.add(generalReference.getRefId2().concat(":").concat(bay))
                         }
                     }
 
                 }
             }
-            if(!CollectionUtils.isEmpty(deliverableBayList) || !CollectionUtils.isEmpty(nonDeliverableBayList)) {
+            if (!CollectionUtils.isEmpty(deliverableBayList) || !CollectionUtils.isEmpty(nonDeliverableBayList)) {
                 if (!CollectionUtils.isEmpty(deliverableBayList) && deliverableBayList.contains(blkId.concat(":").concat(bayId))) {
                     return true
-                }else if (!CollectionUtils.isEmpty(nonDeliverableBayList) && nonDeliverableBayList.contains(blkId.concat(":").concat(bayId))) {
+                } else if (!CollectionUtils.isEmpty(nonDeliverableBayList) && nonDeliverableBayList.contains(blkId.concat(":").concat(bayId))) {
                     return false
-                }else{
+                } else {
                     return isBlockDeliverable(blkId)
                 }
-            }else{
+            } else {
                 return isBlockDeliverable(blkId)
             }
 
-        }else{
+        } else {
             return isBlockDeliverable(blkId)
         }
 
         // return false
     }
+
     boolean isBlockDeliverable(String blkId) {
         GeneralReference genRef = GeneralReference.findUniqueEntryById("ITS", "DELIVERABLE_BLOCK", blkId)
         if (genRef != null && "Y".equalsIgnoreCase(genRef.getRefValue1()) && isDateWithinRange(genRef)) {
@@ -641,6 +736,13 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
             return false
         }
 
+    }
+
+    private getLocalDate(Date date) {
+        if (date != null) {
+            return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+        }
+        return null
     }
 
     private static Date getDate(String dt) throws ParseException {
@@ -712,8 +814,6 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
     private static final String CTR_SPOT_SPOTTING = "SPOTTING"
     private static final String UNABLE_TO_LOCATE = "UNABLE TO LOCATE"
     private static final String BL_TYPE = "BL"
-    private static final String IS_CONTAINER_ACCESSIBLE = "isContainerAccessible"
-
     private static final String TMF_START = "TMF HOLD"
     private static final String CUSTOMS_START = "CUSTOMS"
     private static final String FREIGHT_START = "FREIGHT"
@@ -738,6 +838,9 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
     private static final String FIRST_DELIVERABLE_DAY = "firstDeliverableDtTm"
     private static final String DWELL_FEE_AMT = "dwellFeeAmt"
     private static final String DWELL_FEE_NOTE = "dwellFeeLastPTD"
+    private final static String NO = "N"
+    private final static String YES = "Y"
+    private final static String dwellEvent = "UNIT_EXTENDED_DWELL"
 
 
     private static ServicesManager servicesManager = (ServicesManager) Roastery.getBean(ServicesManager.BEAN_ID)
