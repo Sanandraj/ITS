@@ -65,7 +65,6 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
         for (InvoiceItem invItem : invoiceItems) {
            /* if (dwell_event.equals(invItem.getItemEventTypeId())) {
                 unitDwellEventCUEGkey.add(invItem.getItemServiceExtractGkey());
-
             }else if (vacisInspectionRequired.equals(invItem.getItemEventTypeId()) || tailGateExam.equals(invItem.getItemEventTypeId())) {
                 vacisAndTailGateExamsCUEGkey.add(invItem.getItemServiceExtractGkey())
             }*/
@@ -160,7 +159,11 @@ class ITSUpdateDwellPTDAndStatusLibrary extends GroovyApi {
                     if (dwellCUE != null) {
                         if(!"Regenerate".equalsIgnoreCase(finalInvNbr)){
                             dwellCUE.setBexuFlexString04(finalInvNbr)
-                            dwellCUE.setBexuStatus("INVOICED")
+                            if (finalInvNbr != null && !finalInvNbr.isEmpty()){
+                                dwellCUE.setBexuStatus("INVOICED")
+                            }else {
+                                dwellCUE.setBexuStatus("QUEUED")
+                            }
                         } else {
                             dwellCUE.setBexuFlexString04(null)
                             dwellCUE.setBexuStatus("DRAFT");
