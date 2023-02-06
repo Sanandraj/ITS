@@ -32,8 +32,8 @@ import org.apache.log4j.Logger
  *
  * @Set up groovy code in one of the business task then execute this code extension (ITSCompleteDropOffOutGate).
  *
- *  S.No    Modified Date   Modified By     Jira      Description
- *
+ *  S.No    Modified Date   Modified By                       Jira      Description
+ *   01     18-01-2023      uaarthi@weservetech.com           IP-310    Updating next stage ID as NULL.
  */
 class ITSCompleteDropOffOutGate extends AbstractGateTaskInterceptor {
     private static Logger LOGGER = Logger.getLogger(ITSCompleteDropOffOutGate.class)
