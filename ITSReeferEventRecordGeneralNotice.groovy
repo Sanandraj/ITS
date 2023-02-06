@@ -39,11 +39,15 @@ import org.apache.log4j.Logger
 class ITSReeferEventRecordGeneralNotice extends AbstractGeneralNoticeCodeExtension {
     @Override
     void execute(GroovyEvent inGroovyEvent) {
-        LOGGER.setLevel(Level.DEBUG)
-        LOGGER.debug("ITSReeferEventRecordGeneralNotice Starts :: ")
         Unit unit = (Unit) inGroovyEvent.getEntity()
+        if(unit == null){
+            return
+        }
         UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
-        boolean unitIsReefer = unit.getUnitIsReefer()
+        if(ufv == null){
+            return
+        }
+        boolean unitIsReefer = unit?.getUnitIsReefer()
         if (unitIsReefer) {
             ufv.setFieldValue(MetafieldIdFactory.valueOf("ufvUnit.unitIsPowered"), true)
             UnitEventExtractManager.createReeferEvent(unit, inGroovyEvent.getEvent())
@@ -51,5 +55,5 @@ class ITSReeferEventRecordGeneralNotice extends AbstractGeneralNoticeCodeExtensi
             HibernateApi.getInstance().flush()
         }
     }
-    private static final Logger LOGGER = Logger.getLogger(ITSReeferEventRecordGeneralNotice.class)
+    private static  Logger LOGGER = Logger.getLogger(ITSReeferEventRecordGeneralNotice.class)
 }

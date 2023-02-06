@@ -43,7 +43,7 @@ import org.apache.log4j.Logger
 
 public class ITSCustomReeferChargeRule extends AbstractStorageRule {
 
-    private static final Logger LOGGER = Logger.getLogger(ITSCustomReeferChargeRule.class);
+    private static Logger LOGGER = Logger.getLogger(ITSCustomReeferChargeRule.class);
 
     @Override
     public Date calculateStorageEndDate(EFieldChanges inChanges) {
