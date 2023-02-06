@@ -42,8 +42,8 @@ import java.text.SimpleDateFormat
 
     * @Set up General Notice for event type "UNIT_REROUTE" on Unit Entity then execute this code extension (ITSPierPassImportUpdateGenNotice).
     *
-    *  S.No    Modified Date   Modified By     Jira      Description
-    * 01.      24-01-2023                      IP-320    If Revert or clear unit group, generate the cancel EDI file
+    *  S.No    Modified Date   Modified By                              Jira      Description
+    *   01.    24-01-2023      mmadhavan@weservetech.com                IP-320    If Revert or clear unit group, generate the cancel EDI file
  */
 
 
@@ -82,7 +82,7 @@ public class ITSPierPassImportUpdateGenNotice extends AbstractGeneralNoticeCodeE
                     // isObCarrierandDestChange = true;
                     if ("YES".equalsIgnoreCase(TMF_EXEMPT)) {
                         isObCarrierandDestChange = true;
-                  
+
                     } else if(!"NO".equalsIgnoreCase(TMF_EXEMPT))  {
                         isObCarrierandDestChange = true;
                         clearExemptStatus = true
