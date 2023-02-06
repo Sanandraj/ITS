@@ -16,9 +16,6 @@ import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.portal.*
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
-import com.navis.framework.presentation.ui.message.ButtonTypes
-import com.navis.framework.presentation.ui.message.MessageType
-import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.util.BizViolation
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.framework.util.internationalization.UserMessage
@@ -27,7 +24,6 @@ import com.navis.inventory.InventoryBizMetafield
 import com.navis.inventory.business.InventoryFacade
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.units.UnitFacilityVisit
-import com.navis.services.business.rules.EventType
 import org.apache.commons.lang.time.DateUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
@@ -52,7 +48,7 @@ import org.apache.log4j.Logger
 *
 *
 *  S.No    Modified Date   Modified By     Jira      Description
-*   1       02-02-2023       Gopinath K     409      Adding the date validation for UNIT_EXTENDED_DWELL
+*   1      02-02-2023       Gopinath K     IP-409    Adding the date validation for UNIT_EXTENDED_DWELL
 */
 
 
@@ -82,7 +78,7 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
             endDate = (Date) newFieldChanges.findFieldChange(ArgoExtractField.GNTE_GUARANTEE_END_DAY).getNewValue()
         }
 
-        LOGGER.debug("ITSRecordGuaranteeTransactionCallback extractEventType"+extractEventType)
+        LOGGER.debug("ITSRecordGuaranteeTransactionCallback extractEventType" + extractEventType)
 
 
         for (Serializable gkey : gkeyList) {
@@ -94,11 +90,11 @@ class ITSRecordGuaranteeTransactionCallback extends AbstractExtensionPersistence
 
 
                 String eventId = chargeableUnitEvent != null ? chargeableUnitEvent.getEventType() : null;
-                if(eventId != null && "UNIT_EXTENDED_DWELL".equalsIgnoreCase(eventId)){
-                    if(startDate == null || endDate == null){
+                if (eventId != null && "UNIT_EXTENDED_DWELL".equalsIgnoreCase(eventId)) {
+                    if (startDate == null || endDate == null) {
                         throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " Date :  ", "Start and End date is mandatory.")
                     }
-                    if(startDate != null && endDate != null && endDate.before(startDate)){
+                    if (startDate != null && endDate != null && endDate.before(startDate)) {
                         throw BizViolation.create(PropertyKeyFactory.valueOf(ArgoPropertyKeys.ENTRY_INVALID), null, " Date :  ", "End date should be less than Start date.")
                     }
                 }
