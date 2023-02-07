@@ -7,7 +7,9 @@
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
+import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.metafields.entity.EntityId
+import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
 import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.presentation.ui.message.ButtonTypes
@@ -57,11 +59,10 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size() > 1) {
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size() > 0) {
                     Iterator it = inGkeys.iterator()
                     long count = 0
                     long errorCount = 0
-                    boolean error = false
                     boolean bkgReduce = false
                     while (it.hasNext()) {
                         Booking booking = Booking.hydrate(it.next())
@@ -70,15 +71,9 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                         }
                         VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        EventType event = EventType.findEventTypeProxy("TO_BE_DETERMINED")
-                        if (vvd != null && vvd.getVvdTimeCargoCutoff() == null) {
-                            OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"), PropertyKeyFactory.valueOf("Booking Reduction"))
-                            return
-                        } else if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))) {
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Past Dry cutoff - ${vvd.getVvdTimeCargoCutoff().toString()}."), PropertyKeyFactory.valueOf("Unable to perform."))
-                            return
-                        } else if (vvd != null && (vvd.getVvdTimeCargoCutoff()?.equals(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)) ||
-                                vvd.getVvdTimeCargoCutoff()?.after(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone)))) {
+                        EventType event = EventType.findEventTypeProxy("BOOKING_REDUCED")
+                        if (vvd != null &&
+                                (booking.getEqoQuantity()>booking.getEqoTallyReceive())) {
                             Long totalItemQuantity = 0
                             boolean bkgQtyUpdate = false
                             if (booking.getEqboNbr() != null) {
@@ -93,38 +88,45 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                             Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
                                             if (eqoiTallyIn >= 0 || eqoiTallyOut >= 0) {
                                                 if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
+                                                    if(eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyIn){
+                                                        eqoItem.setEqoiTallyLimit(eqoiTallyIn)
+                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyIn){
+                                                        eqoItem.setEqoiReceiveLimit(eqoiTallyIn)
+
+                                                    }
                                                     eqoItem.setEqoiQty(eqoiTallyIn)
-                                                    count = count + 1
                                                     bkgReduce = true
                                                     bkgQtyUpdate = true
-                                                    if (event != null) {
-                                                        vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
-                                                    }
                                                 }
                                                 else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                                                    if(eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyOut){
+                                                        eqoItem.setEqoiTallyLimit(eqoiTallyOut)
+                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyOut){
+                                                        eqoItem.setEqoiReceiveLimit(eqoiTallyOut)
+
+                                                    }
                                                     eqoItem.setEqoiQty(eqoiTallyOut)
-                                                    count = count + 1
                                                     bkgReduce = true
                                                     bkgQtyUpdate = true
-                                                    if (event != null) {
-                                                        vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
-                                                    }
                                                 }
                                             }
                                             totalItemQuantity += eqoItem.getEqoiQty()
+                                        }
+                                        if(bkgQtyUpdate){
+                                            count = count + 1
+                                            booking.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+
                                         }
                                     }
                                 }
                             }
                             if (bkgQtyUpdate){
                                 booking.setEqoQuantity(totalItemQuantity)
+                                HibernateApi.getInstance().save(booking)
                             }
 
-                        } else {
+                        } else if (booking.getEqoQuantity() == booking.getEqoTallyReceive()){
                             errorCount = errorCount + 1
-                            if (count == 0) {
-                                error = true
-                            }
                         }
                     }
                     if (!bkgReduce) {
@@ -133,8 +135,9 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                     if (bkgReduce) {
                         informationBox(count, errorCount)
                     }
+
                 } else {
-                    OptionDialog.showInformation(PropertyKeyFactory.valueOf("Selected bookings are null, or not more than one booking"), PropertyKeyFactory.valueOf("Booking Reduction"))
+                    OptionDialog.showInformation(PropertyKeyFactory.valueOf("Please select one or more than one booking"), PropertyKeyFactory.valueOf("Booking Reduction"))
                 }
             }
         })

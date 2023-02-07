@@ -4,10 +4,14 @@
 */
 
 
+import com.navis.argo.ContextHelper
+import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.persistence.AbstractExtensionPersistenceCallback
 import com.navis.inventory.business.units.EqBaseOrderItem
 import com.navis.orders.business.eqorders.Booking
 import com.navis.orders.business.eqorders.EquipmentOrderItem
+import com.navis.services.business.rules.EventType
+import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
@@ -37,11 +41,27 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
 
         LOGGER.setLevel(Level.INFO)
         LOGGER.info("ITSBkgValidationPersistenceCallback starts :: ")
+
+        if (input.get("recordEvent") != null && "YES".equalsIgnoreCase((String) input.get("recordEvent"))) {
+            Serializable vesselVisitDetails = (Serializable) input?.get("vesselVisit")
+            if (vesselVisitDetails) {
+                VesselVisitDetails vvd = VesselVisitDetails.hydrate(vesselVisitDetails)
+                EventType event = EventType.findEventType("VESSEL_VISIT_REDUCED")
+                if (vvd != null && event != null) {
+                    TimeZone timeZone = ContextHelper.getThreadUserTimezone()
+                    vvd.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
+                    return
+                }
+            }
+
+        }
         Serializable bookingOrder = (Serializable) input?.get("entityGkey")
         Booking booking = Booking.hydrate(bookingOrder)
         if (booking == null) {
             return;
         }
+        boolean reduced = false
+
         Long totalItemQuantity = 0;
         if (booking.eqoTallyReceive > 0) {
             Set bkgItems = booking != null ? booking.getEqboOrderItems() : null;
@@ -52,21 +72,42 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
                     Long eqoiQty = eqoItem?.getEqoiQty()
                     Long eqoiTallyOut = eqoItem?.getEqoiTally()
                     Long eqoiTallyIn = eqoItem?.getEqoiTallyReceive()
-                    if (eqoiTallyIn > 0 || eqoiTallyOut > 0) {
+
+                    if (eqoiTallyIn >= 0 || eqoiTallyOut >= 0) {
                         if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
+                            if (eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyIn) {
+                                eqoItem.setEqoiTallyLimit(eqoiTallyIn)
+                            } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyIn) {
+                                eqoItem.setEqoiReceiveLimit(eqoiTallyIn)
+                            }
                             eqoItem.setEqoiQty(eqoiTallyIn)
-                        }
-                        if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                            reduced = true
+
+                        } else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                            if (eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyOut) {
+                                eqoItem.setEqoiTallyLimit(eqoiTallyOut)
+                            } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyOut) {
+                                eqoItem.setEqoiReceiveLimit(eqoiTallyOut)
+
+                            }
                             eqoItem.setEqoiQty(eqoiTallyOut)
+                            reduced = true
                         }
                     }
+
                     totalItemQuantity += eqoItem.getEqoiQty()
                 }
             }
             booking.setEqoQuantity(totalItemQuantity)
+            //  HibernateApi.getInstance().save(booking)
         } else if (booking.eqoTallyReceive == 0) {
             booking.purge()
+            reduced = true
         }
+        if(reduced){
+            inOutResults.put("reduced","YES")
+        }
+
     }
     private final static Logger LOGGER = Logger.getLogger(ITSBkgValidationPersistenceCallback.class)
 }
