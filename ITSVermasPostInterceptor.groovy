@@ -19,6 +19,7 @@ import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.xmlbeans.XmlObject
+import org.apache.log4j.Logger
 
 /*
  *
@@ -36,7 +37,6 @@ import org.apache.xmlbeans.XmlObject
             Code Extension Type:  EDI_POST_INTERCEPTOR
             Groovy Code: Copy and paste the contents of groovy code.
         4. Click Save button
-
  Attach code extension to EDI session:
         1. Go to Administration-->EDI-->EDI configuration
         2. Select the EDI session and right click on it
@@ -115,7 +115,7 @@ class ITSVermasPostInterceptor extends AbstractEdiPostInterceptor {
                             }
 
                         }else {
-                            registerError("Invalid VGM Wt unit " + ediVgm.getVerifiedGrossWtUnit() + " is defined for " + container.getContainerNbr() + ", cannot process EDI.")
+                            registerError("Invalid VGM Wt unit  is defined for " + container.getContainerNbr() + ", cannot process EDI.")
                             inParams.put(EdiConsts.SKIP_POSTER, true)
                         }
 
