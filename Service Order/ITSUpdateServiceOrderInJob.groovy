@@ -18,6 +18,7 @@ import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.UserContext
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.framework.util.DateUtil
 import com.navis.orders.OrdersField
 import com.navis.orders.business.serviceorders.ServiceOrder
 import com.navis.util.concurrent.NamedThreadFactory
@@ -65,6 +66,7 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
         DomainQuery dq = QueryUtils.createDomainQuery("ServiceOrder")
         dq.addDqPredicate(PredicateFactory.eq(OrdersField.SRVO_SUB_TYPE, ServiceOrderTypeEnum.SRVO))
         dq.addDqPredicate(PredicateFactory.in(OrdersField.SRVO_STATUS, status))
+        //.addDqPredicate(PredicateFactory.eq(OrdersField.SRVO_CREATED,getTodayDate()))
         Serializable[] serviceOrderGkeys = HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
         if (serviceOrderGkeys != null) {
             int threadCount = 5;
@@ -122,7 +124,8 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                             }
 
                                             if(cueStatus){
-                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), finalInvNbr)
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), lastInvoiceDraftNbr)
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_FinalInvNbr"), finalInvNbr)
                                                 serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), true)
                                             } else {
                                                 if (lastInvoiceDraftNbr != null){
@@ -130,6 +133,7 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
                                                 }else {
                                                     serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_Invoiced"), null)
                                                 }
+                                                serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_FinalInvNbr"), null)
                                                 serviceOrder.setFieldValue(MetafieldIdFactory.valueOf("srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised"), false)
                                             }
                                             HibernateApi.getInstance().save(serviceOrder)
@@ -154,6 +158,12 @@ class ITSUpdateServiceOrderInJob extends AbstractGroovyJobCodeExtension {
         DomainQuery query = QueryUtils.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT)
         query.addDqPredicate(PredicateFactory.eq(ArgoExtractField.BEXU_SERVICE_ORDER, inServiceOrderNbr))
         return HibernateApi.getInstance().findEntitiesByDomainQuery(query)
+    }
+
+    private Date getTodayDate() {
+        TimeZone tz = ContextHelper.getThreadUserTimezone();
+        LOGGER.debug("timezone: "+tz+"date: "+ DateUtil.getTodaysDate(tz))
+        return DateUtil.getTodaysDate(tz)
     }
 
     private static final List<ServiceOrderStatusEnum> status = new ArrayList()

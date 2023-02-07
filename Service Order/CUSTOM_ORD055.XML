@@ -46,8 +46,8 @@
     <column fieldId="srvoChanged" display="viewable" />
     <column fieldId="srvoChanger" display="viewable" />
     <column fieldId="srvoCustomFlexFields.srvoCustomDFF_Invoiced" />
+    <column fieldId="srvoCustomFlexFields.srvoCustomDFF_FinalInvNbr" />
     <column fieldId="srvoCustomFlexFields.srvoCustomDFF_InvoiceFinalised" />
     <column fieldId="srvoCustomFlexFields.srvoCustomDFF_AutoCompleteSO" />
   </table>
 </variforms>
-
