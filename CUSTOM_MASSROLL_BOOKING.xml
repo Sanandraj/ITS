@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+  <actions>
+    <!--
+    	These are the most common used actions. Please verify needs and edit accordingly.
+    -->
+    <action id="view">view</action>
+    <action id="create">create</action>
+    <action id="update">update</action>
+    <action id="delete">delete</action>
+    <action id="query">query</action>
+  </actions>
+  <form id="CUSTOM_MASSROLL_BOOKING">
+<title>MASSROLL_BOOKING</title>
+    <entity>
+      <name>Booking</name>
+      <primaryKey>hwGkey</primaryKey>
+    </entity>
+
+<actionsAllowed>
+      <actionMode action="create" mode="editable" pageId="" />
+      <actionMode action="query" mode="editable" pageId="" />
+      <actionMode action="update" mode="editable" pageId="" />
+      <actionMode action="delete" mode="viewOnly" pageId="" />
+    </actionsAllowed>
+
+<formSubmissionCodeExtension name="ITSMassBookingRollSubmitFormCommand" />
+ <item fieldId="eqoVesselVisit">
+      <actionMode action="create" mode="viewOnly" />
+    </item>
+    <item fieldId="eqoPod1">
+      <actionMode action="create" mode="viewOnly" />
+    </item>
+  </form>
+</variforms>
+

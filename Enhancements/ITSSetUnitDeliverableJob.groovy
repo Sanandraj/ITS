@@ -24,7 +24,6 @@ import com.navis.inventory.InvEntity
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.units.GoodsBase
-import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.services.business.rules.FlagType
 import com.navis.spatial.business.model.AbstractBin
@@ -109,40 +108,46 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                     for (int i = 0; i < ufvGkeys.size(); i++) {
                         ufv = UnitFacilityVisit.hydrate(ufvGkeys[i])
                         if (ufv != null && ufv.getUfvLastKnownPosition() != null) {
-                            LocPosition lastKnownPosition = ufv.getUfvLastKnownPosition()
-                            Unit unit = ufv.getUfvUnit()
-                            if (lastKnownPosition.isWheeled() || lastKnownPosition.isWheeledHeap() || (ufv.getUfvActualObCv() != null
-                                    && LocTypeEnum.TRAIN == ufv.getUfvActualObCv().getCvCarrierMode()) || (unit.getUnitRouting() != null && unit.getUnitRouting().getRtgGroup() != null
-                                    && StringUtils.isNotEmpty(unit.getUnitRouting().getRtgGroup().getGrpId()))) {
-                                unit.setUnitFlexString03("Y")
-                                unit.setUnitFlexString06("N")
-                                if (ufv.getUfvFlexDate01() == null) { // DO not clear the FAD - [Container sorting Fee]
-                                    ufv.setUfvFlexDate01(ArgoUtils.timeNow())
-                                }
-                                if (ufv.getUfvFlexDate03() == null) {
-                                    ufv.setUfvFlexDate03(ArgoUtils.timeNow())
-                                }
-
+                            String blockName = null;
+                            String bayName = null
+                            LocPosition position = ufv.getUfvLastKnownPosition()
+                            String currPosition = position.getPosSlot()
+                            if (currPosition != null && ufv.getUfvUnit()?.getUnitEquipment()?.getEqEquipType() != null) {
+                                position = LocPosition.resolvePosition(ContextHelper.getThreadFacility(), LocTypeEnum.YARD, ContextHelper.getThreadYardId(), currPosition, null, ufv.getUfvUnit().getUnitEquipment().getEqEquipType().getEqtypBasicLength())
                             }
-                           else {
-                                String blockName = null;
-                                String bayName = null
-                                LocPosition position = ufv.getUfvLastKnownPosition()
-                                String currPosition = position.getPosSlot()
-                                if (currPosition != null && ufv.getUfvUnit()?.getUnitEquipment()?.getEqEquipType() != null) {
-                                    position = LocPosition.resolvePosition(ContextHelper.getThreadFacility(), LocTypeEnum.YARD, ContextHelper.getThreadYardId(), currPosition, null, ufv.getUfvUnit().getUnitEquipment().getEqEquipType().getEqtypBasicLength())
-                                }
 
-                                if (position != null && StringUtils.isNotEmpty(position.getPosSlot())) {
-                                    blockName = (position.getBlockName() != null) ? position.getBlockName() :
-                                            position.getPosSlot().indexOf('.') != -1 ? position.getPosSlot().split('\\.')[0] : null
-                                }
+                            if (position != null && StringUtils.isNotEmpty(position.getPosSlot())) {
+                                blockName = (position.getBlockName() != null) ? position.getBlockName() :
+                                        position.getPosSlot().indexOf('.') != -1 ? position.getPosSlot().split('\\.')[0] : null
+                            }
 
-                                bayName = getBayNumber(position)
-                                if (blockName != null) {
-                                    String blockBayId = blockName
+                            bayName = getBayNumber(position)
+                            if (blockName != null) {
+                                String blockBayId = blockName
+                                if (deliverableList.contains(blockBayId)) {
+                                    if(!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
+                                        ufv.getUfvUnit()?.setUnitFlexString03(YES)
+                                        ufv.getUfvUnit()?.setUnitFlexString07(YES)
+                                    }
+                                    if (null == ufv.getUfvFlexDate01()) {
+                                        GoodsBase goodsBase = ufv.getUfvUnit()?.getUnitGoods()
+                                        boolean isHoldReleased = true
+                                        if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
+                                        if (isHoldReleased) {
+                                            ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                                        }
+                                    }
+                                    if (null == ufv.getUfvFlexDate03()) {
+                                        ufv.setUfvFlexDate03(ArgoUtils.timeNow())
+                                    }
+                                } else if (nonDeliverableList.contains(blockBayId)) {
+                                    ufv.getUfvUnit()?.setUnitFlexString03(NO)
+                                    ufv.getUfvUnit()?.setUnitFlexString07(null)
+                                }
+                                if (bayName != null) {
+                                    blockBayId = new StringBuilder().append(blockName).append(":").append(bayName).toString()
                                     if (deliverableList.contains(blockBayId)) {
-                                        if (!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
+                                        if(!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
                                             ufv.getUfvUnit()?.setUnitFlexString03(YES)
                                             ufv.getUfvUnit()?.setUnitFlexString07(YES)
                                         }
@@ -161,31 +166,8 @@ class ITSSetUnitDeliverableJob extends AbstractGroovyJobCodeExtension {
                                         ufv.getUfvUnit()?.setUnitFlexString03(NO)
                                         ufv.getUfvUnit()?.setUnitFlexString07(null)
                                     }
-                                    if (bayName != null) {
-                                        blockBayId = new StringBuilder().append(blockName).append(":").append(bayName).toString()
-                                        if (deliverableList.contains(blockBayId)) {
-                                            if (!YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) {
-                                                ufv.getUfvUnit()?.setUnitFlexString03(YES)
-                                                ufv.getUfvUnit()?.setUnitFlexString07(YES)
-                                            }
-                                            if (null == ufv.getUfvFlexDate01()) {
-                                                GoodsBase goodsBase = ufv.getUfvUnit()?.getUnitGoods()
-                                                boolean isHoldReleased = true
-                                                if (goodsBase) isHoldReleased = isDeliverableHoldsReleased(goodsBase)
-                                                if (isHoldReleased) {
-                                                    ufv.setUfvFlexDate01(ArgoUtils.timeNow())
-                                                }
-                                            }
-                                            if (null == ufv.getUfvFlexDate03()) {
-                                                ufv.setUfvFlexDate03(ArgoUtils.timeNow())
-                                            }
-                                        } else if (nonDeliverableList.contains(blockBayId)) {
-                                            ufv.getUfvUnit()?.setUnitFlexString03(NO)
-                                            ufv.getUfvUnit()?.setUnitFlexString07(null)
-                                        }
-                                    }
-
                                 }
+
                             }
                         }
                     }
