@@ -3,7 +3,10 @@
  *
  */
 
+
+import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.model.Facility
+import com.navis.argo.business.model.LocPosition
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.framework.portal.FieldChanges
 import com.navis.inventory.InventoryField
@@ -36,7 +39,7 @@ import java.time.*
  *  4. Click Save button
  *
  *  S.No    Modified Date   Modified By     Jira      Description
- *
+ *  1.       10-02-2023      Aarthi         IP-307    Wheeled/ Group containers/ Ob train containers are Deliverable irrespective of Yard spot.
  *
  */
 
@@ -65,6 +68,12 @@ class ITSCustomStorageRule extends AbstractStorageRule {
                 if (ufv != null) {
 
                     Date timeInYard = ufv.getUfvTimeEcIn() != null ? ufv.getUfvTimeEcIn() : ufv.getUfvTimeIn();
+                    LocPosition lastKnownPosition = ufv.getUfvLastKnownPosition()
+                    if (lastKnownPosition.isWheeled() || lastKnownPosition.isWheeledHeap() || (ufv.getUfvActualObCv() != null
+                            && LocTypeEnum.TRAIN == ufv.getUfvActualObCv().getCvCarrierMode()) || (unit.getUnitRouting() != null && unit.getUnitRouting().getRtgGroup() != null
+                            && StringUtils.isNotEmpty(unit.getUnitRouting().getRtgGroup().getGrpId()))) {
+                        return timeInYard
+                    }
                     Date firstDeliverableDate = ufv.getUfvFlexDate01()
                     if (firstDeliverableDate != null) {
                         LocalDateTime lcDate = firstDeliverableDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()

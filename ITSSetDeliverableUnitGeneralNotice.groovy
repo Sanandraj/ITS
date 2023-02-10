@@ -63,6 +63,7 @@ import java.text.SimpleDateFormat
  *  1.      24-08-2022      Aarthi          IP-301    Record a event Billable UNIT_DELIVERABLE_MOVE when the Unit is moved after Last free day.
  *  2.      19-10-2022      Annalakshmi               Record an event UNIT_DELIVERABLE_DISCHARGE when the unit was first placed in deliverable block .
  *                                                    Configured against all Discharge Event triggers. UNIT_YARD_MOVE/ UNIT_POSITION_CORRECTION
+ *  3.      10-02-2023      Aarthi                    Do not clear FAD. Wheeled/ Group containers/ Ob train containers are Deliverable irrespective of Yard spot.
  *
  */
 class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtension {
@@ -160,7 +161,7 @@ class ITSSetDeliverableUnitGeneralNotice extends AbstractGeneralNoticeCodeExtens
                 } else {
                     unit.setUnitFlexString03("N")
                     unit.setUnitFlexString06("N")
-                    ufv.setUfvFlexDate01(null) //TODO confirm?
+                   // ufv.setUfvFlexDate01(null) //TODO confirm?
                 }
 
 
