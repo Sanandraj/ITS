@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<stateModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.navis.com/ecn4/stateModel.xsd">
+    <transitions preEventPackage="com.navis.ecn4.xmlrdt.states.pre"
+                 eventPackage="com.navis.ecn4.xmlrdt.states.transitions"
+                 postEventPackage="com.navis.ecn4.xmlrdt.states.post"
+                 conditionPackage="com.navis.ecn4.xmlrdt.states.conditions"
+                 handlerPackage="com.navis.ecn4.xmlrdt.states.handlers"
+                 ecEventPackage="com.navis.ecn4.xmlrdt.states">
+
+        <group name="operator program">
+            <!-- Weserve 07/19/2022 - to lift the non-listed job of CHE -->
+            <transition from="FORM_JOB_LIST"
+                        to="FORM_DISPATCH_LIFTED"
+                        on="lift"
+                        event="DispatchAndLiftStateTransitionEvent"
+                        ecEventGeneratorArg="LIFT"
+                        when="IsCheAcceptNonListedJobCondition"/>
+            <!-- Weserve 07/19/2022 - to lift the non-listed job of CHE -->
+        </group>
+
+        <group name="truck program">
+            <!-- Weserve 07/20/2022 - to skip the 'connect to bombcart' page -->
+            <transition from="FORM_TRUCK_UNAVAILABLE"
+                        to="FORM_TRUCK_IDLE"
+                        on="becomeAvailable"
+                        event="BecomeAvailableStateTransitionEvent"
+                        ecEventGeneratorArg="AVAL"/>
+            <!-- Weserve 07/20/2022 - to skip the 'connect to bombcart' page -->
+        </group>
+
+    </transitions>
+</stateModel>
