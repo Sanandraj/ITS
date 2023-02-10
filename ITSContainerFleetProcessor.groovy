@@ -141,7 +141,7 @@ public class ITSContainerFleetProcessor extends AbstractEdiPostInterceptor {
             UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
             Unit unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), ctr);
             LOGGER.debug("ITSContainerFleetProcessor - Active unit: " + unit)
-            if (unit != null && hasDifferentLine && onHireGenRef != null ) {
+            if (unit != null && hasDifferentLine && onHireGenRef != null && !unit.getUnitLineOperator().equals(lineOperator)) {
                 registerError(unit.getUnitId() + " has active unit visit for " + unit.getUnitLineOperator().getBzuId() + ", cannot on-hired with " + inLine + ".")
                 return
             }
