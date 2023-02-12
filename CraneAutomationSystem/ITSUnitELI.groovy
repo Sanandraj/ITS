@@ -15,6 +15,7 @@ import com.navis.external.framework.util.EFieldChangesView
 import com.navis.framework.business.Roastery
 import com.navis.framework.portal.FieldChanges
 import com.navis.inventory.InvField
+import com.navis.inventory.InventoryBizMetafield
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.services.business.rules.EventType
@@ -54,6 +55,7 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
     @Override
     void onUpdate(EEntityView inEntity, EFieldChangesView inOriginalFieldChanges, EFieldChanges inMoreFieldChanges) {
         LOGGER.setLevel(Level.DEBUG);
+        LOGGER.debug("ITSUnitELI start"+inOriginalFieldChanges)
         Unit unit
         UnitFacilityVisit unitFacilityVisit
         if (inEntity._entity instanceof Unit) {
@@ -90,8 +92,8 @@ class ITSUnitELI extends AbstractEntityLifecycleInterceptor {
 
 
         }
-        // to update the flex field (dwell date) whenever there is change in First Deliverable Date/Line LFD
-        if (unitFacilityVisit != null && inOriginalFieldChanges != null && (inOriginalFieldChanges.hasFieldChange(InvField.UFV_FLEX_DATE01) || inOriginalFieldChanges.hasFieldChange(InvField.UFV_LINE_LAST_FREE_DAY))) {
+        // to update the flex field (dwell date) whenever there is change in First Available Date/Line LFD
+        if (unitFacilityVisit != null && inOriginalFieldChanges != null && (inOriginalFieldChanges.hasFieldChange(InvField.UFV_FLEX_DATE01) || inOriginalFieldChanges.hasFieldChange(InvField.UFV_LINE_LAST_FREE_DAY) || inOriginalFieldChanges.hasFieldChange(InventoryBizMetafield.UFV_CALCULATED_LINE_STORAGE_LAST_FREE_DAY))) {
             Date date = null
             String lineLFD = unitFacilityVisit.getUfvCalculatedLineStorageLastFreeDay()
             if (!StringUtils.isEmpty(lineLFD)) {

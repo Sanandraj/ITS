@@ -188,7 +188,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                             if (unitFacilityVisit.getUfvFlexDate01() == null) {
                                 unitFacilityVisit.setUfvFlexDate01(ArgoUtils.timeNow())
                                 unit.setUnitFlexString03("Y")
-                                unit.setUnitFlexString07("Y")
+                                unit.setUnitFlexString08("Y")
                             }
 
                             DomainQuery domainQuery = QueryFactory.createDomainQuery(ArgoExtractEntity.CHARGEABLE_UNIT_EVENT)
@@ -265,7 +265,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                                             }
                                         }
                                         if (isWaiverApplied) {
-                                            unit.setUnitFlexString07(null)
+                                            unit.setUnitFlexString08(null)
                                         }
                                     }
                                 }
@@ -475,6 +475,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                             isContainerAvailable = false
                         }*/
                         jsonEventObject.put(IS_CONTAINER_AVAILABLE, spotParms.get("SPOT_STATUS_NOTE") == null && isContainerAvailable)
+                        jsonEventObject.put(IS_CONTAINER_ACCESSIBLE,spotParms.get("SPOT_STATUS_NOTE") == null)
                         jsonArray.add(jsonEventObject)
                     }
                 }
@@ -583,7 +584,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                         && LocTypeEnum.TRAIN == ufv.getUfvActualObCv().getCvCarrierMode()) || (ufv.getUfvUnit()?.getUnitRouting() != null && ufv.getUfvUnit().getUnitRouting().getRtgGroup() != null
                         && StringUtils.isNotEmpty(ufv.getUfvUnit().getUnitRouting().getRtgGroup().getGrpId()))) {
                     ufv.getUfvUnit().setUnitFlexString03("Y")
-                    ufv.getUfvUnit().setUnitFlexString07("N")
+                    ufv.getUfvUnit().setUnitFlexString06("N")
                     if (ufv.getUfvFlexDate01() == null) { // DO not clear the FAD - [Container sorting Fee]
                         ufv.setUfvFlexDate01(ArgoUtils.timeNow())
                     }
@@ -613,7 +614,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
                     }
                     if (null == spotStatusNote && !YES.equalsIgnoreCase(ufv.getUfvUnit()?.getUnitFlexString03())) { //if the unit is deliverable at the time of deriving ctrSpot, it is due to yard area open
                         ufv.getUfvUnit()?.setUnitFlexString03("Y")
-                        ufv.getUfvUnit()?.setUnitFlexString07("Y")
+                        ufv.getUfvUnit()?.setUnitFlexString08("Y")
                     }
                 }
                 break;
@@ -814,6 +815,7 @@ class ITSGetCtrAvailabilityWSCallback extends AbstractExtensionPersistenceCallba
     private static final String CTR_SPOT_SPOTTING = "SPOTTING"
     private static final String UNABLE_TO_LOCATE = "UNABLE TO LOCATE"
     private static final String BL_TYPE = "BL"
+    private static final String IS_CONTAINER_ACCESSIBLE = "isContainerAccessible"
     private static final String TMF_START = "TMF HOLD"
     private static final String CUSTOMS_START = "CUSTOMS"
     private static final String FREIGHT_START = "FREIGHT"

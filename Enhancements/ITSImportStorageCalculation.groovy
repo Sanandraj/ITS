@@ -215,7 +215,8 @@ public class ITSImportStorageCalculation extends AbstractStorageCalculation {
         StorageRule storageRule = StorageRule.getStorageRule(inUsc.getStorageRuleTableKey());
         ArgoCalendar argoCalndr = (storageRule != null) ? storageRule.getSruleCalendar() : null;
         if (argoCalndr == null) {
-            argoCalndr = ArgoCalendar.findDefaultCalendar(CalendarTypeEnum.STORAGE);
+            //argoCalndr = ArgoCalendar.findDefaultCalendar(CalendarTypeEnum.STORAGE);
+            argoCalndr = ArgoCalendar.findCalendar("LINE STORAGE CALENDAR");
         }
 
         if (argoCalndr == null) {

@@ -17,6 +17,8 @@ import com.navis.argo.business.extract.ChargeableUnitEvent
 import com.navis.argo.business.extract.Guarantee
 import com.navis.external.argo.AbstractGroovyWSCodeExtension
 import com.navis.framework.business.atoms.AppCalendarIntervalEnum
+import com.navis.framework.util.DateUtil
+import com.navis.inventory.business.units.UnitFacilityVisit
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
@@ -74,7 +76,13 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
             Date finalProposedPtd = parseDate(XML_DATE_TIME_ZONE_FORMAT, finalProposedPtdStr)
 
             ChargeableUnitEvent cue = ChargeableUnitEvent.hydrate((Serializable) extractGkey)
-
+            UnitFacilityVisit unitFacilityVisit = UnitFacilityVisit.hydrate((Serializable)cue.getBexuUfvGkey())
+           if(unitFacilityVisit != null && unitFacilityVisit.getUfvCalculatedLineStorageLastFreeDay() != null){
+               Date dwellCalcDate = DateUtil.parseStringToDate(unitFacilityVisit.getUfvCalculatedLineStorageLastFreeDay(),getUserContext())
+               if(dwellCalcDate) {
+                   cue.setBexuFlexDate01(getDatePlusOne(dwellCalcDate))
+               }
+           }
             Calendar calendar = Calendar.getInstance(TimeZone.getDefault())
             Map<Date, String> calendarEventsMap = new HashMap<Date, String>()
             Date startDate = cue.getBexuFlexDate01()
@@ -106,12 +114,13 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
         }
     }
 
-    Date getPreviousPTDPlusOne(Date previousPTD) {
+       private Date getDatePlusOne(Date inDate) {
         TimeZone tz = (ContextHelper.getThreadUserTimezone() == null) ? TimeZone.getDefault() : ContextHelper.getThreadUserTimezone()
         Calendar calendar = Calendar.getInstance(tz);
-        calendar.setTime(previousPTD);
+        calendar.setTime(inDate);
         calendar.add(Calendar.DAY_OF_MONTH, 1)
         return calendar.getTime()
+
     }
 
     private Map<Date, String> addDatesToCalendar(Guarantee guarantee, Map<Date, String> calendarEventMap) {
@@ -153,7 +162,7 @@ class ITSExtendedDwellDatesGroovyWSCodeExtension extends AbstractGroovyWSCodeExt
 
     private Map<Date, String> getCalendarGratisDates(Date inStartDate, Date inEndDate) {
         Map<Date, String> gratisDates = new HashMap<>()
-        ArgoCalendar argoCalndr = ArgoCalendar.findDefaultCalendar(CalendarTypeEnum.STORAGE);
+        ArgoCalendar argoCalndr = ArgoCalendar.findCalendar("LINE STORAGE CALENDAR");
         if (argoCalndr == null) {
             LOG.debug("getCalendarGratisDates: No Storage Calendar found");
             return gratisDates;

@@ -97,10 +97,8 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
             invItemFieldChanges.removeFieldChange(BillingField.ITEM_GKEY);
             inOutMap.put("invItemChanges", invItemFieldChanges);
             invoiceItem.setFieldValue(BillingField.ITEM_SERVICE_EXTRACT_GKEY, null);
-
             HibernateApi hibernateApi = Roastery.getHibernateApi();
             hibernateApi.save(invoiceItem)
-
             hibernateApi.delete(invoiceItem);
         }
     }
@@ -115,7 +113,6 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
         if (!CollectionUtils.isEmpty(tariffRateTiers)) {
             for (TariffRateTier tariffRateTier : tariffRateTiers) {
                 tariffRateTiersList.add(tariffRateTier)
-
             }
             Collections.sort(tariffRateTiersList, new Comparator<TariffRateTier>() {
                 @Override
@@ -130,7 +127,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
         }
         Set<InvoiceItem> invoiceItemsSet = new HashSet<InvoiceItem>();
 
-        Date dwellStartDate = dwellEvent.getBexuFlexDate01();
+
 
         finalProposedPTD = invoice.getInvoicePaidThruDay();
         if (null == finalProposedPTD) {
@@ -153,7 +150,19 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
         Map<Date, String> wsResponseMap = new HashMap<>()
 
         wsResponseMap = getWSResponseMap(wsResponseString)
-        LOG.debug("wsResponseMap" + wsResponseMap.toString())
+        Date dwellStartDate = dwellEvent.getBexuFlexDate01();
+        if(null == dwellStartDate){
+            LOG.debug("Groovy called with null start date, ignoring the call")
+            return null
+        }
+        if (!finalProposedPTD.after(dwellStartDate)) {
+            LOG.debug("Groovy called with invalid ptd date(calculation Start date is ahead of Proposed PTD), ignoring the call")
+            return null
+        } else if (previousPaidThruDay != null && !finalProposedPTD.after(previousPaidThruDay)) {
+            LOG.debug("Groovy called with invalid ptd date(previous PTD date is ahead of Proposed PTD), ignoring the call")
+            return null
+        }
+        LOG.debug("wsResponseMap" + wsResponseMap.toString() +"dwell start date"+dwellStartDate)
         if (previousPaidThruDay != null) {
             String lastInvoiceTierAndPaidQtyStr = deriveLastInvoiceTierAndPaidQty(dwellStartDate, previousPaidThruDay, wsResponseMap, tariffRateTiersList)
             if (!StringUtils.isEmpty(lastInvoiceTierAndPaidQtyStr)) {
@@ -208,7 +217,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
                     eventPerformedFrom = getPreviousPTDPlusOne(previousPaidThruDay)
                 }
             }
-
+LOG.debug("calendar"+calendar)
             calendar.setTime(eventPerformedFrom)
             Date testDate = calendar.getTime()
             LocalDate lcTestDate = testDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
@@ -381,7 +390,7 @@ class ITSExtendedDwellCalculator extends AbstractTariffRateCalculatorInterceptor
 
     private Map<Date, String> getWSResponseMap(String wsResponseStr) {
         Map<Date, String> eventMap = new HashMap<>()
-        if (!StringUtils.isEmpty(wsResponseStr)) {
+        if (!StringUtils.isEmpty(wsResponseStr) && wsResponseStr.length()>3) {
 
             String[] stringArray = StringUtils.split(wsResponseStr.substring(1, wsResponseStr.length() - 1), ",")
             for (String str : stringArray) {

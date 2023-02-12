@@ -84,6 +84,7 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
             }
             if (inGapptUnit != null) {
                 inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING01, inGapptUnit.getUnitRouting().getRtgPinNbr())
+                gateAppointment.get
             }
         }
 

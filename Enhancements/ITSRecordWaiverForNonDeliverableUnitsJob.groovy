@@ -54,8 +54,6 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
             LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob ufvGkeys" + ufvGkeys.size())
             UnitFacilityVisit ufv = null
 
-            LOGGER.debug("ITSRecordWaiverForNonDeliverableUnitsJob lcToday" + lcToday + " lcPreviousDay : " + lcPreviousDay)
-
             boolean isWaiverApplied = false
             ChargeableUnitEvent cue
             if (extractGkeys != null && extractGkeys.size() > 0) {
@@ -111,7 +109,7 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
             }
         }
         Serializable[] ufvDBGkeys = fetchDBUnitsToRecordWaiverForYardAreaOpenDate()
-        if (ufvGkeys != null && ufvGkeys.size() > 0) {
+        if (ufvDBGkeys != null && ufvDBGkeys.size() > 0) {
             Serializable[] extractGkeys = fetchExtractGkeys(ufvDBGkeys)
             LOGGER.debug("ITSRecordWaiverForDeliverableUnitsJob ufvGkeys" + ufvDBGkeys.size())
             // UnitFacilityVisit ufv = null
@@ -137,7 +135,7 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                     }
                     if (isWaiverApplied) {
                         Unit unit = Unit.hydrate((Serializable) cue.getBexuUnitGkey())
-                        unit?.setUnitFlexString07(null)
+                        unit?.setUnitFlexString08(null)
 
                     }
                 }
@@ -175,7 +173,7 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_FLEX03, NO))
                 .addDqPredicate(PredicateFactory.isNotNull(InvField.UFV_FLEX_DATE01))
-                .addDqOrdering(Ordering.desc(InvField.UFV_TIME_OF_LAST_MOVE))/*.setDqMaxResults(2)*/
+                .addDqOrdering(Ordering.desc(InvField.UFV_TIME_OF_LAST_MOVE)).setDqMaxResults(10)
 // for testing purpose
         return HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
 
@@ -187,7 +185,7 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
                 .addDqPredicate(PredicateFactory.eq(UnitField.UFV_FLEX03, YES))
-                .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_FLEX_STRING07, YES))
+                .addDqPredicate(PredicateFactory.eq(UnitField.UFV_FLEX08, YES))
                 .addDqOrdering(Ordering.desc(InvField.UFV_TIME_OF_LAST_MOVE))/*.setDqMaxResults(2)*/
         // for testing purpose
         return HibernateApi.getInstance().findPrimaryKeysByDomainQuery(dq)
