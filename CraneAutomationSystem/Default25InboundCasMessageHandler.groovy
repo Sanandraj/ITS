@@ -1524,7 +1524,7 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
 
         UnitFacilityVisit inUfv = inWorkInstruction.getWiUfv();
 
-        String heapBlock = "J2CHS";
+        String heapBlock = "MARUTL";
         if (generalReference != null && generalReference.getRefValue1() != null) {
             heapBlock = generalReference.getRefValue1();
         }
