@@ -66,6 +66,10 @@ import org.apache.log4j.Logger
  * Modified by <a href="mailto:sramsamy@weservetech.com">Ramasamy S</a>, 13/May/2022
  * Adding Loggers
  *
+ * Modified by @Author <ahref="mailto:mharikumar@weservetech.com"  >  Harikumar M</a>, 30/Jan/2023
+ * This groovy is used to bump the work instruction in case of its not completed properly and moving it to heap area based on the Data value1 in general reference,
+ * also updating the truck position in the ufvFlexString04 & WI last position in unitFlexString02.
+ *
  */
 
 class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
@@ -128,7 +132,7 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
      * @return the string response to the groovy webservice call
      */
     public String execute(Map inParameters) {
-        LOGGER.setLevel(Level.DEBUG);
+        //LOGGER.setLevel(Level.DEBUG);
 
         //Log the request content
         logMsg("\nRequest: " + getParametersAsString())
@@ -175,24 +179,12 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
         //----------- Weserve Validation Start --------------------------------------------
 
 
-        LOGGER.debug("\n_unitCount:   " + _unitCount)
-        LOGGER.debug("\n_requestType: " + _requestType)
-        LOGGER.debug("\n_visitId:	  " + _visitId)
-        LOGGER.debug("\n_visitType:	  " + _visitType)
-        LOGGER.debug("\n_craneId:	  " + _craneId)
-        LOGGER.debug("\n_tier:		  " + _tier)
         for (int i = 0; i < _casInUnits.length; i++) {
             CasInUnit25 casInUnit = _casInUnits[i]
             String unitPos = casInUnit.getAttribute(POSITION_PARAM)
-            LOGGER.debug("\nunitPos:		  " + unitPos)
-
             String unitId = casInUnit._unitId
             if (unitId != null)
-                LOGGER.warn("\nunitId :		  " + unitId)
-
             String trkPos = casInUnit._trkPos
-            LOGGER.warn("\ntrkPos :		  " + trkPos)
-
             /**
              *  Modified by WeServe Tech - To Bump the Work Instruction in case its not completed properly with the XML RDT messages.
              */
@@ -204,7 +196,6 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                     UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID)
                     unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), equipment)
                 }
-                LOGGER.debug("unit " + unit)
 
                 GeneralReference generalReference = GeneralReference.findUniqueEntryById("ITS", "BUMP_HEAP_LOC", "BUMP_TIME_IN_SEC", "BUMP_VALIDATE_TRK_SLOT");
                 String isValidateTrkPos = null;
@@ -213,34 +204,19 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                     isValidateTrkPos = generalReference.getRefValue3();
                     waitTime = generalReference.getRefValue2();
                 }
-                LOGGER.debug("waitTime " + waitTime)
                 List<WorkInstruction> wiList = findWorkInstruction(unitPos, unit, generalReference);
-                LOGGER.debug("\nwiList:		  " + wiList)
                 if (wiList != null) {
-                    LOGGER.debug("\nwiList size:" + wiList.size())
                     if (wiList.size() >= 1) {
-                        LOGGER.debug("WI size is <= 1")
                         for (WorkInstruction workInstruction : wiList) {
-                            LOGGER.debug("workInstruction " + workInstruction)
                             UnitFacilityVisit wiUfv = workInstruction.getWiUfv()
-                            LOGGER.debug("wiUfv " + wiUfv)
-                            LOGGER.debug("wiUfv state " + wiUfv?.getUfvVisitState())
                             if (unitId != null && wiUfv != null && wiUfv.getUfvUnit() != null
                                     && !unitId.equals(wiUfv.getUfvUnit().getUnitId()) && wiUfv.isTransitStatePriorTo(UfvTransitStateEnum.S40_YARD)) {
-                                LOGGER.debug("Work Instruction Unit Id :		  " + wiUfv.getUfvUnit().getUnitId())
                                 if (isValidateTrkPos.equals("Y")) {
                                     if (isTwentyLengthCtr(unit) && isTwentyLengthCtr(wiUfv.getUfvUnit())) {
-                                        LOGGER.debug(" Trk position " + trkPos);
-                                        LOGGER.debug(" WI Slot " + wiUfv.getUfvFlexString04());
-                                        LOGGER.warn(" WI Fetch " + workInstruction.getMvhsTimeFetch());
-
                                         Calendar calendar = Calendar.getInstance()
-                                        LOGGER.warn("Current Time " + calendar.getTime());
                                         double difference = 0.0;
                                         difference = (workInstruction.getMvhsTimeFetch() != null && workInstruction.getMvhsTimeFetch().getTime() > 0) ?
                                                 differenceInSeconds(workInstruction.getMvhsTimeFetch(), calendar.getTime()) : 0.0;
-                                        LOGGER.warn("\n difference in Seconds " + difference);
-
                                         if ((trkPos != null && trkPos.trim() == wiUfv.getUfvFlexString04())
                                                 || (difference > waitTime.toDouble())) {
                                             LOGGER.warn(" inside trkPos not equals update to position");
@@ -256,10 +232,8 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                                         LOGGER.debug("\n inside 40 ft --  equals update to position");
                                         updateToPosition(workInstruction, generalReference);
                                     }
-
                                 }
                                 HibernateApi.getInstance().save(workInstruction)
-
                             }
                         }
 
@@ -271,7 +245,6 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                         unit.getUnitActiveUfv().setFieldValue(InvField.UFV_FLEX_STRING04, trkPos)
                         HibernateApi.getInstance().save(unit)
                     }
-
                     HibernateApi.getInstance().flush();
                 }
             }
@@ -1136,7 +1109,6 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
             ctrIds[i] = casInUnit._unitId
             laneIds[i] = casInUnit._laneId
             replanCtrs[i] = Boolean.FALSE
-            LOGGER.debug("_casInUnits" + casInUnit._unitId + "" + casInUnit._laneId)
             String stowPos = casInUnit.getAttribute(POSITION_PARAM)
             if (StringUtils.isEmpty(stowPos)) {
                 LocPosition finalStowPos = casInUnit._unitFacilityVisit.getFinalPlannedPosition()
@@ -1556,7 +1528,6 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
         if (generalReference != null && generalReference.getRefValue1() != null) {
             heapBlock = generalReference.getRefValue1();
         }
-        LOGGER.debug("Heap Block ::" + heapBlock);
         if (inUfv != null) {
             try {
 
@@ -1576,7 +1547,6 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                     locPosition = LocPosition.createYardPosition(ContextHelper.getThreadYard(), heapBlock, null, equipBasicLengthEnum, true)
 
                 }
-                LOGGER.debug("locPosition " + locPosition)
                 try {
                     inUfv.move(locPosition, null);
                 } catch (Exception ext) {
@@ -1585,9 +1555,7 @@ class Default25InboundCasMessageHandler extends AbstractGroovyWSCodeExtension {
                 if (inUfv.getUfvUnit() != null) {
                     inUfv.getUfvUnit().recordUnitEvent(EventEnum.UNIT_YARD_MOVE, null, "Moving to Yard");
                     inUfv.setUfvTransitState(UfvTransitStateEnum.S40_YARD)
-                    LOGGER.warn("inWorkInstruction.getWiPosition() ::" + inWorkInstruction.getWiPosition());
                     if (inWorkInstruction.getWiPosition() != null) {
-                        LOGGER.debug("inWorkInstruction.getWiPosition() ::" + inWorkInstruction.getWiPosition().getPosName());
                         inUfv.getUfvUnit().setUnitFlexString02(inWorkInstruction.getWiPosition().getPosName());
                         inUfv.setFieldValue(InvField.UFV_FLEX_STRING04, null)
 
