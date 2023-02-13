@@ -3,12 +3,9 @@
  *
 */
 
-
-import com.navis.argo.ArgoPropertyKeys
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.atoms.CarrierVisitPhaseEnum
 import com.navis.argo.business.atoms.EventEnum
-import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.model.CarrierVisit
 import com.navis.argo.business.reference.PointCall
 import com.navis.argo.business.reference.RoutingPoint
@@ -19,34 +16,20 @@ import com.navis.external.framework.util.EFieldChange
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.framework.business.Roastery
 import com.navis.framework.metafields.entity.EntityId
-import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
 import com.navis.framework.persistence.hibernate.PersistenceTemplate
 import com.navis.framework.portal.FieldChanges
 import com.navis.framework.presentation.FrameworkPresentationUtils
-import com.navis.framework.presentation.ui.message.ButtonTypes
-import com.navis.framework.presentation.ui.message.MessageDialog
-import com.navis.framework.presentation.ui.message.MessageType
-import com.navis.framework.presentation.ui.message.OptionDialog
-import com.navis.framework.util.internationalization.PropertyKeyFactory
-import com.navis.framework.util.message.MessageCollector
-import com.navis.framework.util.message.MessageLevel
 import com.navis.inventory.business.api.UnitFinder
 import com.navis.inventory.business.api.UnitReroutePoster
 import com.navis.inventory.business.units.Routing
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.orders.OrdersField
-import com.navis.orders.OrdersPropertyKeys
-import com.navis.orders.business.api.EquipmentOrderManager
 import com.navis.orders.business.eqorders.Booking
-import com.navis.road.RoadPropertyKeys
 import com.navis.vessel.business.schedule.VesselVisitDetails
 import com.navis.vessel.business.schedule.VesselVisitLine
-import org.apache.commons.lang.StringUtils
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
-import javax.naming.Context
 
 /**
  * @Author: mailto:skishore@weservetech.com, Kishore S; Date: 11/10/2022
@@ -76,8 +59,6 @@ class ITSMassBookingRollSubmitFormCommand extends AbstractFormSubmissionCommand 
     @Override
     void doBeforeSubmit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inOutFieldChanges,
                         EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
-        //LOGGER.setLevel(Level.INFO)
-        //LOGGER.info("ITSMassBookingRollSubmitFormCommand Starts ::")
         if (inGkeys == null && inGkeys.isEmpty()) {
             return;
         }
@@ -116,12 +97,6 @@ class ITSMassBookingRollSubmitFormCommand extends AbstractFormSubmissionCommand 
                         }
                     }
 
-
-                    Long bkgTallyReceive = booking?.getEqoTallyReceive()
-                    /*if (bkgTallyReceive > 0) {
-                        registerError("Error : Cannot perform Booking roll for selected bookings")
-                        return
-                    }*/
                 }
             }
         })
@@ -130,12 +105,10 @@ class ITSMassBookingRollSubmitFormCommand extends AbstractFormSubmissionCommand 
 //Gopal - All units in yard should be rolled as well, when booking rolls.
     @Override
     void submit(String inVariformId, EntityId inEntityId, List<Serializable> inGkeys, EFieldChanges inFieldChanges, EFieldChanges inNonDbFieldChanges, Map<String, Object> inParams) {
-
         PersistenceTemplate persistenceTemplate = new PersistenceTemplate(FrameworkPresentationUtils.getUserContext())
         persistenceTemplate.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                //LOGGER.setLevel(Level.DEBUG)
                 List<String> lineInvalid = new ArrayList()
                 List<String> podInvalid = new ArrayList()
                 List<String> inActivePhase = new ArrayList()
@@ -222,7 +195,6 @@ class ITSMassBookingRollSubmitFormCommand extends AbstractFormSubmissionCommand 
                         UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
                         Collection unitsReceivedForOrder = unitFinder.findUnitsAdvisedOrReceivedForOrder(booking);
                         booking.setEqoVesselVisit(carrierVisit)
-                        //if
                         booking.setEqoPod1(RoutingPoint.findRoutingPoint(pod))
                         if (unitsReceivedForOrder != null && !unitsReceivedForOrder.isEmpty()) {
                             Iterator unitIterator = unitsReceivedForOrder.iterator();
