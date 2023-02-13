@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variforms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="schemas/Variforms.xsd">
+    <actions>
+        <!--
+            These are the most common used actions. Please verify needs and edit accordingly.
+        -->
+        <action id="view">view</action>
+        <action id="create">create</action>
+        <action id="update">update</action>
+        <action id="delete">delete</action>
+        <action id="query">query</action>
+    </actions>
+    <form id="CUSTOM_FORM_GEN_REFERENCE">
+        <customization creationType="CUSTOM_NEW" />
+        <entity>
+            <name>GeneralReference</name>
+            <primaryKey>refGkey</primaryKey>
+        </entity>
+        <actionsAllowed>
+            <actionMode action="create" mode="editable" />
+            <actionMode action="update" mode="editable" />
+            <actionMode action="delete" mode="editable" />
+        </actionsAllowed>
+        <borderLayout>
+            <centerPanel>
+                <grid width="auto">
+                    <row>
+                        <cell>
+                            <item fieldId="refValue1"/>
+                        </cell>
+                    </row>
+                    <row>
+                        <cell>
+                            <item fieldId="refValue2"/>
+                        </cell>
+                    </row>
+                    <row>
+                        <cell>
+                            <item fieldId="refValue3"/>
+                        </cell>
+                    </row>
+                    <row>
+                        <cell>
+                            <item fieldId="refValue4"/>
+                        </cell>
+                    </row>
+                    <row>
+                        <cell>
+                            <item fieldId="refValue5"/>
+                        </cell>
+                    </row>
+                    <row>
+                        <cell>
+                            <item fieldId="refValue6"/>
+                        </cell>
+                    </row>
+                </grid>
+            </centerPanel>
+        </borderLayout>
+    </form>
+</variforms>
+

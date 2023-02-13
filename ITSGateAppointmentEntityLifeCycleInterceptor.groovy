@@ -3,25 +3,14 @@
  *
  */
 
-
-import com.navis.argo.business.atoms.UnitCategoryEnum
 import com.navis.external.framework.entity.AbstractEntityLifecycleInterceptor
 import com.navis.external.framework.entity.EEntityView
 import com.navis.external.framework.util.EFieldChanges
 import com.navis.external.framework.util.EFieldChangesView
-import com.navis.framework.business.Roastery
 import com.navis.framework.portal.FieldChange
-import com.navis.framework.portal.QueryUtils
-import com.navis.framework.portal.query.DomainQuery
-import com.navis.framework.portal.query.PredicateFactory
-import com.navis.inventory.InventoryEntity
-import com.navis.inventory.business.api.UnitField
-import com.navis.inventory.business.atoms.UnitVisitStateEnum
-import com.navis.inventory.business.units.Unit
 import com.navis.road.RoadApptsField
 import com.navis.road.business.appointment.model.GateAppointment
 import com.navis.road.business.appointment.model.TruckVisitAppointment
-import com.navis.road.business.atoms.TruckerFriendlyTranSubTypeEnum
 import org.apache.log4j.Logger
 
 /*
@@ -40,7 +29,6 @@ import org.apache.log4j.Logger
                 Code Extension Type:  ENTITY_LIFECYCLE_INTERCEPTION
                Groovy Code: Copy and paste the contents of groovy code.
             4. Click Save button
-
     * @Set up groovy code in Extension Trigger against "GateAppointment" Entity then execute this code extension (ITSGateAppointmentEntityLifeCycleInterceptor).
     *
     *  S.No    Modified Date   Modified By     Jira      Description
@@ -68,31 +56,12 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
             return;
         }
 
-        if (TruckerFriendlyTranSubTypeEnum.PUI.equals(gateAppointment.getGapptTranType())) {
-            Unit inGapptUnit = gateAppointment.getGapptUnit();
-            if (inGapptUnit == null) {
-                if (gateAppointment.getGapptCtrId() != null) {
-                    DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT)
-                            .addDqPredicate(PredicateFactory.in(UnitField.UNIT_VISIT_STATE, [UnitVisitStateEnum.ACTIVE, UnitVisitStateEnum.ADVISED]))
-                            .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_ID, gateAppointment.getGapptCtrId()))
-                            .addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.IMPORT));
-                    Unit[] unitList = Roastery.getHibernateApi().findEntitiesByDomainQuery(dq);
-                    if (unitList != null && unitList.size() > 0) {
-                        inGapptUnit = (Unit) unitList[0];
-                    }
-                }
-            }
-            if (inGapptUnit != null) {
-                inMoreFieldChanges.setFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING01, inGapptUnit.getUnitRouting().getRtgPinNbr())
-                gateAppointment.get
-            }
-        }
-
         // Dual Flag implementation
 
         TruckVisitAppointment tva = null
 
         FieldChange tvaFc = inOriginalFieldChanges.hasFieldChange(RoadApptsField.GAPPT_TRUCK_VISIT_APPOINTMENT) ? (FieldChange) inOriginalFieldChanges.findFieldChange(RoadApptsField.GAPPT_TRUCK_VISIT_APPOINTMENT) : null;
+        FieldChange dualFC = inOriginalFieldChanges.hasFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02) ? (FieldChange) inOriginalFieldChanges.findFieldChange(RoadApptsField.GAPPT_UNIT_FLEX_STRING02) : null;
 
         if (tvaFc != null) {
             if (tvaFc.getNewValue()) {
@@ -104,6 +73,9 @@ class ITSGateAppointmentEntityLifeCycleInterceptor extends AbstractEntityLifecyc
                 tva = (TruckVisitAppointment) tvaFc.getPriorValue()
                 reloadDualFlag(tva, gateAppointment, inMoreFieldChanges, tvaFc.getNewValue())
             }
+        } else if (dualFC != null && dualFC.getPriorValue() != null && dualFC.getNewValue() == null && gateAppointment.getGapptTruckVisitAppointment() != null) {
+            tva = gateAppointment.getGapptTruckVisitAppointment()
+            reloadDualFlag(tva, gateAppointment, inMoreFieldChanges, tva)
         }
     }
 

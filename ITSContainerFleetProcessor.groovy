@@ -141,7 +141,7 @@ public class ITSContainerFleetProcessor extends AbstractEdiPostInterceptor {
             UnitFinder unitFinder = (UnitFinder) Roastery.getBean(UnitFinder.BEAN_ID);
             Unit unit = unitFinder.findActiveUnit(ContextHelper.getThreadComplex(), ctr);
             LOGGER.debug("ITSContainerFleetProcessor - Active unit: " + unit)
-            if (unit != null && hasDifferentLine && onHireGenRef != null ) {
+            if (unit != null && hasDifferentLine && onHireGenRef != null && !unit.getUnitLineOperator().equals(lineOperator) && "A".equalsIgnoreCase(action)) {
                 registerError(unit.getUnitId() + " has active unit visit for " + unit.getUnitLineOperator().getBzuId() + ", cannot on-hired with " + inLine + ".")
                 return
             }
@@ -164,8 +164,8 @@ public class ITSContainerFleetProcessor extends AbstractEdiPostInterceptor {
                         return
                     }
                 }
-                Double inTareWtKg = inTareWt != null ? Double.parseDouble(inTareWt) : null
-                Double inSafeWtKg = inSafeWt != null ? Double.parseDouble(inSafeWt) : null
+                Double inTareWtKg = StringUtils.isEmpty(inTareWt) ? null : Double.parseDouble(inTareWt)
+                Double inSafeWtKg = StringUtils.isEmpty(inSafeWt) ? null : Double.parseDouble(inSafeWt)
                 ctr = updateEqProperties(ctr, ediEqType, inTareWtKg, inSafeWtKg)
                 ctr.updateLifeCycleState(LifeCycleStateEnum.ACTIVE)
                 HibernateApi.getInstance().save(ctr)

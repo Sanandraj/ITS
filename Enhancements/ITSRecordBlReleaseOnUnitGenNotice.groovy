@@ -8,6 +8,7 @@ package ITS
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.argo.business.api.LogicalEntity
 import com.navis.argo.business.api.Serviceable
+import com.navis.argo.business.atoms.LocTypeEnum
 import com.navis.argo.business.model.GeneralReference
 import com.navis.argo.business.model.LocPosition
 import com.navis.cargo.business.model.BillOfLading
@@ -20,6 +21,7 @@ import com.navis.services.business.event.GroovyEvent
 import com.navis.services.business.rules.EventType
 import com.navis.services.business.rules.FlagType
 import org.apache.commons.collections.CollectionUtils
+import org.apache.commons.lang.StringUtils
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -42,6 +44,7 @@ import org.apache.log4j.Logger
  *  @Setup Edit the Received event type General Notice with ITSRecordBlReleaseOnUnitGenNotice code
  *
  *  S.No    Modified Date   Modified By     Jira      Description
+ *  1.       10-02-2023      Aarthi         IP-273    Do not clear FAD. Wheeled/ Group containers/ Ob train containers are Deliverable irrespective of Yard spot.
  *
  */
 
@@ -58,23 +61,40 @@ class ITSRecordBlReleaseOnUnitGenNotice extends AbstractGeneralNoticeCodeExtensi
             if (!CollectionUtils.isEmpty(blBlGoodsBls)) {
                 for (BlGoodsBl blGoodsBl : blBlGoodsBls) {
                     unit = blGoodsBl.getBlgdsblGoodsBl().getGdsUnit()
-                    UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
-                    LOGGER.warn("ufv " + ufv)
-                    if (unit && isDeliverableHoldsReleased(unit.getUnitGoods())) {
+                    if(unit){
+                        UnitFacilityVisit ufv = unit.getUnitActiveUfvNowActive()
+                        LOGGER.warn("ufv " + ufv)
+                        LocPosition lastKnownPosition = ufv.getUfvLastKnownPosition()
 
-                        if(ufv){
-                            LocPosition position = ufv.getUfvLastKnownPosition()
-                            if (position != null && position.getBlockName() != null && isBlockDeliverable(position.getBlockName())) {
-
-                                unit.setUnitFlexString03("Y")
+                        if (lastKnownPosition.isWheeled() || lastKnownPosition.isWheeledHeap() || (ufv.getUfvActualObCv() != null
+                                && LocTypeEnum.TRAIN == ufv.getUfvActualObCv().getCvCarrierMode()) || (unit.getUnitRouting() != null && unit.getUnitRouting().getRtgGroup() != null
+                                && StringUtils.isNotEmpty(unit.getUnitRouting().getRtgGroup().getGrpId()))) {
+                            unit.setUnitFlexString03("Y")
+                            unit.setUnitFlexString06("N")
+                            if (ufv.getUfvFlexDate01() == null) {
                                 ufv.setUfvFlexDate01(ArgoUtils.timeNow())
-                                unit.setUnitFlexString06("Y")
                             }
+                            if (ufv.getUfvFlexDate03() == null) {
+                                ufv.setUfvFlexDate03(ArgoUtils.timeNow())
+                            }
+                            return
                         }
-                    } else {
-                        unit.setUnitFlexString03("N")
-                        if(ufv) ufv.setUfvFlexDate01(null)
-                        unit.setUnitFlexString06("N")
+
+                        if (isDeliverableHoldsReleased(unit.getUnitGoods())) {
+                            if(ufv){
+                                LocPosition position = ufv.getUfvLastKnownPosition()
+                                if (position != null && position.getBlockName() != null && isBlockDeliverable(position.getBlockName())) {
+
+                                    unit.setUnitFlexString03("Y")
+                                    ufv.setUfvFlexDate01(ArgoUtils.timeNow())
+                                    unit.setUnitFlexString06("Y")
+                                }
+                            }
+                        } else {
+                            unit.setUnitFlexString03("N")
+                            //  if(ufv) ufv.setUfvFlexDate01(null)
+                            unit.setUnitFlexString06("N")
+                        }
                     }
                 }
             }

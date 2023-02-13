@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE settings PUBLIC "-//Navis LLC//ecn4//settings" "settings.dtd" >
+
+<!-- There are 2 copies of this file one in ecn4-app\ecn4\conf\runtime -->
+<!-- one in bridged-app\bridged\conf\runtime. Keep them in synch -->
+
+<settings>
+    <component name="shared">
+        <component name="cache">
+            <component name="scope">
+                <setting name="OPR" value="ITS"/>
+                <setting name="CPX" value="USLGB"/>
+                <setting name="FAC" value="PIERG"/>
+                <setting name="YRD" value="PIERG"/>
+            </component>
+        </component>
+        <component name="esb">
+            <setting name="ENABLED" value="true"/>
+            <component name="ecn4">
+                <setting name="ADDRESS" value="10.204.6.106"/>
+                <setting name="PORT_1" value="13104"/>
+                <setting name="PORT_2" value="13105"/>
+            </component>
+            <component name="bridge">
+                <setting name="ADDRESS" value="10.204.6.105"/>
+                <setting name="PORT_1" value="13007"/>
+                <setting name="PORT_2" value="13008"/>
+            </component>
+        </component>
+    </component>
+
+    <component name="bridge">
+        <component name="listener">
+            <!-- telnet listener for the bridge -->
+            <setting name="ENABLED" value="false"/>
+            <setting name="COMMAND_LINE_PORT" value="13006"/>
+        </component>
+        <component name="esb">
+            <setting name="PERSISTENCE_STORE" value="bridgestore"/>
+        </component>
+    </component>
+
+    <component name="ecn4">
+        <setting name="STANDALONE" value="false"/>
+        <setting name="INTERACTIVE" value="false"/>
+        <setting name="ALLOW_ILLEGAL_ENTITY_REFERENCES_AT_STARTUP" value="true"/>
+        <setting name="WARN_THRESHOLD_WRITE_ACTION" value="100"/>
+        <setting name="WARN_THRESHOLD_READ_ACTION" value="100"/>
+        <setting name="PARALLEL_FILTER_THRESHOLD" value="10000"/>
+        <setting name="STARTUP_POLLING_INTERVAL" value="1000"/>
+
+        <component name="settings">
+            <setting name="ECN4_DIR" value="../ecn4"/>
+        </component>
+
+        <component name="extensions">
+            <setting name="ENABLED" value="true"/>
+            <setting name="DIRECTORY" value="extensions"/>
+        </component>
+
+        <component name="timeouts">
+            <component name="bento">
+                <!-- time/value in milli-seconds -->
+                <setting name="DEFAULT" value="2000"/>
+                <setting name="XD" value="5000"/>
+            </component>
+            <component name="rest">
+                <!-- time/value in milli-seconds -->
+                <setting name="DEFAULT" value="5000"/>
+            </component>
+        </component>
+
+        <component name="cache">
+            <setting name="MANAGE" value="false"/>
+            <setting name="PCE_TIMEOUT" value="10000"/>
+            <setting name="UPDATE_TIMEOUT" value="5000"/>
+        </component>
+
+        <component name="datasource">
+            <setting name="OPERATION" value="mule"/>
+            <component name="mule">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.datasource.impl.MuleDataSourceComponentProvider"/>
+            </component>
+        </component>
+
+        <component name="query">
+            <component name="files">
+                <setting name="CORE" value="conf/queries.list"/>
+            </component>
+        </component>
+
+        <component name="gc">
+            <setting name="ENABLED" value="true"/>
+            <setting name="BATCH_SIZE" value="50"/>
+            <setting name="OBJECT_RETENTION_TIME" value="1"/>
+            <setting name="SCHEDULED_EXECUTION_INTERVAL" value="1"/>
+            <setting name="CHECK_SWAPPING_SCHEDULED_EXECUTION_INTERVAL" value="3"/>
+        </component>
+
+        <!-- ECN4 production uses port 13900 for the HSQL in memory database -->
+
+        <component name="http">
+            <setting name="HOST" value=""/>
+            <setting name="PORT" value="13100"/>
+            <setting name="MIN_THREADS" value="1"/>
+            <setting name="MAX_THREADS" value="5"/>
+            <setting name="LOW_THREADS" value="1"/>
+        </component>
+        <component name="remotequery">
+            <setting name="ENABLED" value="false"/>
+        </component>
+        <component name="debug">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="ulc">
+            <setting name="ENABLED" value="false"/>
+        </component>
+
+        <component name="xmlrdt">
+            <setting name="ENABLED" value="true"/>
+            <setting name="PORT" value="13101"/>
+            <setting name="OUTPUT_VALIDATION" value="true"/>
+            <setting name="JOBLIST_PUSH_DELAY" value="10000"/>
+            <setting name="JOB_UPDATE_PUSH_DELAY" value="1000"/>
+            <setting name="JOB_UPDATE_BLOCKED_CHE_MIN_DELAY" value="500"/>
+            <setting name="JOBSTEP_FORM_TRANSITION_DELAY_ENABLED" value="true"/>
+            <setting name="CONTAINER_LIST_SIZE" value="3"/>
+            <setting name="CONTAINER_LIST_SORT" value="com.navis.ecn4.xmlrdt.impl.sorters.DefaultQuayCraneUnitSort"/>
+            <setting name="DEFAULT_JOBLIST_FILTER" value="com.navis.ecn4.xmlrdt.impl.filters.DefaultJobListFilter"/>
+            <setting name="DEFAULT_JOBLIST_SORTER" value="com.navis.ecn4.xmlrdt.impl.sorters.PriorityJobListSort"/>
+            <setting name="REDUNDANT_PUSH_CHECK" value="true"/>
+            <setting name="ALLOW_CACHED_FORMS" value="false"/>
+            <setting name="LOCALE" value="en"/>
+            <component name="stateModelFiles">
+				<!-- 2021Oct22 alew Tractor login set this way for training purposes -->
+				<setting name="ANONYMOUS_LOGIN" value="extensions/anonymousTruckLogin.xml"/>
+				<!-- 2022Nov30 sramasamy - bombcart page skip, lift the unlisted job of CHE -->
+				<setting name="custom" value="extensions/custom_stateModel.xml"/>
+				
+				<setting name="DEFAULT" value="classpath:/xmlrdt/stateModel.xml"/>
+            </component>
+            <component name="formModelFiles">
+                <setting name="DEFAULT" value="classpath:/xmlrdt/formModel.xml"/>
+            </component>
+        </component>
+
+        <component name="bento">
+            <setting name="PORT" value="13102"/>
+        </component>
+        <component name="chemessage">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="serialpds">
+            <setting name="ENABLED" value="false"/>
+        </component>
+        <component name="cheresetter">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="dispatcher">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="eceventprocessor">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="forceLift">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="swapchecker">
+            <setting name="ENABLED" value="true"/>
+        </component>
+        <component name="checkOrphanWaReleaseChe">
+            <setting name="CHECK_ORPHAN_WA_SCHEDULED_EXECUTION_INTERVAL_MS" value="7500"/>
+        </component>
+
+        <component name="remotecommands">
+            <setting name="ENABLED" value="true"/>
+            <setting name="PORT" value="13103"/>
+        </component>
+
+        <component name="tbdunit">
+            <setting name="OPERATION" value="remote"/>
+            <component name="remote">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.tbdunit.impl.TbdUnitComponentProvider"/>
+            </component>
+        </component>
+
+        <component name="standardmessage">
+            <setting name="OPERATION" value="remote"/>
+            <component name="remote">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.standardmessage.impl.StandardMessageComponentProvider"/>
+            </component>
+        </component>
+
+        <component name="asc">
+            <setting name="OPERATION" value="none"/>
+            <component name="aems">
+                <setting name="SERVICE_BUILDER" value="com.navis.ecn4.esb.aems.AemsServiceBuilder"/>
+                <setting name="URI" value="http://host:port/msplus/services/TosAemsService"/>
+                <setting name="POLLING_INTERVAL" value="1"/>
+                <setting name="TIMEOUT" value="60000"/>
+                <setting name="SYNCHRONIZE_INVENTORY" value="true"/>
+                <setting name="ENABLE_XML_FORMATTING" value="false"/>
+            </component>
+            <component name="dbintf">
+                <setting name="ENABLED" value="false"/>
+                <setting name="SERVICE_BUILDER" value="com.navis.ecn4.esb.dbintf.AscServiceBuilder"/>
+                <setting name="DBDRIVER" value="org.hsqldb.jdbc.JDBCDriver"/>
+                <setting name="DBURI" value="jdbc:hsqldb:hsql://localhost/dbintf"/>
+                <setting name="DBUSERNAME" value="dba"/>
+                <setting name="DBPASSWORD" value=""/>
+                <setting name="DBSCHEMA" value="DBINTF"/>
+                <setting name="POLLING_INTERVAL" value="3000"/>
+                <setting name="AREA_STATUS_ENABLED" value="false"/>
+                <setting name="TRANSFER_POINT_STATUS_ENABLED" value="false"/>
+                <component name="scripts">
+                    <setting name="acknowledgeAbortedManualMoves" value="classpath:/mule/dbintf/scripts/acknowledgeAbortedManualMoves.sql"/>
+                    <setting name="acknowledgeCommandQueueUpdate" value="classpath:/mule/dbintf/scripts/acknowledgeCommandQueueUpdate.sql"/>
+                    <setting name="cancelTransportOrder" value="classpath:/mule/dbintf/scripts/cancelTransportOrder.sql"/>
+                    <setting name="insertTransportOrder" value="classpath:/mule/dbintf/scripts/insertTransportOrder.sql"/>
+                    <setting name="selectAreaStatusUpdates" value="classpath:/mule/dbintf/scripts/selectAreaStatusUpdates.sql"/>
+                    <setting name="selectAscCommandQueueUpdates" value="classpath:/mule/dbintf/scripts/selectAscCommandQueueUpdates.sql"/>
+                    <setting name="selectCheStatusUpdates" value="classpath:/mule/dbintf/scripts/selectCheStatusUpdates.sql"/>
+                    <setting name="updateNavisChe" value="classpath:/mule/dbintf/scripts/updateNavisChe.sql"/>
+                    <setting name="updateTransferPoint" value="classpath:/mule/dbintf/scripts/updateTransferPoint.sql"/>
+                    <setting name="updateTransferPointStatus" value="classpath:/mule/dbintf/scripts/updateTransferPointStatus.sql"/>
+                    <setting name="updateTransferPointStatus1" value="classpath:/mule/dbintf/scripts/updateTransferPointStatus1.sql"/>
+                    <setting name="updateTransferPointStatus2" value="classpath:/mule/dbintf/scripts/updateTransferPointStatus2.sql"/>
+                    <setting name="updateTransferPointStatus3" value="classpath:/mule/dbintf/scripts/updateTransferPointStatus3.sql"/>
+                    <setting name="updateTransferPointStatus4" value="classpath:/mule/dbintf/scripts/updateTransferPointStatus4.sql"/>
+                    <setting name="updateTransportOrder" value="classpath:/mule/dbintf/scripts/updateTransportOrder.sql"/>
+                    <setting name="updateTransportOrderFromCQ" value="classpath:/mule/dbintf/scripts/updateTransportOrderFromCQ.sql"/>
+                </component>
+                <component name="aborthandlers">
+                    <setting name="ABORT_03" value="com.navis.ecn4.esb.dbintf.impl.DefaultAscAbortExtensionProcessor"/>
+                </component>
+            </component>
+            <component name="none">
+                <setting name="SERVICE_BUILDER" value="com.navis.ecn4.esb.aems.EmptyAemsServiceBuilder"/>
+            </component>
+        </component>
+
+        <component name="geodetic">
+            <setting name="OPERATION" value="local"/>
+            <component name="remote">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.geodetic.impl.GeodeticComponentProvider"/>
+                <setting name="USERNAME" value="admin"/>
+            </component>
+            <component name="local">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.geodetic.impl.LocalGeodeticComponentProvider"/>
+            </component>
+            <component name="none">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.geodetic.impl.EmptyGeodeticComponentProvider"/>
+            </component>
+        </component>
+
+        <!--General ECN4 to N4 RESTful webservice call settings-->
+        <component name="rest">
+            <setting name="OPERATION" value="remote"/>
+            <component name="remote">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.util.restapi.impl.RestComponentProvider"/>
+                <setting name="USERNAME" value="admin"/>
+            </component>
+            <component name="local">
+                <setting name="COMPONENT_PROVIDER" value="com.navis.ecn4.util.restapi.impl.LocalRestComponentProvider"/>
+            </component>
+        </component>
+
+        <component name="ocr">
+            <setting name="ENABLED" value="true"/>
+            <setting name="PORT" value="13106"/>
+            <setting name="PROVIDER" value="APS"/>
+        </component>
+
+        <component name="esb">
+            <!-- stores the mule persistence store information, needs to be set -->
+            <setting name="PERSISTENCE_STORE" value="conf/ecn4store"/>
+        </component>
+
+        <component name="equipment">
+            <setting name="ITV_VALIDATOR" value="com.navis.ecn4.equipment.impl.DefaultItvValidator"/>
+            <setting name="CHASSIS_VALIDATOR" value="com.navis.ecn4.equipment.impl.DefaultChassisValidator"/>
+            <setting name="WORK_INSTRUCTION_PROMOTER" value="com.navis.ecn4.model.impl.WorkInstructionPromoter"/>
+            <setting name="STACK_STATUS_VALIDATOR" value="com.navis.ecn4.equipment.impl.DefaultStackStatusValidator"/>
+            <setting name="STACK_STATUS_VALIDATION_MENWORKING_SKIP" value="false"/>
+            <setting name="STACK_STATUS_VALIDATION_IMPEDIMENT_SKIP" value="false"/>
+            <setting name="STACK_STATUS_VALIDATION_STACKHEIGHT_SKIP" value="false"/>
+            <setting name="STACK_STATUS_VALIDATION_EQUIPMENT_LENGTH_SKIP" value="false"/>
+            <setting name="QUEUING_STRATEGY" value="com.navis.ecn4.equipment.impl.FIFOTruckPowQueuingStrategy"/>
+            <!-- QUEUING_STRATEGY usage notes:                                                                             -->
+            <!-- 1)  A queuing strategy may be defined for trucks OR straddles, but not both simultaneously.               -->
+            <!-- 2)  Queuing strategies are used for job swapping for the specified CHE type, i.e., trucks or strads.      -->
+            <!-- 3)  The below setting configuration is used for defining a straddle queuing strategy:                     -->
+            <!-- setting name="QUEUING_STRATEGY" value="com.navis.ecn4.equipment.impl.LoadSequenceStraddleQueuingStrategy" -->
+
+            <!-- USE_VMT_MESSAGING usage notes -->
+            <!-- 1)  VMT messaging is used to issue queuing instructions on VMTs used by CHE operators. -->
+            <!-- 2)  Queuing instructions tell the CHE operator to either proceed or wait before        -->
+            <!--     executing a segment of a dispatch action.                                          -->
+            <!-- 3)  The below setting configuration is used for enabling VMT messaging:                -->
+            <!-- setting name="USE_VMT_MESSAGING" value="true" -->
+            <component name="xmlrdt">
+                <component name="joblist">
+                    <setting name="INCLUDE_TQ_MOVE" value="false"/>
+					<setting name="INCLUDE_REEFER_ONPOWER" value="true"/>
+                </component>
+            </component>
+			<component name="dispatch">
+                <setting name="REEFER_ONPOWER" value="true"/>
+            </component>
+        </component>
+		
+        <component name="yardshiftcalculators">
+            <setting name="STRAD" value="com.navis.ecn4.model.impl.YardShiftCalculator"/>
+            <setting name="RTG" value="com.navis.ecn4.model.impl.YardShiftCalculator"/>
+        </component>
+
+        <component name="cheInactiveThreshold">
+            <!-- enable auto logout by setting these values to # of seconds to wait before automatically logging out equipment -->
+            <setting name="TRUCK" value="0"/>
+            <setting name="STRAD" value="0"/>
+            <setting name="RMG" value="0"/>
+            <setting name="RTG" value="0"/>
+            <setting name="FORK" value="0"/>
+            <setting name="CLERK" value="0"/>
+            <setting name="REACHSTACKER" value="0"/>
+            <setting name="WSVGC" value="0"/>
+            <setting name="DEFAULT" value="0"/>
+        </component>
+
+        <component name="n4completion">
+            <setting name="N4_MOVE_COMPLETION" value="false"/>
+        </component>
+        <!-- Configure throttle time for progress update messages by CHE type -->
+        <component name="cheProgressThrottle">
+            <component name="TRUCK">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="STRAD">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="RMG">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="RTG">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="FORK">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="CLERK">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="REACHSTACKER">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="WSVGC">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+            <component name="DEFAULT">
+                <setting name="TIME_MS" value="0"/>
+                <setting name="DISTANCE_M" value="0"/>
+            </component>
+        </component>
+    </component>
+
+</settings>

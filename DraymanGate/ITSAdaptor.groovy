@@ -80,10 +80,6 @@ class ITSAdaptor {
             LocPosition locPosition = ufv ? ufv.getUfvLastKnownPosition() : null;
             locPosition = locPosition ? (locPosition.isYardPosition() ? locPosition : ufv.getFinalPlannedPosition()) : null;
 
-            /*containerList.add(getContainerDetailsMap(tran, locPosition));
-            if (inMessageType == null && i == 0) {
-                inMessageType = tran.isReceival() ? T__SITE_ARRIVAL : T__PICKUP;
-            }*/
             if (tran.isReceival()) {
                 receivalContainerList.add(getContainerDetailsMap(tran, locPosition));
                 receivalChassisList.add(getChassisDetailsMap(tran));
@@ -156,7 +152,6 @@ class ITSAdaptor {
     }
 
     private void frameAndSendMessage(TruckVisitDetails visitDetails, String msgType, List containerList, List chassisList) {
-        //if (containerList.size() > 0) {
         Map msgDetails = getGenericDetails(visitDetails);
         logMsg("msgDetails: " + msgDetails);
         if (msgDetails != null) {
@@ -174,7 +169,6 @@ class ITSAdaptor {
 
             createAndSendDraymanMessage(msgDetails);
         }
-        //}
     }
 
     private Map getGenericDetails(TruckVisitDetails inTv) {
@@ -499,26 +493,6 @@ class ITSAdaptor {
         if (locPosition)
             logMsg("loc PosSlot: " + locPosition.getPosSlot() + ", PosLocId: "+locPosition.getPosLocId() + ", BlockName: " + locPosition.getBlockName() + ", posBin: "+locPosition.getPosBin()+", posName: "+locPosition.getPosName());
 
-        //loc PosSlot: E130032, PosLocId: PIERG, BlockName: null, posBin: null, posName: Y-PIERG-E130032
-        //AbstractYardBlock
-        /*AbstractYardBlock abstractYardBlock = getAbstractYardBlock((ContextHelper.getThreadYard()).getYrdBinModel().getAbnGkey());
-        logMsg("full label: " + abstractYardBlock.getAyblkLabelUIFullPosition());
-
-        // B2R2C2T1
-        // B63607.1
-        String fullPosition = abstractYardBlock.getAyblkLabelUIFullPosition();
-        logMsg("fullPosition: "+fullPosition);
-
-        int startIndex = 0, endIndex = 0;
-        if (fullPosition.size() > 1) {
-            startIndex = Integer.parseInt(fullPosition.substring(1, 2));
-        }
-        if (fullPosition.size() > 3) {
-            endIndex = Integer.parseInt(fullPosition.substring(3, 4));
-        }
-        //logMsg("startIndex: "+startIndex + ", endIndex: "+endIndex);
-        (inPosSlot.length() > endIndex) ? inPosSlot.substring(startIndex, startIndex + endIndex) : null;*/
-
         posValues.put(T__ROW, T_PERCENTILE);
         posValues.put(T__BAY, T_PERCENTILE);
         posValues.put(T__CELL, T_PERCENTILE);
@@ -653,14 +627,6 @@ class ITSAdaptor {
         logMsg("createIntegrationSrcMsg");
         IntegrationServiceMessage integrationServiceMessage = new IntegrationServiceMessage();
         try {
-            /*if (inEvent) {
-                integrationServiceMessage.setIsmEventPrimaryKey((Long) inEvent.getEvntEventType().getPrimaryKey());
-                integrationServiceMessage.setIsmEntityClass(inEvent.getEventAppliedToClass());
-                integrationServiceMessage.setIsmEventTypeId(inEvent.getEventTypeId());
-            }
-            if (inEntityId)
-                integrationServiceMessage.setIsmEntityNaturalKey(inEntityId);*/
-
             if (inIntegrationService) {
                 integrationServiceMessage.setIsmIntegrationService(inIntegrationService);
                 integrationServiceMessage.setIsmFirstSendTime(ArgoUtils.timeNow());
@@ -677,9 +643,6 @@ class ITSAdaptor {
             if (responseMessage) {
                 integrationServiceMessage.setIsmUserString4(responseMessage);
             }
-            /*if (inEventGkey) {
-                integrationServiceMessage.setIsmUserString3(inEventGkey);
-            }*/
 
             String msg = inMessagePayload.length() > DB_CHAR_LIMIT ? inMessagePayload.substring(0, DB_CHAR_LIMIT) : inMessagePayload;
             integrationServiceMessage.setIsmMessagePayload(msg);

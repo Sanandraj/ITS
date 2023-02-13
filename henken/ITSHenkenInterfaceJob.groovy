@@ -46,7 +46,7 @@ class ITSHenkenInterfaceJob extends AbstractGroovyJobCodeExtension {
                 // Used for any parameters to send to XML-RPC Data
                 Vector params = new Vector();
                 params.addElement(ism.getIsmMessagePayloadBig());
-                params.addElement(MsgHighlight);
+                params.addElement(MSG_HIGHLIGHT_NIL);
                 params.addElement(ism.getIsmUserString1()); //cheId
                 params.addElement(String.valueOf(ism.getIsmSeqNbr())); //transactionNumber - ecevent gkey
                 params.addElement(T_5000);
@@ -125,7 +125,9 @@ class ITSHenkenInterfaceJob extends AbstractGroovyJobCodeExtension {
     private static final String T_5000 = "5000";
     private static final String T_FAILURE = "FAILURE";
     private static final String T_HKI = "HKI";
-    private static final double MsgHighlight = 26;
+    private static final double MSG_HIGHLIGHT_FULL = 255;
+    private static final double MSG_HIGHLIGHT_PARTIAL = 26;
+    private static final double MSG_HIGHLIGHT_NIL = 0;
     private static final String T_EMPTY = "";
     //private static String SERVER_URL = "http://192.168.94.8:9003";
     //private static String SERVER_URL;
