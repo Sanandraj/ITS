@@ -96,7 +96,7 @@ class ITSRecordWaiverForNonDeliverableUnitsJob extends AbstractGroovyJobCodeExte
                         gtr.setGnteGuaranteeStartDay(today)
                         gtr.setGnteGuaranteeEndDay(today)
                         gtr.setGnteNotes("Waived for NDB")
-                        gtr.setGnteGuaranteeCustomer(deriveScopedBizUnit(cue.getBexuLineOperatorId()))
+                        gtr.setGnteGuaranteeCustomer(deriveScopedBizUnit("ITSOAC"))
                         try {
                             GuaranteeManager.recordGuarantee(gtr);
                             // guaranteeList.add(gtr)
