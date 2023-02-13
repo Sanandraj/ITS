@@ -160,5 +160,5 @@ class ITSUpdateUnusedBookingTableViewCommand extends AbstractTableViewCommand {
 
 
     }
-    private final static Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
+    private static Logger LOGGER = Logger.getLogger(ITSUpdateUnusedBookingTableViewCommand.class)
 }

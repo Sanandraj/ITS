@@ -5,7 +5,6 @@
 
 
 import com.navis.argo.ContextHelper
-import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
@@ -15,7 +14,6 @@ import com.navis.framework.presentation.ui.message.MessageType
 import com.navis.framework.presentation.ui.message.OptionDialog
 import com.navis.framework.util.internationalization.PropertyKeyFactory
 import com.navis.orders.business.eqorders.Booking
-import com.navis.vessel.business.schedule.VesselVisitDetails
 import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
@@ -57,53 +55,35 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand {
         pt.invoke(new CarinaPersistenceCallback() {
             @Override
             protected void doInTransaction() {
-                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size() > 1) {
+                if (inGkeys != null && !inGkeys.isEmpty() && inGkeys.size() > 0) {
                     List<Serializable> bookingGkeysDelete = new ArrayList<Serializable>()
                     long count = 0
                     long errorCount = 0
-                    boolean error = false
-                    boolean bkgCancel = false
                     for (Serializable it : inGkeys) {
                         Booking booking = Booking.hydrate(it)
                         if (booking == null) {
+                            informationBox(count, errorCount)
                             return;
                         }
-                        VesselVisitDetails vvd = VesselVisitDetails.resolveVvdFromCv(booking.getEqoVesselVisit())
-                        if (vvd != null && vvd.getVvdTimeCargoCutoff() == null){
-                            OptionDialog.showInformation(PropertyKeyFactory.valueOf("Unable to process without Dry-Cut off value"),PropertyKeyFactory.valueOf("Booking Reduction"))
-                            return
-                        }                        
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
-                        if (vvd != null && vvd.getVvdTimeCargoCutoff()?.before(ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))){
-                            OptionDialog.showError(PropertyKeyFactory.valueOf("Past Dry cutoff - ${vvd.getVvdTimeCargoCutoff().toString()}."), PropertyKeyFactory.valueOf("Unable to perform."))
-                            return
-                        }
-                        if (timeZone != null && booking.getEqboNbr() != null && booking.eqoTallyReceive == 0) {
-                            PersistenceTemplate template = new PersistenceTemplate(getUserContext())
-                            template.invoke(new CarinaPersistenceCallback() {
-                                @Override
-                                protected void doInTransaction() {
-                                    bookingGkeysDelete.add(booking.getPrimaryKey())
-                                    count = count + 1;
-                                    bkgCancel = true;
-                                }
-                            })
+                        if (timeZone != null && booking.getEqboNbr() != null && booking.getEqoTally() == 0) {
+                            bookingGkeysDelete.add(booking.getPrimaryKey())
                         } else {
                             errorCount = errorCount + 1;
-                            if (count == 0) {
-                                error = true;
-                            }
                         }
                     }
                     if (bookingGkeysDelete.size() > 0) {
-                        deleteBookingsByGkeys(bookingGkeysDelete)
+                        for (Serializable it : inGkeys) {
+                            try {
+                                Booking booking = Booking.hydrate(it)
+                                booking.purge()
+                                count = count + 1;
+                            } catch (Exception inEx) {
+                                errorCount = errorCount + 1;
+                            }
+                        }
                     }
-                    if (!bkgCancel) {
-                        informationBox(count, Long.valueOf(inGkeys.size()))
-                    }
-                    if (bkgCancel) {
-                        informationBox(count, errorCount)
-                    }
+                    informationBox(count, errorCount)
                 } else {
                     OptionDialog.showError(PropertyKeyFactory.valueOf("Selected bookings are null, or not more than one booking"), PropertyKeyFactory.valueOf("Mass Cancel bookings Error"))
                 }
@@ -112,14 +92,8 @@ class ITSBkgMassCancelTableViewCommand extends AbstractTableViewCommand {
     }
 
     private static final informationBox(long count, long errorCount) {
-        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${errorCount}"), PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK, null)
+        OptionDialog.showMessage(PropertyKeyFactory.valueOf("Bookings purged:      ${count} \nBooking Error count:  ${errorCount}"), PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK, null)
     }
 
-    private static final deleteBookingsByGkeys(List<Serializable> inGkeys) {
-        for (Serializable it : inGkeys) {
-            Booking booking = Booking.hydrate(it)
-            booking.purge()
-        }
-    }
-    private final static Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
+    private static Logger LOGGER = Logger.getLogger(ITSBkgMassCancelTableViewCommand.class)
 }

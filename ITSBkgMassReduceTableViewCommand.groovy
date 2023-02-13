@@ -7,7 +7,6 @@
 import com.navis.argo.ContextHelper
 import com.navis.argo.business.api.ArgoUtils
 import com.navis.external.framework.ui.AbstractTableViewCommand
-import com.navis.framework.metafields.MetafieldIdFactory
 import com.navis.framework.metafields.entity.EntityId
 import com.navis.framework.persistence.HibernateApi
 import com.navis.framework.persistence.hibernate.CarinaPersistenceCallback
@@ -73,7 +72,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                         TimeZone timeZone = ContextHelper.getThreadUserTimezone()
                         EventType event = EventType.findEventTypeProxy("BOOKING_REDUCED")
                         if (vvd != null &&
-                                (booking.getEqoQuantity()>booking.getEqoTallyReceive())) {
+                                (booking.getEqoQuantity() > booking.getEqoTallyReceive())) {
                             Long totalItemQuantity = 0
                             boolean bkgQtyUpdate = false
                             if (booking.getEqboNbr() != null) {
@@ -88,20 +87,19 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                             Long eqoiTallyIn = eqoItem.getEqoiTallyReceive()
                                             if (eqoiTallyIn >= 0 || eqoiTallyOut >= 0) {
                                                 if (eqoiTallyIn >= eqoiTallyOut && eqoiTallyIn < eqoiQty) {
-                                                    if(eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyIn){
+                                                    if (eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyIn) {
                                                         eqoItem.setEqoiTallyLimit(eqoiTallyIn)
-                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyIn){
+                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyIn) {
                                                         eqoItem.setEqoiReceiveLimit(eqoiTallyIn)
 
                                                     }
                                                     eqoItem.setEqoiQty(eqoiTallyIn)
                                                     bkgReduce = true
                                                     bkgQtyUpdate = true
-                                                }
-                                                else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
-                                                    if(eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyOut){
+                                                } else if (eqoiTallyOut >= eqoiTallyIn && eqoiTallyOut < eqoiQty) {
+                                                    if (eqoItem.getEqoiTallyLimit() != null && eqoItem.getEqoiTallyLimit() > eqoiTallyOut) {
                                                         eqoItem.setEqoiTallyLimit(eqoiTallyOut)
-                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyOut){
+                                                    } else if (eqoItem.getEqoiReceiveLimit() != null && eqoItem.getEqoiReceiveLimit() > eqoiTallyOut) {
                                                         eqoItem.setEqoiReceiveLimit(eqoiTallyOut)
 
                                                     }
@@ -112,7 +110,7 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                             }
                                             totalItemQuantity += eqoItem.getEqoiQty()
                                         }
-                                        if(bkgQtyUpdate){
+                                        if (bkgQtyUpdate) {
                                             count = count + 1
                                             booking.recordEvent(event, null, ContextHelper.getThreadUserId(), ArgoUtils.convertDateToLocalDateTime(ArgoUtils.timeNow(), timeZone))
 
@@ -120,12 +118,12 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
                                     }
                                 }
                             }
-                            if (bkgQtyUpdate){
+                            if (bkgQtyUpdate) {
                                 booking.setEqoQuantity(totalItemQuantity)
                                 HibernateApi.getInstance().save(booking)
                             }
 
-                        } else if (booking.getEqoQuantity() == booking.getEqoTallyReceive()){
+                        } else if (booking.getEqoQuantity() == booking.getEqoTallyReceive()) {
                             errorCount = errorCount + 1
                         }
                     }
@@ -146,5 +144,5 @@ class ITSBkgMassReduceTableViewCommand extends AbstractTableViewCommand {
     private static final informationBox(long count, long errorCount) {
         OptionDialog.showMessage(PropertyKeyFactory.valueOf("Vessel Cut-offs (Performed count):      ${count} \nVessel Cut-offs (Not performed count):  ${errorCount}"), PropertyKeyFactory.valueOf("Information"), MessageType.INFORMATION_MESSAGE, ButtonTypes.OK, null)
     }
-    private final static Logger LOGGER = Logger.getLogger(ITSBkgMassReduceTableViewCommand.class)
+    private static Logger LOGGER = Logger.getLogger(ITSBkgMassReduceTableViewCommand.class)
 }

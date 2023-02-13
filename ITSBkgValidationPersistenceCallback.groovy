@@ -12,7 +12,6 @@ import com.navis.orders.business.eqorders.Booking
 import com.navis.orders.business.eqorders.EquipmentOrderItem
 import com.navis.services.business.rules.EventType
 import com.navis.vessel.business.schedule.VesselVisitDetails
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 import org.jetbrains.annotations.Nullable
 
@@ -38,10 +37,6 @@ import org.jetbrains.annotations.Nullable
 class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCallback {
     @Override
     void execute(@Nullable Map input, @Nullable Map inOutResults) {
-
-        LOGGER.setLevel(Level.INFO)
-        LOGGER.info("ITSBkgValidationPersistenceCallback starts :: ")
-
         if (input.get("recordEvent") != null && "YES".equalsIgnoreCase((String) input.get("recordEvent"))) {
             Serializable vesselVisitDetails = (Serializable) input?.get("vesselVisit")
             if (vesselVisitDetails) {
@@ -99,15 +94,15 @@ class ITSBkgValidationPersistenceCallback extends AbstractExtensionPersistenceCa
                 }
             }
             booking.setEqoQuantity(totalItemQuantity)
-            //  HibernateApi.getInstance().save(booking)
+
         } else if (booking.eqoTallyReceive == 0) {
             booking.purge()
             reduced = true
         }
-        if(reduced){
-            inOutResults.put("reduced","YES")
+        if (reduced) {
+            inOutResults.put("reduced", "YES")
         }
 
     }
-    private final static Logger LOGGER = Logger.getLogger(ITSBkgValidationPersistenceCallback.class)
+    private static Logger LOGGER = Logger.getLogger(ITSBkgValidationPersistenceCallback.class)
 }
